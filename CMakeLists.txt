@@ -19,9 +19,12 @@ target_include_directories(limcode INTERFACE
   $<INSTALL_INTERFACE:include>
 )
 
-# Benchmark executable
+# Benchmark executables
 add_executable(limcode_benchmark benchmark/main.cpp)
 target_link_libraries(limcode_benchmark PRIVATE limcode)
+
+add_executable(limcode_stress benchmark/stress_test.cpp)
+target_link_libraries(limcode_stress PRIVATE limcode)
 
 # Tests
 enable_testing()
