@@ -69,13 +69,25 @@
 #include <variant>
 #include <vector>
 
-// Parallel STL includes (must be before namespace)
-#if __cplusplus >= 201703L && __has_include(<execution>)
-#include <algorithm>
+// Threading support
+#include <thread>
+#include <mutex>
 #include <condition_variable>
+
+// Parallel STL includes (must be before namespace)
+#if __cplusplus >= 201703L && __has_include(<execution>) && !defined(LIMCODE_NO_PARALLEL)
+#include <algorithm>
 #include <execution>
 #include <functional>
 #include <numeric>
+// Check if parallel execution is actually available
+#if defined(__cpp_lib_execution) && __cpp_lib_execution >= 201902L
+#define LIMCODE_HAS_PARALLEL_EXECUTION 1
+#endif
+#endif
+
+#ifndef LIMCODE_HAS_PARALLEL_EXECUTION
+#define LIMCODE_HAS_PARALLEL_EXECUTION 0
 #endif
 
 // Memory-mapped file support (Unix/macOS)
@@ -598,12 +610,9 @@ inline bool decode_short_vec(const uint8_t *data, size_t size,
 #endif
 
 // Parallel execution support (C++17 parallel algorithms)
-// Note: includes moved to after namespace declaration to avoid conflicts
-#if __cplusplus >= 201703L && __has_include(<execution>)
-#define LIMCODE_HAS_PARALLEL_STL 1
-#else
-#define LIMCODE_HAS_PARALLEL_STL 0
-#endif
+// Note: includes moved to top of file before namespace
+// Uses LIMCODE_HAS_PARALLEL_EXECUTION which is defined based on feature detection
+#define LIMCODE_HAS_PARALLEL_STL LIMCODE_HAS_PARALLEL_EXECUTION
 
 // Lock-free support (requires C++11 atomics)
 #include <atomic>
@@ -693,23 +702,44 @@ LIMCODE_ALWAYS_INLINE void limcode_copy4(void *dst, const void *src) noexcept {
 
 /**
  * @brief Prefetch for reading (temporal, L1 cache)
+ * Cross-platform implementation using compiler intrinsics
  */
 LIMCODE_ALWAYS_INLINE void limcode_prefetch_read(const void *addr) noexcept {
+#if defined(__x86_64__) || defined(_M_X64)
   __asm__ volatile("prefetcht0 (%0)" : : "r"(addr));
+#elif defined(__aarch64__) || defined(__ARM_NEON) || defined(__arm__)
+  __builtin_prefetch(addr, 0, 3); // read hint, high temporal locality
+#else
+  (void)addr; // No-op on unsupported platforms
+#endif
 }
 
 /**
  * @brief Prefetch for writing (temporal, L1 cache)
+ * Cross-platform implementation using compiler intrinsics
  */
 LIMCODE_ALWAYS_INLINE void limcode_prefetch_write(void *addr) noexcept {
+#if defined(__x86_64__) || defined(_M_X64)
   __asm__ volatile("prefetcht0 (%0)" : : "r"(addr));
+#elif defined(__aarch64__) || defined(__ARM_NEON) || defined(__arm__)
+  __builtin_prefetch(addr, 1, 3); // write hint, high temporal locality
+#else
+  (void)addr; // No-op on unsupported platforms
+#endif
 }
 
 /**
  * @brief Non-temporal prefetch (bypass cache, for streaming)
+ * Cross-platform implementation using compiler intrinsics
  */
 LIMCODE_ALWAYS_INLINE void limcode_prefetch_nta(const void *addr) noexcept {
+#if defined(__x86_64__) || defined(_M_X64)
   __asm__ volatile("prefetchnta (%0)" : : "r"(addr));
+#elif defined(__aarch64__) || defined(__ARM_NEON) || defined(__arm__)
+  __builtin_prefetch(addr, 0, 0); // read hint, no temporal locality
+#else
+  (void)addr; // No-op on unsupported platforms
+#endif
 }
 
 /**
@@ -730,7 +760,15 @@ LIMCODE_ALWAYS_INLINE void limcode_release_fence() noexcept {
  * @brief Full memory barrier
  */
 LIMCODE_ALWAYS_INLINE void limcode_mfence() noexcept {
+#if defined(__x86_64__) || defined(_M_X64)
   __asm__ volatile("mfence" ::: "memory");
+#elif defined(__aarch64__) || defined(__ARM_NEON)
+  __asm__ volatile("dmb sy" ::: "memory");
+#elif defined(__arm__)
+  __asm__ volatile("dmb" ::: "memory");
+#else
+  __sync_synchronize();
+#endif
 }
 
 /**
@@ -739,13 +777,19 @@ LIMCODE_ALWAYS_INLINE void limcode_mfence() noexcept {
  * Modern Intel/AMD CPUs (Ivy Bridge+, Zen+) have ERMSB (Enhanced REP MOVSB)
  * which makes REP MOVSB as fast or faster than SIMD for many sizes.
  * The CPU handles alignment and optimal micro-op generation internally.
+ *
+ * On non-x86 platforms, falls back to memcpy.
  */
 LIMCODE_ALWAYS_INLINE void limcode_rep_movsb(void *dst, const void *src,
                                              size_t count) noexcept {
+#if defined(__x86_64__) || defined(_M_X64)
   __asm__ volatile("rep movsb"
                    : "+D"(dst), "+S"(src), "+c"(count)
                    :
                    : "memory");
+#else
+  ::std::memcpy(dst, src, count);
+#endif
 }
 
 /**
