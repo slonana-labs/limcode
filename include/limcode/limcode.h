@@ -74,12 +74,14 @@
 #include <mutex>
 #include <condition_variable>
 
-// Parallel STL includes (must be before namespace)
-#if __cplusplus >= 201703L && __has_include(<execution>) && !defined(LIMCODE_NO_PARALLEL)
+// Standard algorithm headers (always needed)
 #include <algorithm>
-#include <execution>
 #include <functional>
 #include <numeric>
+
+// Parallel STL includes (optional, must be before namespace)
+#if __cplusplus >= 201703L && __has_include(<execution>) && !defined(LIMCODE_NO_PARALLEL)
+#include <execution>
 // Check if parallel execution is actually available
 #if defined(__cpp_lib_execution) && __cpp_lib_execution >= 201902L
 #define LIMCODE_HAS_PARALLEL_EXECUTION 1
