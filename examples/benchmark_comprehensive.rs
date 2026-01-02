@@ -1,13 +1,57 @@
-use limcode::{serialize_bincode, deserialize_bincode, deserialize_bincode_zerocopy};
+use limcode::{serialize_bincode, deserialize_bincode};
 use std::time::Instant;
+
+fn validate_formats(data: &[u8]) -> bool {
+    let limcode_encoded = serialize_bincode(data);
+    let bincode_encoded = bincode::serialize(data).unwrap();
+
+    // Verify limcode matches bincode format exactly
+    if limcode_encoded != bincode_encoded {
+        println!("    ⚠️  Format mismatch! Limcode != Bincode");
+        println!("       Limcode len: {}, Bincode len: {}", limcode_encoded.len(), bincode_encoded.len());
+        return false;
+    }
+
+    // Verify all three can decode to same data
+    let limcode_decoded = deserialize_bincode(&limcode_encoded).unwrap();
+    let bincode_decoded: Vec<u8> = bincode::deserialize(&bincode_encoded).unwrap();
+
+    if limcode_decoded != data || bincode_decoded != data {
+        println!("    ⚠️  Decode mismatch!");
+        return false;
+    }
+
+    true
+}
 
 fn main() {
     println!("═══════════════════════════════════════════════════════════════════════════");
     println!("  Comprehensive Performance Comparison: Limcode vs Wincode vs Bincode");
     println!("═══════════════════════════════════════════════════════════════════════════\n");
 
-    let sizes = vec![128, 512, 1024, 2048, 4096];
-    let iterations = 1_000_000;
+    let sizes = vec![64, 128, 256, 512, 1024, 2048, 4096];
+    let iterations = 10_000_000;
+
+    // First validate all formats match
+    println!("FORMAT VALIDATION:");
+    println!("┌──────┬────────────────────────────────┐");
+    println!("│ Size │ Status                         │");
+    println!("├──────┼────────────────────────────────┤");
+    for size in &sizes {
+        let data = vec![0xABu8; *size];
+        let valid = validate_formats(&data);
+        let size_str = if *size >= 1024 {
+            format!("{}KB", size / 1024)
+        } else {
+            format!("{}B", size)
+        };
+        if valid {
+            println!("│ {:>4} │ ✓ Limcode = Bincode           │", size_str);
+        } else {
+            println!("│ {:>4} │ ✗ FORMAT MISMATCH!            │", size_str);
+        }
+    }
+    println!("└──────┴────────────────────────────────┘\n");
 
     println!("SERIALIZATION (Encode) Performance:");
     println!("┌──────┬─────────┬─────────┬─────────┬─────────────┐");
@@ -65,7 +109,7 @@ fn main() {
         let wincode_encoded = wincode::serialize(&data).unwrap();
         let bincode_encoded = bincode::serialize(&data).unwrap();
 
-        // Limcode deserialize
+        // Limcode deserialize (zero-copy - no allocation!)
         let start = Instant::now();
         for _ in 0..iterations {
             let _ = deserialize_bincode(&limcode_encoded).unwrap();
@@ -109,10 +153,10 @@ fn main() {
         let data = vec![0xABu8; *size];
         let encoded = serialize_bincode(&data);
 
-        // Limcode zero-copy deserialize
+        // Limcode zero-copy deserialize (default behavior - no .to_vec()!)
         let start = Instant::now();
         for _ in 0..iterations {
-            let _ = deserialize_bincode_zerocopy(&encoded).unwrap();
+            let _ = deserialize_bincode(&encoded).unwrap();
         }
         let zerocopy_ns = start.elapsed().as_nanos() / iterations;
 

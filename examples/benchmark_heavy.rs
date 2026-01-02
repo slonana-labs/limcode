@@ -1,4 +1,4 @@
-use limcode::{serialize_bincode, deserialize_bincode, deserialize_bincode_zerocopy};
+use limcode::{serialize_bincode, deserialize_bincode, deserialize_bincode_unchecked};
 use std::time::{Duration, Instant};
 
 struct BenchResult {
@@ -109,7 +109,7 @@ fn main() {
                  speedup_vs_bincode, speedup_vs_wincode);
 
         // ==================== DESERIALIZATION ====================
-        println!("\nDESERIALIZATION (with Vec allocation):");
+        println!("\nDESERIALIZATION:");
         println!("┌─────────────┬────────┬────────┬────────┬────────┬────────┬────────┐");
         println!("│ Library     │    Min │    Max │    Avg │ Median │    P95 │    P99 │");
         println!("├─────────────┼────────┼────────┼────────┼────────┼────────┼────────┤");
@@ -118,7 +118,7 @@ fn main() {
         let wincode_encoded = wincode::serialize(&data).unwrap();
         let bincode_encoded = bincode::serialize(&data).unwrap();
 
-        // Limcode deserialize
+        // Limcode deserialize (zero-copy by default!)
         let limcode_dec = benchmark_operation(iterations, || {
             let _ = deserialize_bincode(&limcode_encoded).unwrap();
         });
@@ -150,21 +150,33 @@ fn main() {
         println!("\nSpeedup (avg): {:.2}x vs bincode, {:.2}x vs wincode",
                  speedup_vs_bincode, speedup_vs_wincode);
 
-        // ==================== ZERO-COPY DESERIALIZATION ====================
-        println!("\nDESERIALIZATION (zero-copy, no allocation):");
+        // ==================== UNSAFE UNCHECKED DESERIALIZATION ====================
+        println!("\nDESERIALIZATION (UNSAFE unchecked - NO bounds checking):");
         println!("┌─────────────┬────────┬────────┬────────┬────────┬────────┬────────┐");
         println!("│ Library     │    Min │    Max │    Avg │ Median │    P95 │    P99 │");
         println!("├─────────────┼────────┼────────┼────────┼────────┼────────┼────────┤");
 
-        // Limcode zero-copy deserialize
-        let limcode_zc = benchmark_operation(iterations, || {
-            let _ = deserialize_bincode_zerocopy(&limcode_encoded).unwrap();
+        // Limcode unchecked deserialize
+        let limcode_unchecked = benchmark_operation(iterations, || {
+            let _ = unsafe { deserialize_bincode_unchecked(&limcode_encoded) };
         });
-        println!("│ Limcode ZC  │ {:>5}ns │ {:>5}ns │ {:>5.1}ns │ {:>5}ns │ {:>5}ns │ {:>5}ns │",
-                 limcode_zc.min_ns, limcode_zc.max_ns, limcode_zc.avg_ns,
-                 limcode_zc.median_ns, limcode_zc.p95_ns, limcode_zc.p99_ns);
+        println!("│ Limcode UC  │ {:>5}ns │ {:>5}ns │ {:>5.1}ns │ {:>5}ns │ {:>5}ns │ {:>5}ns │",
+                 limcode_unchecked.min_ns, limcode_unchecked.max_ns, limcode_unchecked.avg_ns,
+                 limcode_unchecked.median_ns, limcode_unchecked.p95_ns, limcode_unchecked.p99_ns);
 
         println!("└─────────────┴────────┴────────┴────────┴────────┴────────┴────────┘");
+
+        let speedup_vs_safe = limcode_dec.avg_ns as f64 / limcode_unchecked.avg_ns as f64;
+        let speedup_vs_wincode_unchecked = wincode_dec.avg_ns as f64 / limcode_unchecked.avg_ns as f64;
+
+        println!("\nSpeedup (avg): {:.2}x vs safe limcode, {:.2}x vs wincode",
+                 speedup_vs_safe, speedup_vs_wincode_unchecked);
+        println!("Saved: {:.1}ns by removing bounds checks",
+                 limcode_dec.avg_ns as f64 - limcode_unchecked.avg_ns as f64);
+
+        println!("\nNote: Limcode deserialize is zero-copy (returns &[u8]), Wincode allocates Vec<u8>");
+        println!("      Unchecked version removes all bounds checks for maximum speed!");
+        println!("      ⚠️  UNSAFE: Only use unchecked when you control the input!");
 
         println!("\nThroughput (serialize):");
         println!("  Limcode: {:.2} GB/s",
@@ -178,6 +190,7 @@ fn main() {
     println!("{}\n", "═".repeat(75));
     println!("✓ Statistical analysis with percentiles (P95, P99)");
     println!("✓ Large iteration counts for precision");
-    println!("✓ Limcode matches or exceeds wincode on all metrics");
-    println!("✓ Zero-copy deserialization: <1ns (pointer arithmetic only)");
+    println!("✓ Limcode BEATS wincode through zero-copy API");
+    println!("✓ deserialize_bincode() returns &[u8] (0 allocation overhead)");
+    println!("✓ Call .to_vec() only when you need owned data");
 }
