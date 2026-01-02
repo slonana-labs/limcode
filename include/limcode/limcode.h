@@ -316,6 +316,15 @@ struct VersionedMessage {
   [[nodiscard]] V0Message& as_v0() { return std::get<V0Message>(inner); }
   [[nodiscard]] const V0Message& as_v0() const { return std::get<V0Message>(inner); }
 
+  // Compatibility methods for old types.h API
+  void set_legacy(LegacyMessage msg) {
+    inner = std::move(msg);
+  }
+
+  void set_v0(V0Message msg) {
+    inner = std::move(msg);
+  }
+
   [[nodiscard]] const MessageHeader& header() const {
     return std::visit([](const auto& msg) -> const MessageHeader& {
       return msg.header;
@@ -1446,6 +1455,86 @@ private:
   std::vector<uint8_t> buffer_;
 };
 
+// ==================== LimcodeEncoder Method Implementations ====================
+
+inline void LimcodeEncoder::write_message_header(const MessageHeader& header) {
+  write_u8(header.num_required_signatures);
+  write_u8(header.num_readonly_signed_accounts);
+  write_u8(header.num_readonly_unsigned_accounts);
+}
+
+inline void LimcodeEncoder::write_compiled_instruction(const CompiledInstruction& instr) {
+  write_u8(instr.program_id_index);
+  write_short_vec_len(static_cast<uint16_t>(instr.accounts.size()));
+  write_bytes(instr.accounts.data(), instr.accounts.size());
+  write_short_vec_len(static_cast<uint16_t>(instr.data.size()));
+  write_bytes(instr.data.data(), instr.data.size());
+}
+
+inline void LimcodeEncoder::write_address_table_lookup(const AddressTableLookup& atl) {
+  write_bytes(atl.account_key.data(), 32);
+  write_short_vec_len(static_cast<uint16_t>(atl.writable_indexes.size()));
+  write_bytes(atl.writable_indexes.data(), atl.writable_indexes.size());
+  write_short_vec_len(static_cast<uint16_t>(atl.readonly_indexes.size()));
+  write_bytes(atl.readonly_indexes.data(), atl.readonly_indexes.size());
+}
+
+inline void LimcodeEncoder::write_legacy_message(const LegacyMessage& msg) {
+  write_message_header(msg.header);
+  write_short_vec_len(static_cast<uint16_t>(msg.account_keys.size()));
+  for (const auto& key : msg.account_keys) {
+    write_bytes(key.data(), 32);
+  }
+  write_bytes(msg.recent_blockhash.data(), 32);
+  write_short_vec_len(static_cast<uint16_t>(msg.instructions.size()));
+  for (const auto& instr : msg.instructions) {
+    write_compiled_instruction(instr);
+  }
+}
+
+inline void LimcodeEncoder::write_v0_message(const V0Message& msg) {
+  write_message_header(msg.header);
+  write_short_vec_len(static_cast<uint16_t>(msg.account_keys.size()));
+  for (const auto& key : msg.account_keys) {
+    write_bytes(key.data(), 32);
+  }
+  write_bytes(msg.recent_blockhash.data(), 32);
+  write_short_vec_len(static_cast<uint16_t>(msg.instructions.size()));
+  for (const auto& instr : msg.instructions) {
+    write_compiled_instruction(instr);
+  }
+  write_short_vec_len(static_cast<uint16_t>(msg.address_table_lookups.size()));
+  for (const auto& atl : msg.address_table_lookups) {
+    write_address_table_lookup(atl);
+  }
+}
+
+inline void LimcodeEncoder::write_versioned_message(const VersionedMessage& msg) {
+  if (msg.is_v0()) {
+    write_u8(VERSION_PREFIX_MASK);
+    write_v0_message(msg.as_v0());
+  } else {
+    write_legacy_message(msg.as_legacy());
+  }
+}
+
+inline void LimcodeEncoder::write_versioned_transaction(const VersionedTransaction& tx) {
+  write_short_vec_len(static_cast<uint16_t>(tx.signatures.size()));
+  for (const auto& sig : tx.signatures) {
+    write_bytes(sig.data(), 64);
+  }
+  write_versioned_message(tx.message);
+}
+
+inline void LimcodeEncoder::write_entry(const Entry& entry) {
+  write_u64(entry.num_hashes);
+  write_bytes(entry.hash.data(), 32);
+  write_short_vec_len(static_cast<uint16_t>(entry.transactions.size()));
+  for (const auto& tx : entry.transactions) {
+    write_versioned_transaction(tx);
+  }
+}
+
 // ==================== LimcodeDecoder ====================
 
 /**
@@ -1768,6 +1857,116 @@ private:
   }
 };
 
+// ==================== LimcodeDecoder Method Implementations ====================
+
+inline MessageHeader LimcodeDecoder::read_message_header() {
+  MessageHeader header;
+  header.num_required_signatures = read_u8();
+  header.num_readonly_signed_accounts = read_u8();
+  header.num_readonly_unsigned_accounts = read_u8();
+  return header;
+}
+
+inline CompiledInstruction LimcodeDecoder::read_compiled_instruction() {
+  CompiledInstruction instr;
+  instr.program_id_index = read_u8();
+  uint16_t accounts_len = read_short_vec_len();
+  instr.accounts.resize(accounts_len);
+  read_bytes(instr.accounts.data(), accounts_len);
+  uint16_t data_len = read_short_vec_len();
+  instr.data.resize(data_len);
+  read_bytes(instr.data.data(), data_len);
+  return instr;
+}
+
+inline AddressTableLookup LimcodeDecoder::read_address_table_lookup() {
+  AddressTableLookup atl;
+  read_bytes(atl.account_key.data(), 32);
+  uint16_t writable_len = read_short_vec_len();
+  atl.writable_indexes.resize(writable_len);
+  read_bytes(atl.writable_indexes.data(), writable_len);
+  uint16_t readonly_len = read_short_vec_len();
+  atl.readonly_indexes.resize(readonly_len);
+  read_bytes(atl.readonly_indexes.data(), readonly_len);
+  return atl;
+}
+
+inline LegacyMessage LimcodeDecoder::read_legacy_message() {
+  LegacyMessage msg;
+  msg.header = read_message_header();
+  uint16_t account_keys_len = read_short_vec_len();
+  msg.account_keys.resize(account_keys_len);
+  for (auto& key : msg.account_keys) {
+    read_bytes(key.data(), 32);
+  }
+  read_bytes(msg.recent_blockhash.data(), 32);
+  uint16_t instructions_len = read_short_vec_len();
+  msg.instructions.reserve(instructions_len);
+  for (uint16_t i = 0; i < instructions_len; ++i) {
+    msg.instructions.push_back(read_compiled_instruction());
+  }
+  return msg;
+}
+
+inline V0Message LimcodeDecoder::read_v0_message() {
+  V0Message msg;
+  msg.header = read_message_header();
+  uint16_t account_keys_len = read_short_vec_len();
+  msg.account_keys.resize(account_keys_len);
+  for (auto& key : msg.account_keys) {
+    read_bytes(key.data(), 32);
+  }
+  read_bytes(msg.recent_blockhash.data(), 32);
+  uint16_t instructions_len = read_short_vec_len();
+  msg.instructions.reserve(instructions_len);
+  for (uint16_t i = 0; i < instructions_len; ++i) {
+    msg.instructions.push_back(read_compiled_instruction());
+  }
+  uint16_t atl_len = read_short_vec_len();
+  msg.address_table_lookups.reserve(atl_len);
+  for (uint16_t i = 0; i < atl_len; ++i) {
+    msg.address_table_lookups.push_back(read_address_table_lookup());
+  }
+  return msg;
+}
+
+inline VersionedMessage LimcodeDecoder::read_versioned_message() {
+  uint8_t first_byte = read_u8();
+  if (first_byte & VERSION_PREFIX_MASK) {
+    // V0 message
+    pos_--; // Put back the first byte
+    read_u8(); // Read it again (version byte)
+    return VersionedMessage(read_v0_message());
+  } else {
+    // Legacy message - first byte is num_required_signatures
+    pos_--; // Put back the first byte
+    return VersionedMessage(read_legacy_message());
+  }
+}
+
+inline VersionedTransaction LimcodeDecoder::read_versioned_transaction() {
+  VersionedTransaction tx;
+  uint16_t sig_len = read_short_vec_len();
+  tx.signatures.resize(sig_len);
+  for (auto& sig : tx.signatures) {
+    read_bytes(sig.data(), 64);
+  }
+  tx.message = read_versioned_message();
+  return tx;
+}
+
+inline Entry LimcodeDecoder::read_entry() {
+  Entry entry;
+  entry.num_hashes = read_u64();
+  read_bytes(entry.hash.data(), 32);
+  uint16_t tx_len = read_short_vec_len();
+  entry.transactions.reserve(tx_len);
+  for (uint16_t i = 0; i < tx_len; ++i) {
+    entry.transactions.push_back(read_versioned_transaction());
+  }
+  return entry;
+}
+
 // ==================== Convenience Functions ====================
 
 /**
@@ -1866,6 +2065,13 @@ deserialize_transaction(std::span<const uint8_t> data) {
 [[nodiscard]] std::vector<uint8_t> serialize_entries(const std::vector<Entry>& entries);
 
 /**
+ * @brief Serialize multiple entries (alias for serialize_entries for API compatibility)
+ */
+[[nodiscard]] inline std::vector<uint8_t> serialize(const std::vector<Entry>& entries) {
+  return serialize_entries(entries);
+}
+
+/**
  * @brief Deserialize multiple entries from bincode-compatible format
  */
 [[nodiscard]] std::vector<Entry> deserialize_entries(const std::vector<uint8_t>& data);
@@ -1881,6 +2087,56 @@ deserialize_transaction(std::span<const uint8_t> data) {
  * Uses u64 for the vector length prefix for bincode compatibility.
  */
 [[nodiscard]] size_t serialized_size(const std::vector<Entry>& entries);
+
+// ==================== Implementation of Forward Declarations ====================
+
+/**
+ * @brief Calculate serialized size of a single entry
+ */
+inline size_t serialized_size(const Entry& entry) {
+  size_t size = 8 + 32 + short_vec_size(static_cast<uint16_t>(entry.transactions.size()));
+  for (const auto& tx : entry.transactions) {
+    size += short_vec_size(static_cast<uint16_t>(tx.signatures.size()));
+    size += tx.signatures.size() * 64;
+
+    const auto& msg = tx.message;
+    if (msg.is_v0()) {
+      size += 1; // version byte
+      const auto& v0 = msg.as_v0();
+      size += 3; // header
+      size += short_vec_size(static_cast<uint16_t>(v0.account_keys.size()));
+      size += v0.account_keys.size() * 32;
+      size += 32; // recent_blockhash
+      size += short_vec_size(static_cast<uint16_t>(v0.instructions.size()));
+      for (const auto& instr : v0.instructions) {
+        size += 1 + short_vec_size(static_cast<uint16_t>(instr.accounts.size())) +
+                instr.accounts.size() + short_vec_size(static_cast<uint16_t>(instr.data.size())) +
+                instr.data.size();
+      }
+      size += short_vec_size(static_cast<uint16_t>(v0.address_table_lookups.size()));
+      for (const auto& atl : v0.address_table_lookups) {
+        size += 32 + short_vec_size(static_cast<uint16_t>(atl.writable_indexes.size())) +
+                atl.writable_indexes.size() + short_vec_size(static_cast<uint16_t>(atl.readonly_indexes.size())) +
+                atl.readonly_indexes.size();
+      }
+    } else {
+      const auto& legacy = msg.as_legacy();
+      size += 3; // header
+      size += short_vec_size(static_cast<uint16_t>(legacy.account_keys.size()));
+      size += legacy.account_keys.size() * 32;
+      size += 32; // recent_blockhash
+      size += short_vec_size(static_cast<uint16_t>(legacy.instructions.size()));
+      for (const auto& instr : legacy.instructions) {
+        size += 1 + short_vec_size(static_cast<uint16_t>(instr.accounts.size())) +
+                instr.accounts.size() + short_vec_size(static_cast<uint16_t>(instr.data.size())) +
+                instr.data.size();
+      }
+    }
+  }
+  return size;
+}
+
+// NOTE: serialize_entries() implementation is below after serialize_entries_turbo() is defined
 
 // ==================== Batch Transaction Serialization ====================
 
@@ -3030,6 +3286,16 @@ inline std::vector<uint8_t> serialize_entries_turbo(const std::vector<Entry>& en
   }
 
   return encoder.finish();
+}
+
+/**
+ * @brief Serialize multiple entries (implementation delegates to turbo version)
+ *
+ * This is the standard serialize_entries() function that was forward-declared earlier.
+ * It simply delegates to the optimized turbo version.
+ */
+inline std::vector<uint8_t> serialize_entries(const std::vector<Entry>& entries) {
+  return serialize_entries_turbo(entries);
 }
 
 inline std::span<const uint8_t> serialize_entries_turbo_zero_alloc(

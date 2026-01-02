@@ -52,7 +52,6 @@ if(ENABLE_HYPER_OPTIMIZATION AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     -mprefer-vector-width=512  # Prefer 512-bit vectors
 
     # Branch prediction
-    -fprofile-arcs             # Profile-guided optimization prep
     -fbranch-probabilities     # Better branch prediction
   )
 
@@ -78,12 +77,7 @@ target_include_directories(limcode_ffi PUBLIC
 )
 target_link_libraries(limcode_ffi PUBLIC limcode)
 
-# Benchmark executables
-add_executable(limcode_benchmark benchmark/main.cpp)
-target_link_libraries(limcode_benchmark PRIVATE limcode)
-
-add_executable(limcode_stress benchmark/stress_test.cpp)
-target_link_libraries(limcode_stress PRIVATE limcode)
+# Benchmarks removed - use rust_serialization_benchmark instead for honest comparisons
 
 # Tests
 enable_testing()
