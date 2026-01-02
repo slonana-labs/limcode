@@ -702,6 +702,8 @@ LIMCODE_ALWAYS_INLINE void limcode_copy4(void *dst, const void *src) noexcept {
                    : "memory");
 }
 
+#endif // LIMCODE_HAS_X86_64_ASM (temporarily closed for cross-platform prefetch functions)
+
 /**
  * @brief Prefetch for reading (temporal, L1 cache)
  * Cross-platform implementation using compiler intrinsics
@@ -772,6 +774,8 @@ LIMCODE_ALWAYS_INLINE void limcode_mfence() noexcept {
   __sync_synchronize();
 #endif
 }
+
+#if LIMCODE_HAS_X86_64_ASM // Resuming x86-64 specific code
 
 /**
  * @brief Fast copy using REP MOVSB (Enhanced REP MOVSB on modern CPUs)
@@ -2105,7 +2109,7 @@ public:
       std::memcpy(out, src, count);
     }
 #else
-    std::memcpy(out, src, count);
+    std::memcpy(out, data_ + pos_, count);
 #endif
 
     pos_ += count;
