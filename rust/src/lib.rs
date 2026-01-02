@@ -112,6 +112,15 @@ pub fn deserialize_bincode(data: &[u8]) -> Result<&[u8], &'static str> {
 /// **Performance:** ~13ns (4ns faster than safe version)
 ///
 /// Use the safe `deserialize_bincode()` unless you absolutely need maximum speed.
+///
+/// # Safety
+///
+/// Caller MUST guarantee:
+/// - `data.len() >= 8` (has space for u64 length prefix)
+/// - `data.len() >= 8 + declared_length` (buffer contains full data)
+/// - Length prefix is valid and not corrupted
+///
+/// Undefined Behavior if these invariants are violated!
 #[inline(always)]
 pub unsafe fn deserialize_bincode_unchecked(data: &[u8]) -> &[u8] {
     // UNSAFE: No bounds checking - caller MUST guarantee valid input!
@@ -125,6 +134,12 @@ pub struct Encoder {
     inner: Option<*mut LimcodeEncoder>,
     // Reusable buffer for fast path - accumulates data, only flushed to C++ in finish()
     fast_buffer: Vec<u8>,
+}
+
+impl Default for Encoder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Encoder {

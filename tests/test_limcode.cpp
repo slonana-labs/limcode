@@ -13,21 +13,27 @@ using namespace limcode;
 void test_entry_serialization() {
   Entry e;
   e.num_hashes = 12345;
-  for (auto& b : e.hash) b = 0xAB;
+  for (auto &b : e.hash)
+    b = 0xAB;
 
   VersionedTransaction tx;
   std::array<uint8_t, 64> sig;
-  for (auto& b : sig) b = 0xCD;
+  for (auto &b : sig)
+    b = 0xCD;
   tx.signatures.push_back(sig);
 
   LegacyMessage msg;
   msg.header = {1, 0, 1};
   std::array<uint8_t, 32> key1, key2, key3;
-  for (auto& b : key1) b = 0x11;
-  for (auto& b : key2) b = 0x22;
-  for (auto& b : key3) b = 0x33;
+  for (auto &b : key1)
+    b = 0x11;
+  for (auto &b : key2)
+    b = 0x22;
+  for (auto &b : key3)
+    b = 0x33;
   msg.account_keys = {key1, key2, key3};
-  for (auto& b : msg.recent_blockhash) b = 0xEE;
+  for (auto &b : msg.recent_blockhash)
+    b = 0xEE;
 
   CompiledInstruction instr;
   instr.program_id_index = 2;
@@ -54,7 +60,8 @@ void test_batch_serialization() {
   for (int i = 0; i < 10; ++i) {
     Entry e;
     e.num_hashes = static_cast<uint64_t>(i * 100);
-    for (auto& b : e.hash) b = static_cast<uint8_t>(i);
+    for (auto &b : e.hash)
+      b = static_cast<uint8_t>(i);
     entries.push_back(std::move(e));
   }
 
@@ -69,19 +76,23 @@ void test_batch_serialization() {
 void test_v0_message() {
   Entry e;
   e.num_hashes = 999;
-  for (auto& b : e.hash) b = 0xFF;
+  for (auto &b : e.hash)
+    b = 0xFF;
 
   VersionedTransaction tx;
   std::array<uint8_t, 64> sig;
-  for (auto& b : sig) b = 0xAA;
+  for (auto &b : sig)
+    b = 0xAA;
   tx.signatures.push_back(sig);
 
   V0Message msg;
   msg.header = {1, 0, 2};
   std::array<uint8_t, 32> key;
-  for (auto& b : key) b = 0xBB;
+  for (auto &b : key)
+    b = 0xBB;
   msg.account_keys = {key, key, key};
-  for (auto& b : msg.recent_blockhash) b = 0xCC;
+  for (auto &b : msg.recent_blockhash)
+    b = 0xCC;
 
   CompiledInstruction instr;
   instr.program_id_index = 2;
@@ -90,7 +101,8 @@ void test_v0_message() {
   msg.instructions.push_back(std::move(instr));
 
   AddressTableLookup atl;
-  for (auto& b : atl.account_key) b = 0xDD;
+  for (auto &b : atl.account_key)
+    b = 0xDD;
   atl.writable_indexes = {0, 1};
   atl.readonly_indexes = {2};
   msg.address_table_lookups.push_back(std::move(atl));
@@ -103,24 +115,28 @@ void test_v0_message() {
   // V0 messages should have version prefix
   assert(bytes.size() > 0 && "Serialized data should not be empty");
 
-  std::cout << "  V0 message serialization: PASS (" << bytes.size() << " bytes)\n";
+  std::cout << "  V0 message serialization: PASS (" << bytes.size()
+            << " bytes)\n";
 }
 
 void test_round_trip() {
   // Create an entry with complex data
   Entry original;
   original.num_hashes = 42;
-  for (auto& b : original.hash) b = 0xAB;
+  for (auto &b : original.hash)
+    b = 0xAB;
 
   VersionedTransaction tx;
   std::array<uint8_t, 64> sig{};
-  for (auto& b : sig) b = 0xCD;
+  for (auto &b : sig)
+    b = 0xCD;
   tx.signatures.push_back(sig);
 
   LegacyMessage msg;
   msg.header = {1, 0, 0};
   std::array<uint8_t, 32> key{};
-  for (auto& b : key) b = 0x99;
+  for (auto &b : key)
+    b = 0x99;
   msg.account_keys = {key};
   msg.recent_blockhash = {};
 
@@ -134,18 +150,22 @@ void test_round_trip() {
   auto decoded = limcode::deserialize_entry(bytes);
 
   // Verify round-trip
-  assert(decoded.num_hashes == original.num_hashes && "num_hashes should match");
+  assert(decoded.num_hashes == original.num_hashes &&
+         "num_hashes should match");
   assert(decoded.hash == original.hash && "hash should match");
-  assert(decoded.transactions.size() == original.transactions.size() && "transaction count should match");
+  assert(decoded.transactions.size() == original.transactions.size() &&
+         "transaction count should match");
 
   std::cout << "  Round-trip serialization: PASS\n";
 }
 
 int main() {
   std::cout << "\n";
-  std::cout << "================================================================\n";
+  std::cout
+      << "================================================================\n";
   std::cout << "                    Limcode Tests\n";
-  std::cout << "================================================================\n\n";
+  std::cout
+      << "================================================================\n\n";
 
   test_entry_serialization();
   test_batch_serialization();
@@ -153,7 +173,8 @@ int main() {
   test_round_trip();
 
   std::cout << "\nAll tests passed!\n";
-  std::cout << "================================================================\n";
+  std::cout
+      << "================================================================\n";
 
   return 0;
 }

@@ -134,7 +134,7 @@ pub fn serialize_pooled(data: &[u8]) -> Vec<u8> {
     let total_len = data.len() + 8;
 
     BUFFER_POOL.with(|pool| {
-        let mut buf = pool.borrow_mut().pop().unwrap_or_else(|| Vec::new());
+        let mut buf = pool.borrow_mut().pop().unwrap_or_else(Vec::new);
 
         buf.clear();
         buf.reserve(total_len);

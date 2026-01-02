@@ -71,24 +71,23 @@
 
 // Parallel STL includes (must be before namespace)
 #if __cplusplus >= 201703L && __has_include(<execution>)
-#include <execution>
 #include <algorithm>
-#include <numeric>
 #include <condition_variable>
+#include <execution>
 #include <functional>
+#include <numeric>
 #endif
 
 // Memory-mapped file support (Unix/macOS)
 #if defined(__unix__) || defined(__APPLE__)
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <unistd.h>
 #define LIMCODE_HAS_MMAP 1
 #else
 #define LIMCODE_HAS_MMAP 0
 #endif
-
 
 namespace limcode {
 
@@ -123,14 +122,15 @@ constexpr uint8_t LEGACY_MAX_REQUIRED_SIGNATURES = 127;
  */
 enum class ErrorCode {
   Ok = 0,
-  BufferUnderflow,    ///< Not enough bytes remaining to read
-  BufferOverflow,     ///< Write would exceed buffer capacity
-  InvalidEncoding,    ///< Malformed varint or invalid byte sequence
-  InvalidVersion,     ///< Unsupported message version
-  InvalidLength,      ///< Vector length exceeds maximum
-  InvalidData,        ///< Data validation failed
-  Overflow,           ///< Numeric overflow during encoding/decoding
-  InvalidHeader,      ///< Invalid message header (e.g., legacy with >=128 required sigs)
+  BufferUnderflow, ///< Not enough bytes remaining to read
+  BufferOverflow,  ///< Write would exceed buffer capacity
+  InvalidEncoding, ///< Malformed varint or invalid byte sequence
+  InvalidVersion,  ///< Unsupported message version
+  InvalidLength,   ///< Vector length exceeds maximum
+  InvalidData,     ///< Data validation failed
+  Overflow,        ///< Numeric overflow during encoding/decoding
+  InvalidHeader,   ///< Invalid message header (e.g., legacy with >=128 required
+                   ///< sigs)
 };
 
 /**
@@ -143,7 +143,8 @@ public:
 
   [[nodiscard]] ErrorCode code() const noexcept { return code_; }
 
-  [[nodiscard]] static LimcodeError buffer_underflow(size_t needed, size_t available) {
+  [[nodiscard]] static LimcodeError buffer_underflow(size_t needed,
+                                                     size_t available) {
     return LimcodeError(ErrorCode::BufferUnderflow,
                         "Buffer underflow: need " + std::to_string(needed) +
                             " bytes, have " + std::to_string(available));
@@ -162,10 +163,12 @@ public:
   [[nodiscard]] static LimcodeError length_overflow(size_t length) {
     return LimcodeError(ErrorCode::InvalidLength,
                         "Length overflow: " + std::to_string(length) +
-                            " exceeds maximum " + std::to_string(SHORT_VEC_MAX_VALUE));
+                            " exceeds maximum " +
+                            std::to_string(SHORT_VEC_MAX_VALUE));
   }
 
-  [[nodiscard]] static LimcodeError invalid_legacy_header(uint8_t num_required_signatures) {
+  [[nodiscard]] static LimcodeError
+  invalid_legacy_header(uint8_t num_required_signatures) {
     return LimcodeError(ErrorCode::InvalidHeader,
                         "Invalid legacy message: num_required_signatures=" +
                             std::to_string(num_required_signatures) +
@@ -181,8 +184,7 @@ private:
 /**
  * @brief Result type for operations that may fail
  */
-template <typename T>
-class Result {
+template <typename T> class Result {
 public:
   Result(T value) : data_(std::move(value)) {}
   Result(LimcodeError error) : data_(std::move(error)) {}
@@ -195,23 +197,27 @@ public:
     return std::holds_alternative<LimcodeError>(data_);
   }
 
-  [[nodiscard]] T& value() & { return std::get<T>(data_); }
-  [[nodiscard]] const T& value() const& { return std::get<T>(data_); }
-  [[nodiscard]] T&& value() && { return std::get<T>(std::move(data_)); }
+  [[nodiscard]] T &value() & { return std::get<T>(data_); }
+  [[nodiscard]] const T &value() const & { return std::get<T>(data_); }
+  [[nodiscard]] T &&value() && { return std::get<T>(std::move(data_)); }
 
-  [[nodiscard]] LimcodeError& error() & { return std::get<LimcodeError>(data_); }
-  [[nodiscard]] const LimcodeError& error() const& {
+  [[nodiscard]] LimcodeError &error() & {
+    return std::get<LimcodeError>(data_);
+  }
+  [[nodiscard]] const LimcodeError &error() const & {
     return std::get<LimcodeError>(data_);
   }
 
-  [[nodiscard]] T value_or(T default_value) const& {
-    if (is_ok()) return std::get<T>(data_);
+  [[nodiscard]] T value_or(T default_value) const & {
+    if (is_ok())
+      return std::get<T>(data_);
     return default_value;
   }
 
   /// Unwrap value or throw error
   [[nodiscard]] T unwrap() && {
-    if (is_err()) throw std::get<LimcodeError>(data_);
+    if (is_err())
+      throw std::get<LimcodeError>(data_);
     return std::get<T>(std::move(data_));
   }
 
@@ -240,7 +246,7 @@ struct MessageHeader {
   uint8_t num_readonly_signed_accounts = 0;
   uint8_t num_readonly_unsigned_accounts = 0;
 
-  bool operator==(const MessageHeader&) const = default;
+  bool operator==(const MessageHeader &) const = default;
 };
 
 /**
@@ -251,7 +257,7 @@ struct CompiledInstruction {
   std::vector<uint8_t> accounts;
   std::vector<uint8_t> data;
 
-  bool operator==(const CompiledInstruction&) const = default;
+  bool operator==(const CompiledInstruction &) const = default;
 };
 
 /**
@@ -262,7 +268,7 @@ struct AddressTableLookup {
   std::vector<uint8_t> writable_indexes;
   std::vector<uint8_t> readonly_indexes;
 
-  bool operator==(const AddressTableLookup&) const = default;
+  bool operator==(const AddressTableLookup &) const = default;
 };
 
 /**
@@ -274,7 +280,7 @@ struct LegacyMessage {
   Hash recent_blockhash{};
   std::vector<CompiledInstruction> instructions;
 
-  bool operator==(const LegacyMessage&) const = default;
+  bool operator==(const LegacyMessage &) const = default;
 };
 
 /**
@@ -287,7 +293,7 @@ struct V0Message {
   std::vector<CompiledInstruction> instructions;
   std::vector<AddressTableLookup> address_table_lookups;
 
-  bool operator==(const V0Message&) const = default;
+  bool operator==(const V0Message &) const = default;
 };
 
 /**
@@ -308,27 +314,31 @@ struct VersionedMessage {
     return std::holds_alternative<V0Message>(inner);
   }
 
-  [[nodiscard]] LegacyMessage& as_legacy() { return std::get<LegacyMessage>(inner); }
-  [[nodiscard]] const LegacyMessage& as_legacy() const {
+  [[nodiscard]] LegacyMessage &as_legacy() {
+    return std::get<LegacyMessage>(inner);
+  }
+  [[nodiscard]] const LegacyMessage &as_legacy() const {
     return std::get<LegacyMessage>(inner);
   }
 
-  [[nodiscard]] V0Message& as_v0() { return std::get<V0Message>(inner); }
-  [[nodiscard]] const V0Message& as_v0() const { return std::get<V0Message>(inner); }
-
-  [[nodiscard]] const MessageHeader& header() const {
-    return std::visit([](const auto& msg) -> const MessageHeader& {
-      return msg.header;
-    }, inner);
+  [[nodiscard]] V0Message &as_v0() { return std::get<V0Message>(inner); }
+  [[nodiscard]] const V0Message &as_v0() const {
+    return std::get<V0Message>(inner);
   }
 
-  [[nodiscard]] const Hash& recent_blockhash() const {
-    return std::visit([](const auto& msg) -> const Hash& {
-      return msg.recent_blockhash;
-    }, inner);
+  [[nodiscard]] const MessageHeader &header() const {
+    return std::visit(
+        [](const auto &msg) -> const MessageHeader & { return msg.header; },
+        inner);
   }
 
-  bool operator==(const VersionedMessage&) const = default;
+  [[nodiscard]] const Hash &recent_blockhash() const {
+    return std::visit(
+        [](const auto &msg) -> const Hash & { return msg.recent_blockhash; },
+        inner);
+  }
+
+  bool operator==(const VersionedMessage &) const = default;
 };
 
 /**
@@ -338,7 +348,7 @@ struct VersionedTransaction {
   std::vector<Signature> signatures;
   VersionedMessage message;
 
-  bool operator==(const VersionedTransaction&) const = default;
+  bool operator==(const VersionedTransaction &) const = default;
 };
 
 /**
@@ -349,7 +359,7 @@ struct Entry {
   Hash hash{};
   std::vector<VersionedTransaction> transactions;
 
-  bool operator==(const Entry&) const = default;
+  bool operator==(const Entry &) const = default;
 };
 
 // ==================== Gossip Data Structures ====================
@@ -386,11 +396,11 @@ enum class SocketTag : uint8_t {
  * - offset: serde_varint u16 (port offset from previous)
  */
 struct GossipSocketEntry {
-  uint8_t key = 0;      // SocketTag
-  uint8_t index = 0;    // IP address index
-  uint16_t offset = 0;  // Port offset (varint encoded)
+  uint8_t key = 0;     // SocketTag
+  uint8_t index = 0;   // IP address index
+  uint16_t offset = 0; // Port offset (varint encoded)
 
-  bool operator==(const GossipSocketEntry&) const = default;
+  bool operator==(const GossipSocketEntry &) const = default;
 };
 
 /**
@@ -410,9 +420,9 @@ struct GossipVersion {
   uint16_t patch = 1;
   uint32_t commit = 0;
   uint32_t feature_set = 0;
-  uint16_t client = 3;  // 3 = Agave client
+  uint16_t client = 3; // 3 = Agave client
 
-  bool operator==(const GossipVersion&) const = default;
+  bool operator==(const GossipVersion &) const = default;
 };
 
 /**
@@ -422,7 +432,7 @@ struct GossipIpAddr {
   bool is_v4 = true;
   std::array<uint8_t, 4> v4_bytes{};
 
-  bool operator==(const GossipIpAddr&) const = default;
+  bool operator==(const GossipIpAddr &) const = default;
 };
 
 /**
@@ -448,7 +458,7 @@ struct GossipContactInfo {
   std::vector<GossipSocketEntry> sockets;
   // Extensions are empty for now
 
-  bool operator==(const GossipContactInfo&) const = default;
+  bool operator==(const GossipContactInfo &) const = default;
 };
 
 /**
@@ -479,8 +489,10 @@ enum class CrdsDataType : uint32_t {
  * @return Number of bytes needed (1-3)
  */
 [[nodiscard]] constexpr size_t short_vec_size(uint16_t value) noexcept {
-  if (value < 0x80) return 1;
-  if (value < 0x4000) return 2;
+  if (value < 0x80)
+    return 1;
+  if (value < 0x4000)
+    return 2;
   return 3;
 }
 
@@ -490,7 +502,7 @@ enum class CrdsDataType : uint32_t {
  * @param out Output buffer (must have at least 3 bytes)
  * @return Number of bytes written
  */
-inline size_t encode_short_vec(uint16_t value, uint8_t* out) noexcept {
+inline size_t encode_short_vec(uint16_t value, uint8_t *out) noexcept {
   size_t len = 0;
   while (value >= 0x80) {
     out[len++] = static_cast<uint8_t>((value & 0x7F) | 0x80);
@@ -508,8 +520,9 @@ inline size_t encode_short_vec(uint16_t value, uint8_t* out) noexcept {
  * @param out_bytes_read Number of bytes consumed
  * @return true on success, false on error
  */
-inline bool decode_short_vec(const uint8_t* data, size_t size,
-                             uint16_t& out_value, size_t& out_bytes_read) noexcept {
+inline bool decode_short_vec(const uint8_t *data, size_t size,
+                             uint16_t &out_value,
+                             size_t &out_bytes_read) noexcept {
   out_value = 0;
   out_bytes_read = 0;
   int shift = 0;
@@ -561,14 +574,14 @@ inline bool decode_short_vec(const uint8_t* data, size_t size,
 // SSE2/AVX support detection (for SIMD copies)
 #if defined(__SSE2__) && LIMCODE_HAS_X86_64_ASM
 #define LIMCODE_HAS_SSE2 1
-#include <emmintrin.h>  // SSE2
+#include <emmintrin.h> // SSE2
 #else
 #define LIMCODE_HAS_SSE2 0
 #endif
 
 #if defined(__AVX__) && LIMCODE_HAS_X86_64_ASM
 #define LIMCODE_HAS_AVX 1
-#include <immintrin.h>  // AVX/AVX2/AVX-512/BMI2
+#include <immintrin.h> // AVX/AVX2/AVX-512/BMI2
 #else
 #define LIMCODE_HAS_AVX 0
 #endif
@@ -626,12 +639,16 @@ LIMCODE_ALWAYS_INLINE uint32_t limcode_clz32(uint32_t x) noexcept {
   return x == 0 ? 32 : static_cast<uint32_t>(__builtin_clz(x));
 #else
   // Fallback: de Bruijn method
-  if (x == 0) return 32;
+  if (x == 0)
+    return 32;
   static const uint8_t debruijn[32] = {
-    31, 22, 30, 21, 18, 10, 29, 2, 20, 17, 15, 13, 9, 6, 28, 1,
-    23, 19, 11, 3, 16, 14, 7, 24, 12, 4, 8, 25, 5, 26, 27, 0
-  };
-  x |= x >> 1; x |= x >> 2; x |= x >> 4; x |= x >> 8; x |= x >> 16;
+      31, 22, 30, 21, 18, 10, 29, 2,  20, 17, 15, 13, 9, 6,  28, 1,
+      23, 19, 11, 3,  16, 14, 7,  24, 12, 4,  8,  25, 5, 26, 27, 0};
+  x |= x >> 1;
+  x |= x >> 2;
+  x |= x >> 4;
+  x |= x >> 8;
+  x |= x >> 16;
   return debruijn[(x * 0x07C4ACDDU) >> 27];
 #endif
 }
@@ -640,7 +657,8 @@ LIMCODE_ALWAYS_INLINE uint32_t limcode_clz32(uint32_t x) noexcept {
  * @brief Branchless ShortVec size calculation using CLZ
  * Returns 1, 2, or 3 based on value range
  */
-LIMCODE_ALWAYS_INLINE size_t limcode_shortvec_size_branchless(uint16_t value) noexcept {
+LIMCODE_ALWAYS_INLINE size_t
+limcode_shortvec_size_branchless(uint16_t value) noexcept {
   // value < 0x80 (128) -> 1 byte
   // value < 0x4000 (16384) -> 2 bytes
   // else -> 3 bytes
@@ -652,71 +670,67 @@ LIMCODE_ALWAYS_INLINE size_t limcode_shortvec_size_branchless(uint16_t value) no
 /**
  * @brief Fast 8-byte copy using single mov instruction
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy8(void* dst, const void* src) noexcept {
+LIMCODE_ALWAYS_INLINE void limcode_copy8(void *dst, const void *src) noexcept {
   uint64_t tmp;
-  __asm__ volatile (
-    "movq (%1), %0\n\t"
-    "movq %0, (%2)"
-    : "=r"(tmp)
-    : "r"(src), "r"(dst)
-    : "memory"
-  );
+  __asm__ volatile("movq (%1), %0\n\t"
+                   "movq %0, (%2)"
+                   : "=r"(tmp)
+                   : "r"(src), "r"(dst)
+                   : "memory");
 }
 
 /**
  * @brief Fast 4-byte copy using single mov instruction
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy4(void* dst, const void* src) noexcept {
+LIMCODE_ALWAYS_INLINE void limcode_copy4(void *dst, const void *src) noexcept {
   uint32_t tmp;
-  __asm__ volatile (
-    "movl (%1), %0\n\t"
-    "movl %0, (%2)"
-    : "=r"(tmp)
-    : "r"(src), "r"(dst)
-    : "memory"
-  );
+  __asm__ volatile("movl (%1), %0\n\t"
+                   "movl %0, (%2)"
+                   : "=r"(tmp)
+                   : "r"(src), "r"(dst)
+                   : "memory");
 }
 
 /**
  * @brief Prefetch for reading (temporal, L1 cache)
  */
-LIMCODE_ALWAYS_INLINE void limcode_prefetch_read(const void* addr) noexcept {
-  __asm__ volatile ("prefetcht0 (%0)" : : "r"(addr));
+LIMCODE_ALWAYS_INLINE void limcode_prefetch_read(const void *addr) noexcept {
+  __asm__ volatile("prefetcht0 (%0)" : : "r"(addr));
 }
 
 /**
  * @brief Prefetch for writing (temporal, L1 cache)
  */
-LIMCODE_ALWAYS_INLINE void limcode_prefetch_write(void* addr) noexcept {
-  __asm__ volatile ("prefetcht0 (%0)" : : "r"(addr));
+LIMCODE_ALWAYS_INLINE void limcode_prefetch_write(void *addr) noexcept {
+  __asm__ volatile("prefetcht0 (%0)" : : "r"(addr));
 }
 
 /**
  * @brief Non-temporal prefetch (bypass cache, for streaming)
  */
-LIMCODE_ALWAYS_INLINE void limcode_prefetch_nta(const void* addr) noexcept {
-  __asm__ volatile ("prefetchnta (%0)" : : "r"(addr));
+LIMCODE_ALWAYS_INLINE void limcode_prefetch_nta(const void *addr) noexcept {
+  __asm__ volatile("prefetchnta (%0)" : : "r"(addr));
 }
 
 /**
  * @brief Memory fence for acquire semantics
  */
 LIMCODE_ALWAYS_INLINE void limcode_acquire_fence() noexcept {
-  __asm__ volatile ("" ::: "memory");
+  __asm__ volatile("" ::: "memory");
 }
 
 /**
  * @brief Memory fence for release semantics
  */
 LIMCODE_ALWAYS_INLINE void limcode_release_fence() noexcept {
-  __asm__ volatile ("" ::: "memory");
+  __asm__ volatile("" ::: "memory");
 }
 
 /**
  * @brief Full memory barrier
  */
 LIMCODE_ALWAYS_INLINE void limcode_mfence() noexcept {
-  __asm__ volatile ("mfence" ::: "memory");
+  __asm__ volatile("mfence" ::: "memory");
 }
 
 /**
@@ -726,26 +740,24 @@ LIMCODE_ALWAYS_INLINE void limcode_mfence() noexcept {
  * which makes REP MOVSB as fast or faster than SIMD for many sizes.
  * The CPU handles alignment and optimal micro-op generation internally.
  */
-LIMCODE_ALWAYS_INLINE void limcode_rep_movsb(void* dst, const void* src, size_t count) noexcept {
-  __asm__ volatile (
-    "rep movsb"
-    : "+D"(dst), "+S"(src), "+c"(count)
-    :
-    : "memory"
-  );
+LIMCODE_ALWAYS_INLINE void limcode_rep_movsb(void *dst, const void *src,
+                                             size_t count) noexcept {
+  __asm__ volatile("rep movsb"
+                   : "+D"(dst), "+S"(src), "+c"(count)
+                   :
+                   : "memory");
 }
 
 /**
  * @brief Fast copy using REP MOVSQ (8-byte chunks)
  * For sizes divisible by 8, this is often faster than MOVSB
  */
-LIMCODE_ALWAYS_INLINE void limcode_rep_movsq(void* dst, const void* src, size_t qwords) noexcept {
-  __asm__ volatile (
-    "rep movsq"
-    : "+D"(dst), "+S"(src), "+c"(qwords)
-    :
-    : "memory"
-  );
+LIMCODE_ALWAYS_INLINE void limcode_rep_movsq(void *dst, const void *src,
+                                             size_t qwords) noexcept {
+  __asm__ volatile("rep movsq"
+                   : "+D"(dst), "+S"(src), "+c"(qwords)
+                   :
+                   : "memory");
 }
 
 /**
@@ -758,15 +770,16 @@ LIMCODE_ALWAYS_INLINE void limcode_rep_movsq(void* dst, const void* src, size_t 
  * Requirements: AVX-512, 64-byte aligned src and dst for best performance
  */
 #if defined(__AVX512F__)
-LIMCODE_ALWAYS_INLINE void limcode_nt_copy_avx512(void* dst, const void* src, size_t size) noexcept {
-  const uint8_t* s = static_cast<const uint8_t*>(src);
-  uint8_t* d = static_cast<uint8_t*>(dst);
+LIMCODE_ALWAYS_INLINE void limcode_nt_copy_avx512(void *dst, const void *src,
+                                                  size_t size) noexcept {
+  const uint8_t *s = static_cast<const uint8_t *>(src);
+  uint8_t *d = static_cast<uint8_t *>(dst);
 
   // Process 64-byte chunks with non-temporal stores
   size_t chunks = size / 64;
   for (size_t i = 0; i < chunks; ++i) {
-    __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
-    _mm512_stream_si512(reinterpret_cast<__m512i*>(d), chunk);
+    __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(s));
+    _mm512_stream_si512(reinterpret_cast<__m512i *>(d), chunk);
     s += 64;
     d += 64;
   }
@@ -781,15 +794,16 @@ LIMCODE_ALWAYS_INLINE void limcode_nt_copy_avx512(void* dst, const void* src, si
   _mm_sfence();
 }
 #elif defined(__AVX2__)
-LIMCODE_ALWAYS_INLINE void limcode_nt_copy_avx2(void* dst, const void* src, size_t size) noexcept {
-  const uint8_t* s = static_cast<const uint8_t*>(src);
-  uint8_t* d = static_cast<uint8_t*>(dst);
+LIMCODE_ALWAYS_INLINE void limcode_nt_copy_avx2(void *dst, const void *src,
+                                                size_t size) noexcept {
+  const uint8_t *s = static_cast<const uint8_t *>(src);
+  uint8_t *d = static_cast<uint8_t *>(dst);
 
   // Process 32-byte chunks with non-temporal stores
   size_t chunks = size / 32;
   for (size_t i = 0; i < chunks; ++i) {
-    __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(s));
-    _mm256_stream_si256(reinterpret_cast<__m256i*>(d), chunk);
+    __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(s));
+    _mm256_stream_si256(reinterpret_cast<__m256i *>(d), chunk);
     s += 32;
     d += 32;
   }
@@ -808,38 +822,25 @@ LIMCODE_ALWAYS_INLINE void limcode_nt_copy_avx2(void* dst, const void* src, size
  * @brief Branchless u64 store with inline assembly
  * Avoids function call overhead for simple stores
  */
-LIMCODE_ALWAYS_INLINE void limcode_store_u64(void* dst, uint64_t value) noexcept {
-  __asm__ volatile (
-    "movq %1, (%0)"
-    :
-    : "r"(dst), "r"(value)
-    : "memory"
-  );
+LIMCODE_ALWAYS_INLINE void limcode_store_u64(void *dst,
+                                             uint64_t value) noexcept {
+  __asm__ volatile("movq %1, (%0)" : : "r"(dst), "r"(value) : "memory");
 }
 
 /**
  * @brief Branchless u32 store with inline assembly
  */
-LIMCODE_ALWAYS_INLINE void limcode_store_u32(void* dst, uint32_t value) noexcept {
-  __asm__ volatile (
-    "movl %1, (%0)"
-    :
-    : "r"(dst), "r"(value)
-    : "memory"
-  );
+LIMCODE_ALWAYS_INLINE void limcode_store_u32(void *dst,
+                                             uint32_t value) noexcept {
+  __asm__ volatile("movl %1, (%0)" : : "r"(dst), "r"(value) : "memory");
 }
 
 /**
  * @brief Branchless u64 load with inline assembly
  */
-LIMCODE_ALWAYS_INLINE uint64_t limcode_load_u64(const void* src) noexcept {
+LIMCODE_ALWAYS_INLINE uint64_t limcode_load_u64(const void *src) noexcept {
   uint64_t result;
-  __asm__ volatile (
-    "movq (%1), %0"
-    : "=r"(result)
-    : "r"(src)
-    : "memory"
-  );
+  __asm__ volatile("movq (%1), %0" : "=r"(result) : "r"(src) : "memory");
   return result;
 }
 
@@ -853,7 +854,8 @@ LIMCODE_ALWAYS_INLINE uint64_t limcode_load_u64(const void* src) noexcept {
  * @param out Output buffer (must have at least 3 bytes)
  * @return Number of bytes written (1, 2, or 3)
  */
-LIMCODE_ALWAYS_INLINE size_t limcode_encode_shortvec_branchless(uint16_t value, uint8_t* out) noexcept {
+LIMCODE_ALWAYS_INLINE size_t
+limcode_encode_shortvec_branchless(uint16_t value, uint8_t *out) noexcept {
   // Compute all bytes unconditionally
   uint8_t b0 = (value & 0x7F) | ((value >= 0x80) ? 0x80 : 0);
   uint8_t b1 = ((value >> 7) & 0x7F) | ((value >= 0x4000) ? 0x80 : 0);
@@ -879,32 +881,28 @@ LIMCODE_ALWAYS_INLINE size_t limcode_encode_shortvec_branchless(uint16_t value, 
  * @brief Compare-and-swap using inline assembly
  * Returns true if the swap succeeded
  */
-LIMCODE_ALWAYS_INLINE bool limcode_cas_u64(std::atomic<uint64_t>* ptr,
-                                            uint64_t expected,
-                                            uint64_t desired) noexcept {
+LIMCODE_ALWAYS_INLINE bool limcode_cas_u64(std::atomic<uint64_t> *ptr,
+                                           uint64_t expected,
+                                           uint64_t desired) noexcept {
   bool result;
-  __asm__ volatile (
-    "lock cmpxchgq %3, %1\n\t"
-    "sete %0"
-    : "=r"(result), "+m"(*ptr), "+a"(expected)
-    : "r"(desired)
-    : "cc", "memory"
-  );
+  __asm__ volatile("lock cmpxchgq %3, %1\n\t"
+                   "sete %0"
+                   : "=r"(result), "+m"(*ptr), "+a"(expected)
+                   : "r"(desired)
+                   : "cc", "memory");
   return result;
 }
 
 /**
  * @brief Atomic fetch-and-add using inline assembly
  */
-LIMCODE_ALWAYS_INLINE uint64_t limcode_fetch_add_u64(std::atomic<uint64_t>* ptr,
-                                                      uint64_t value) noexcept {
+LIMCODE_ALWAYS_INLINE uint64_t limcode_fetch_add_u64(std::atomic<uint64_t> *ptr,
+                                                     uint64_t value) noexcept {
   uint64_t result;
-  __asm__ volatile (
-    "lock xaddq %0, %1"
-    : "=r"(result), "+m"(*ptr)
-    : "0"(value)
-    : "cc", "memory"
-  );
+  __asm__ volatile("lock xaddq %0, %1"
+                   : "=r"(result), "+m"(*ptr)
+                   : "0"(value)
+                   : "cc", "memory");
   return result;
 }
 
@@ -912,7 +910,7 @@ LIMCODE_ALWAYS_INLINE uint64_t limcode_fetch_add_u64(std::atomic<uint64_t>* ptr,
  * @brief Pause instruction for spin-wait loops (reduces power consumption)
  */
 LIMCODE_ALWAYS_INLINE void limcode_pause() noexcept {
-  __asm__ volatile ("pause");
+  __asm__ volatile("pause");
 }
 #endif // LIMCODE_HAS_X86_64_ASM
 
@@ -923,26 +921,36 @@ LIMCODE_ALWAYS_INLINE void limcode_pause() noexcept {
  * @brief Copy 32 bytes using SSE2 (2x 128-bit loads/stores)
  * Optimal for Hash and Pubkey copies
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy32_simd(void* dst, const void* src) noexcept {
-  __m128i v0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src));
-  __m128i v1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(static_cast<const uint8_t*>(src) + 16));
-  _mm_storeu_si128(reinterpret_cast<__m128i*>(dst), v0);
-  _mm_storeu_si128(reinterpret_cast<__m128i*>(static_cast<uint8_t*>(dst) + 16), v1);
+LIMCODE_ALWAYS_INLINE void limcode_copy32_simd(void *dst,
+                                               const void *src) noexcept {
+  __m128i v0 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(src));
+  __m128i v1 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(
+      static_cast<const uint8_t *>(src) + 16));
+  _mm_storeu_si128(reinterpret_cast<__m128i *>(dst), v0);
+  _mm_storeu_si128(
+      reinterpret_cast<__m128i *>(static_cast<uint8_t *>(dst) + 16), v1);
 }
 
 /**
  * @brief Copy 64 bytes using SSE2 (4x 128-bit loads/stores)
  * Optimal for Signature copies
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy64_simd(void* dst, const void* src) noexcept {
-  __m128i v0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src));
-  __m128i v1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(static_cast<const uint8_t*>(src) + 16));
-  __m128i v2 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(static_cast<const uint8_t*>(src) + 32));
-  __m128i v3 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(static_cast<const uint8_t*>(src) + 48));
-  _mm_storeu_si128(reinterpret_cast<__m128i*>(dst), v0);
-  _mm_storeu_si128(reinterpret_cast<__m128i*>(static_cast<uint8_t*>(dst) + 16), v1);
-  _mm_storeu_si128(reinterpret_cast<__m128i*>(static_cast<uint8_t*>(dst) + 32), v2);
-  _mm_storeu_si128(reinterpret_cast<__m128i*>(static_cast<uint8_t*>(dst) + 48), v3);
+LIMCODE_ALWAYS_INLINE void limcode_copy64_simd(void *dst,
+                                               const void *src) noexcept {
+  __m128i v0 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(src));
+  __m128i v1 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(
+      static_cast<const uint8_t *>(src) + 16));
+  __m128i v2 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(
+      static_cast<const uint8_t *>(src) + 32));
+  __m128i v3 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(
+      static_cast<const uint8_t *>(src) + 48));
+  _mm_storeu_si128(reinterpret_cast<__m128i *>(dst), v0);
+  _mm_storeu_si128(
+      reinterpret_cast<__m128i *>(static_cast<uint8_t *>(dst) + 16), v1);
+  _mm_storeu_si128(
+      reinterpret_cast<__m128i *>(static_cast<uint8_t *>(dst) + 32), v2);
+  _mm_storeu_si128(
+      reinterpret_cast<__m128i *>(static_cast<uint8_t *>(dst) + 48), v3);
 }
 #endif // LIMCODE_HAS_SSE2
 
@@ -951,30 +959,35 @@ LIMCODE_ALWAYS_INLINE void limcode_copy64_simd(void* dst, const void* src) noexc
  * @brief Copy 32 bytes using AVX (single 256-bit load/store)
  * Even faster for Hash and Pubkey copies on AVX-capable CPUs
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy32_avx(void* dst, const void* src) noexcept {
-  __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src));
-  _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst), v);
+LIMCODE_ALWAYS_INLINE void limcode_copy32_avx(void *dst,
+                                              const void *src) noexcept {
+  __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src));
+  _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst), v);
 }
 
 /**
  * @brief Copy 64 bytes using AVX (2x 256-bit loads/stores)
  * Optimal for Signature copies on AVX-capable CPUs
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy64_avx(void* dst, const void* src) noexcept {
-  __m256i v0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src));
-  __m256i v1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(static_cast<const uint8_t*>(src) + 32));
-  _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst), v0);
-  _mm256_storeu_si256(reinterpret_cast<__m256i*>(static_cast<uint8_t*>(dst) + 32), v1);
+LIMCODE_ALWAYS_INLINE void limcode_copy64_avx(void *dst,
+                                              const void *src) noexcept {
+  __m256i v0 = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src));
+  __m256i v1 = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(
+      static_cast<const uint8_t *>(src) + 32));
+  _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst), v0);
+  _mm256_storeu_si256(
+      reinterpret_cast<__m256i *>(static_cast<uint8_t *>(dst) + 32), v1);
 }
 
 /**
  * @brief Prefetch multiple cache lines ahead for batch operations
  */
-LIMCODE_ALWAYS_INLINE void limcode_prefetch_batch(const void* addr, size_t count) noexcept {
-  const uint8_t* p = static_cast<const uint8_t*>(addr);
+LIMCODE_ALWAYS_INLINE void limcode_prefetch_batch(const void *addr,
+                                                  size_t count) noexcept {
+  const uint8_t *p = static_cast<const uint8_t *>(addr);
   // Prefetch up to 4 cache lines (256 bytes) ahead
   for (size_t i = 0; i < count && i < 4; ++i) {
-    _mm_prefetch(reinterpret_cast<const char*>(p + i * 64), _MM_HINT_T0);
+    _mm_prefetch(reinterpret_cast<const char *>(p + i * 64), _MM_HINT_T0);
   }
 }
 #endif // LIMCODE_HAS_AVX
@@ -984,40 +997,46 @@ LIMCODE_ALWAYS_INLINE void limcode_prefetch_batch(const void* addr, size_t count
  * @brief Copy 64 bytes using AVX-512 (single 512-bit load/store)
  * Ultimate speed for Signature copies - one instruction for 64 bytes!
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy64_avx512(void* dst, const void* src) noexcept {
-  __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(src));
-  _mm512_storeu_si512(reinterpret_cast<__m512i*>(dst), v);
+LIMCODE_ALWAYS_INLINE void limcode_copy64_avx512(void *dst,
+                                                 const void *src) noexcept {
+  __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(src));
+  _mm512_storeu_si512(reinterpret_cast<__m512i *>(dst), v);
 }
 
 /**
  * @brief Copy 32 bytes using AVX-512 (masked 512-bit operation)
  * For Hash/Pubkey copies on AVX-512 systems
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy32_avx512(void* dst, const void* src) noexcept {
+LIMCODE_ALWAYS_INLINE void limcode_copy32_avx512(void *dst,
+                                                 const void *src) noexcept {
   // Use 256-bit AVX since 32 bytes doesn't benefit from 512-bit
-  __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src));
-  _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst), v);
+  __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src));
+  _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst), v);
 }
 
 /**
  * @brief Copy 128 bytes using AVX-512 (2x 512-bit loads/stores)
  * For copying multiple signatures or large data blocks
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy128_avx512(void* dst, const void* src) noexcept {
-  __m512i v0 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(src));
-  __m512i v1 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(static_cast<const uint8_t*>(src) + 64));
-  _mm512_storeu_si512(reinterpret_cast<__m512i*>(dst), v0);
-  _mm512_storeu_si512(reinterpret_cast<__m512i*>(static_cast<uint8_t*>(dst) + 64), v1);
+LIMCODE_ALWAYS_INLINE void limcode_copy128_avx512(void *dst,
+                                                  const void *src) noexcept {
+  __m512i v0 = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(src));
+  __m512i v1 = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(
+      static_cast<const uint8_t *>(src) + 64));
+  _mm512_storeu_si512(reinterpret_cast<__m512i *>(dst), v0);
+  _mm512_storeu_si512(
+      reinterpret_cast<__m512i *>(static_cast<uint8_t *>(dst) + 64), v1);
 }
 
 /**
  * @brief Scatter-gather prefetch for batch operations
  */
-LIMCODE_ALWAYS_INLINE void limcode_prefetch_batch_avx512(const void* addr, size_t count) noexcept {
-  const uint8_t* p = static_cast<const uint8_t*>(addr);
+LIMCODE_ALWAYS_INLINE void
+limcode_prefetch_batch_avx512(const void *addr, size_t count) noexcept {
+  const uint8_t *p = static_cast<const uint8_t *>(addr);
   // AVX-512 can prefetch 64-byte cache lines efficiently
   for (size_t i = 0; i < count && i < 8; ++i) {
-    _mm_prefetch(reinterpret_cast<const char*>(p + i * 64), _MM_HINT_T0);
+    _mm_prefetch(reinterpret_cast<const char *>(p + i * 64), _MM_HINT_T0);
   }
 }
 #endif // LIMCODE_HAS_AVX512
@@ -1029,13 +1048,15 @@ LIMCODE_ALWAYS_INLINE void limcode_prefetch_batch_avx512(const void* addr, size_
  * @brief Branchless ShortVec encoding using PDEP instruction
  *
  * PDEP (Parallel Bit Deposit) allows us to scatter bits according to a mask.
- * For ShortVec: we need to insert continuation bits (0x80) between 7-bit chunks.
+ * For ShortVec: we need to insert continuation bits (0x80) between 7-bit
+ * chunks.
  *
  * Layout for 2-byte encoding (values 128-16383):
  *   Input:  0bHHHHHHHLLLLLLL (14 bits)
  *   Output: 0b1LLLLLLL 0bHHHHHHH (continuation bit set on first byte)
  */
-LIMCODE_ALWAYS_INLINE size_t limcode_encode_shortvec_bmi2(uint16_t value, uint8_t* out) noexcept {
+LIMCODE_ALWAYS_INLINE size_t
+limcode_encode_shortvec_bmi2(uint16_t value, uint8_t *out) noexcept {
   if (value < 0x80) {
     // Single byte - no PDEP needed
     out[0] = static_cast<uint8_t>(value);
@@ -1043,8 +1064,8 @@ LIMCODE_ALWAYS_INLINE size_t limcode_encode_shortvec_bmi2(uint16_t value, uint8_
   }
 
   if (value < 0x4000) {
-    // Two bytes: use PDEP to scatter 14 bits into 2 bytes with continuation bits
-    // Mask: 0x7F7F = 0b01111111_01111111 (7 bits per byte)
+    // Two bytes: use PDEP to scatter 14 bits into 2 bytes with continuation
+    // bits Mask: 0x7F7F = 0b01111111_01111111 (7 bits per byte)
     uint32_t scattered = _pdep_u32(value, 0x7F7F);
     // Set continuation bit on first byte
     out[0] = static_cast<uint8_t>(scattered | 0x80);
@@ -1067,7 +1088,8 @@ LIMCODE_ALWAYS_INLINE size_t limcode_encode_shortvec_bmi2(uint16_t value, uint8_
  * PEXT (Parallel Bit Extract) extracts bits according to a mask.
  * This reverses the PDEP operation.
  */
-LIMCODE_ALWAYS_INLINE uint16_t limcode_decode_shortvec_bmi2(const uint8_t* data, size_t& bytes_read) noexcept {
+LIMCODE_ALWAYS_INLINE uint16_t
+limcode_decode_shortvec_bmi2(const uint8_t *data, size_t &bytes_read) noexcept {
   uint8_t b0 = data[0];
   if ((b0 & 0x80) == 0) {
     bytes_read = 1;
@@ -1084,7 +1106,8 @@ LIMCODE_ALWAYS_INLINE uint16_t limcode_decode_shortvec_bmi2(const uint8_t* data,
 
   // Three bytes
   uint8_t b2 = data[2];
-  uint32_t combined = b0 | (static_cast<uint32_t>(b1) << 8) | (static_cast<uint32_t>(b2) << 16);
+  uint32_t combined =
+      b0 | (static_cast<uint32_t>(b1) << 8) | (static_cast<uint32_t>(b2) << 16);
   bytes_read = 3;
   return static_cast<uint16_t>(_pext_u32(combined, 0x7F7F7F));
 }
@@ -1096,7 +1119,7 @@ LIMCODE_ALWAYS_INLINE uint16_t limcode_decode_shortvec_bmi2(const uint8_t* data,
  * @brief Copy 32 bytes using best available method
  * Dispatch order: AVX-512 > AVX > SSE2 > memcpy
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy32(void* dst, const void* src) noexcept {
+LIMCODE_ALWAYS_INLINE void limcode_copy32(void *dst, const void *src) noexcept {
 #if LIMCODE_HAS_AVX512
   limcode_copy32_avx512(dst, src);
 #elif LIMCODE_HAS_AVX
@@ -1112,9 +1135,9 @@ LIMCODE_ALWAYS_INLINE void limcode_copy32(void* dst, const void* src) noexcept {
  * @brief Copy 64 bytes using best available method
  * Dispatch order: AVX-512 > AVX > SSE2 > memcpy
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy64(void* dst, const void* src) noexcept {
+LIMCODE_ALWAYS_INLINE void limcode_copy64(void *dst, const void *src) noexcept {
 #if LIMCODE_HAS_AVX512
-  limcode_copy64_avx512(dst, src);  // Single 512-bit instruction!
+  limcode_copy64_avx512(dst, src); // Single 512-bit instruction!
 #elif LIMCODE_HAS_AVX
   limcode_copy64_avx(dst, src);
 #elif LIMCODE_HAS_SSE2
@@ -1128,17 +1151,18 @@ LIMCODE_ALWAYS_INLINE void limcode_copy64(void* dst, const void* src) noexcept {
  * @brief Copy 128 bytes using best available method
  * For copying pairs of signatures or large blocks
  */
-LIMCODE_ALWAYS_INLINE void limcode_copy128(void* dst, const void* src) noexcept {
+LIMCODE_ALWAYS_INLINE void limcode_copy128(void *dst,
+                                           const void *src) noexcept {
 #if LIMCODE_HAS_AVX512
-  limcode_copy128_avx512(dst, src);  // 2x 512-bit instructions
+  limcode_copy128_avx512(dst, src); // 2x 512-bit instructions
 #elif LIMCODE_HAS_AVX
   limcode_copy64_avx(dst, src);
-  limcode_copy64_avx(static_cast<uint8_t*>(dst) + 64,
-                     static_cast<const uint8_t*>(src) + 64);
+  limcode_copy64_avx(static_cast<uint8_t *>(dst) + 64,
+                     static_cast<const uint8_t *>(src) + 64);
 #elif LIMCODE_HAS_SSE2
   limcode_copy64_simd(dst, src);
-  limcode_copy64_simd(static_cast<uint8_t*>(dst) + 64,
-                      static_cast<const uint8_t*>(src) + 64);
+  limcode_copy64_simd(static_cast<uint8_t *>(dst) + 64,
+                      static_cast<const uint8_t *>(src) + 64);
 #else
   std::memcpy(dst, src, 128);
 #endif
@@ -1192,12 +1216,13 @@ public:
     write_u16(static_cast<uint16_t>(value));
   }
 
-  /// Write an unsigned 32-bit integer (little-endian) - uses direct store on x86-64
+  /// Write an unsigned 32-bit integer (little-endian) - uses direct store on
+  /// x86-64
   LIMCODE_ALWAYS_INLINE void write_u32(uint32_t value) LIMCODE_HOT {
     size_t pos = buffer_.size();
     buffer_.resize(pos + 4);
 #if LIMCODE_HAS_X86_64_ASM
-    *reinterpret_cast<uint32_t*>(buffer_.data() + pos) = value;
+    *reinterpret_cast<uint32_t *>(buffer_.data() + pos) = value;
 #else
     std::memcpy(buffer_.data() + pos, &value, 4);
 #endif
@@ -1208,13 +1233,14 @@ public:
     write_u32(static_cast<uint32_t>(value));
   }
 
-  /// Write an unsigned 64-bit integer (little-endian) - uses inline asm when available
+  /// Write an unsigned 64-bit integer (little-endian) - uses inline asm when
+  /// available
   LIMCODE_ALWAYS_INLINE void write_u64(uint64_t value) LIMCODE_HOT {
     size_t pos = buffer_.size();
     buffer_.resize(pos + 8);
 #if LIMCODE_HAS_X86_64_ASM
     // Use inline asm for single unaligned store (no call overhead)
-    *reinterpret_cast<uint64_t*>(buffer_.data() + pos) = value;
+    *reinterpret_cast<uint64_t *>(buffer_.data() + pos) = value;
 #else
     std::memcpy(buffer_.data() + pos, &value, 8);
 #endif
@@ -1253,12 +1279,15 @@ public:
     write_short_vec_len(static_cast<uint16_t>(value));
   }
 
-  // ==================== Varint Methods (LEB128 for serde_varint) ====================
+  // ==================== Varint Methods (LEB128 for serde_varint)
+  // ====================
 
   /**
-   * @brief Write a u64 as LEB128 varint (serde_varint format) - OPTIMIZED with unrolling
+   * @brief Write a u64 as LEB128 varint (serde_varint format) - OPTIMIZED with
+   * unrolling
    *
-   * This is the format used by Rust's serde_varint crate in Agave for fields like:
+   * This is the format used by Rust's serde_varint crate in Agave for fields
+   * like:
    * - ContactInfo.wallclock
    * - Version.major/minor/patch/client
    * - SocketEntry.offset
@@ -1266,7 +1295,8 @@ public:
    * LEB128 uses 7 bits per byte with continuation bit (0x80).
    * Values 0-127 use 1 byte, 128-16383 use 2 bytes, etc.
    *
-   * Optimization: Most varints are 1-2 bytes (< 16384), so optimize for that case
+   * Optimization: Most varints are 1-2 bytes (< 16384), so optimize for that
+   * case
    */
   LIMCODE_ALWAYS_INLINE void write_varint(uint64_t value) LIMCODE_HOT {
     // Fast path: single byte (0-127) - most common case
@@ -1315,12 +1345,14 @@ public:
 
   // ==================== Raw Byte Methods ====================
 
-  /// Write raw bytes without length prefix - ULTRA-OPTIMIZED with AVX-512, prefetch, and REP MOVSB
-  LIMCODE_ALWAYS_INLINE void write_bytes(const uint8_t* data, size_t size) LIMCODE_HOT {
+  /// Write raw bytes without length prefix - ULTRA-OPTIMIZED with AVX-512,
+  /// prefetch, and REP MOVSB
+  LIMCODE_ALWAYS_INLINE void write_bytes(const uint8_t *data,
+                                         size_t size) LIMCODE_HOT {
     if (LIMCODE_LIKELY(size > 0)) {
       size_t pos = buffer_.size();
       buffer_.resize(pos + size);
-      uint8_t* dst = buffer_.data() + pos;
+      uint8_t *dst = buffer_.data() + pos;
 
 #if LIMCODE_HAS_X86_64_ASM
       // Strategy:
@@ -1330,15 +1362,18 @@ public:
       // 4. Small (< 64B): memcpy
 
       if (size >= 1048576) {
-        // Mega-blocks (>= 1MB, up to 48MB for Solana): Aggressive prefetch + non-temporal
+        // Mega-blocks (>= 1MB, up to 48MB for Solana): Aggressive prefetch +
+        // non-temporal
 #if defined(__AVX512F__)
-        // Ultra-aggressive prefetching for multi-MB blocks (Solana supports up to 48MB!)
-        // Prefetch in 1MB strides to stay ahead of processing
+        // Ultra-aggressive prefetching for multi-MB blocks (Solana supports up
+        // to 48MB!) Prefetch in 1MB strides to stay ahead of processing
         for (size_t i = 0; i < std::min(size, size_t(4194304)); i += 1048576) {
-          __builtin_prefetch(data + i, 0, 0);  // Non-temporal hint (won't pollute cache)
+          __builtin_prefetch(data + i, 0,
+                             0); // Non-temporal hint (won't pollute cache)
         }
 
-        // Non-temporal stores: bypass ALL cache levels for streaming to network/disk
+        // Non-temporal stores: bypass ALL cache levels for streaming to
+        // network/disk
         limcode_nt_copy_avx512(dst, data, size);
 #elif defined(__AVX2__)
         // Prefetch for AVX2 path
@@ -1363,17 +1398,18 @@ public:
 #if defined(__AVX512F__)
         // Prefetch ahead in 256-byte strides (4 cache lines)
         for (size_t i = 0; i < size; i += 256) {
-          __builtin_prefetch(data + i, 0, 3);  // High temporal locality
+          __builtin_prefetch(data + i, 0, 3); // High temporal locality
         }
 
         // Main AVX-512 loop: 64 bytes per iteration
-        size_t simd_size = size & ~63ULL;  // Round down to 64-byte boundary
-        const uint8_t* src = data;
-        uint8_t* d = dst;
+        size_t simd_size = size & ~63ULL; // Round down to 64-byte boundary
+        const uint8_t *src = data;
+        uint8_t *d = dst;
 
         for (size_t i = 0; i < simd_size; i += 64) {
-          __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(src));
-          _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+          __m512i chunk =
+              _mm512_loadu_si512(reinterpret_cast<const __m512i *>(src));
+          _mm512_storeu_si512(reinterpret_cast<__m512i *>(d), chunk);
           src += 64;
           d += 64;
         }
@@ -1390,12 +1426,13 @@ public:
 
         // Main AVX2 loop: 32 bytes per iteration
         size_t simd_size = size & ~31ULL;
-        const uint8_t* src = data;
-        uint8_t* d = dst;
+        const uint8_t *src = data;
+        uint8_t *d = dst;
 
         for (size_t i = 0; i < simd_size; i += 32) {
-          __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src));
-          _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+          __m256i chunk =
+              _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src));
+          _mm256_storeu_si256(reinterpret_cast<__m256i *>(d), chunk);
           src += 32;
           d += 32;
         }
@@ -1412,12 +1449,13 @@ public:
         // Large transfers: Pure SIMD without prefetch overhead
 #if defined(__AVX512F__)
         size_t simd_size = size & ~63ULL;
-        const uint8_t* src = data;
-        uint8_t* d = dst;
+        const uint8_t *src = data;
+        uint8_t *d = dst;
 
         for (size_t i = 0; i < simd_size; i += 64) {
-          __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(src));
-          _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+          __m512i chunk =
+              _mm512_loadu_si512(reinterpret_cast<const __m512i *>(src));
+          _mm512_storeu_si512(reinterpret_cast<__m512i *>(d), chunk);
           src += 64;
           d += 64;
         }
@@ -1427,12 +1465,13 @@ public:
         }
 #elif defined(__AVX2__)
         size_t simd_size = size & ~31ULL;
-        const uint8_t* src = data;
-        uint8_t* d = dst;
+        const uint8_t *src = data;
+        uint8_t *d = dst;
 
         for (size_t i = 0; i < simd_size; i += 32) {
-          __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src));
-          _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+          __m256i chunk =
+              _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src));
+          _mm256_storeu_si256(reinterpret_cast<__m256i *>(d), chunk);
           src += 32;
           d += 32;
         }
@@ -1457,7 +1496,7 @@ public:
   }
 
   /// Write raw bytes from a vector
-  LIMCODE_ALWAYS_INLINE void write_bytes(const std::vector<uint8_t>& data) {
+  LIMCODE_ALWAYS_INLINE void write_bytes(const std::vector<uint8_t> &data) {
     write_bytes(data.data(), data.size());
   }
 
@@ -1467,7 +1506,7 @@ public:
   }
 
   /// Write a byte vector with ShortVec length prefix
-  LIMCODE_ALWAYS_INLINE void write_byte_vec(const std::vector<uint8_t>& data) {
+  LIMCODE_ALWAYS_INLINE void write_byte_vec(const std::vector<uint8_t> &data) {
     write_short_vec_len(data.size());
     write_bytes(data);
   }
@@ -1477,8 +1516,7 @@ public:
   /**
    * @brief Write a fixed-size POD type as raw bytes - uses memcpy
    */
-  template <typename T>
-  LIMCODE_ALWAYS_INLINE void write_pod(const T& value) {
+  template <typename T> LIMCODE_ALWAYS_INLINE void write_pod(const T &value) {
     static_assert(std::is_trivially_copyable_v<T>,
                   "T must be trivially copyable for POD serialization");
     size_t pos = buffer_.size();
@@ -1488,7 +1526,7 @@ public:
 
   /// Write a fixed-size array as raw bytes - uses SIMD for 32/64 byte arrays
   template <size_t N>
-  LIMCODE_ALWAYS_INLINE void write_pod(const std::array<uint8_t, N>& arr) {
+  LIMCODE_ALWAYS_INLINE void write_pod(const std::array<uint8_t, N> &arr) {
     size_t pos = buffer_.size();
     buffer_.resize(pos + N);
 
@@ -1518,17 +1556,16 @@ private:
   }
 
 public:
-
   // ==================== High-Level Serialization ====================
 
-  void write_message_header(const MessageHeader& header);
-  void write_compiled_instruction(const CompiledInstruction& instr);
-  void write_address_table_lookup(const AddressTableLookup& atl);
-  void write_legacy_message(const LegacyMessage& msg);
-  void write_v0_message(const V0Message& msg);
-  void write_versioned_message(const VersionedMessage& msg);
-  void write_versioned_transaction(const VersionedTransaction& tx);
-  void write_entry(const Entry& entry);
+  void write_message_header(const MessageHeader &header);
+  void write_compiled_instruction(const CompiledInstruction &instr);
+  void write_address_table_lookup(const AddressTableLookup &atl);
+  void write_legacy_message(const LegacyMessage &msg);
+  void write_v0_message(const V0Message &msg);
+  void write_versioned_message(const VersionedMessage &msg);
+  void write_versioned_transaction(const VersionedTransaction &tx);
+  void write_entry(const Entry &entry);
 
   // ==================== Gossip Serialization Methods ====================
 
@@ -1543,7 +1580,7 @@ public:
    * - feature_set: u32 (plain)
    * - client: serde_varint u16
    */
-  void write_gossip_version(const GossipVersion& ver) {
+  void write_gossip_version(const GossipVersion &ver) {
     write_varint(ver.major);
     write_varint(ver.minor);
     write_varint(ver.patch);
@@ -1559,9 +1596,9 @@ public:
    * - discriminant: u32 (0=V4, 1=V6)
    * - bytes: 4 bytes for V4, 16 for V6
    */
-  void write_gossip_ip_addr(const GossipIpAddr& addr) {
+  void write_gossip_ip_addr(const GossipIpAddr &addr) {
     if (addr.is_v4) {
-      write_u32(0);  // V4 discriminant
+      write_u32(0); // V4 discriminant
       write_bytes(addr.v4_bytes.data(), 4);
     } else {
       // V6 not implemented yet
@@ -1578,7 +1615,7 @@ public:
    * - index: u8 (IP address index)
    * - offset: serde_varint u16 (port offset)
    */
-  void write_gossip_socket_entry(const GossipSocketEntry& entry) {
+  void write_gossip_socket_entry(const GossipSocketEntry &entry) {
     write_u8(entry.key);
     write_u8(entry.index);
     write_varint(entry.offset);
@@ -1590,7 +1627,7 @@ public:
    * This produces exactly the same bytes as Agave's ContactInfo serialization.
    * Used as CrdsData::ContactInfo(11) payload.
    */
-  void write_gossip_contact_info(const GossipContactInfo& ci) {
+  void write_gossip_contact_info(const GossipContactInfo &ci) {
     // 1. pubkey: Pod<32>
     write_pod(ci.pubkey);
 
@@ -1608,13 +1645,13 @@ public:
 
     // 6. addrs: short_vec<IpAddr>
     write_varint(ci.addrs.size());
-    for (const auto& addr : ci.addrs) {
+    for (const auto &addr : ci.addrs) {
       write_gossip_ip_addr(addr);
     }
 
     // 7. sockets: short_vec<SocketEntry>
     write_varint(ci.sockets.size());
-    for (const auto& entry : ci.sockets) {
+    for (const auto &entry : ci.sockets) {
       write_gossip_socket_entry(entry);
     }
 
@@ -1629,7 +1666,7 @@ public:
    * - discriminant: u32 (11 for ContactInfo)
    * - ContactInfo payload
    */
-  void write_crds_data_contact_info(const GossipContactInfo& ci) {
+  void write_crds_data_contact_info(const GossipContactInfo &ci) {
     write_u32(static_cast<uint32_t>(CrdsDataType::ContactInfo));
     write_gossip_contact_info(ci);
   }
@@ -1637,14 +1674,12 @@ public:
   // ==================== Output Methods ====================
 
   /// Get reference to the internal buffer
-  [[nodiscard]] const std::vector<uint8_t>& data() const noexcept {
+  [[nodiscard]] const std::vector<uint8_t> &data() const noexcept {
     return buffer_;
   }
 
   /// Move out the internal buffer
-  [[nodiscard]] std::vector<uint8_t> finish() && {
-    return std::move(buffer_);
-  }
+  [[nodiscard]] std::vector<uint8_t> finish() && { return std::move(buffer_); }
 
   /// Get current size
   [[nodiscard]] size_t size() const noexcept { return buffer_.size(); }
@@ -1659,7 +1694,7 @@ public:
   void resize(size_t new_size) { buffer_.resize(new_size); }
 
   /// Get mutable buffer pointer (for pure Rust fast path)
-  uint8_t* buffer_ptr() { return buffer_.data(); }
+  uint8_t *buffer_ptr() { return buffer_.data(); }
 
 private:
   std::vector<uint8_t> buffer_;
@@ -1685,13 +1720,13 @@ public:
   /**
    * @brief Construct a decoder from raw pointer and size
    */
-  LimcodeDecoder(const uint8_t* data, size_t size)
+  LimcodeDecoder(const uint8_t *data, size_t size)
       : data_(data), size_(size), pos_(0) {}
 
   /**
    * @brief Construct a decoder from a vector
    */
-  explicit LimcodeDecoder(const std::vector<uint8_t>& data)
+  explicit LimcodeDecoder(const std::vector<uint8_t> &data)
       : data_(data.data()), size_(data.size()), pos_(0) {}
 
   /**
@@ -1727,11 +1762,12 @@ public:
     return static_cast<int16_t>(read_u16());
   }
 
-  /// Read an unsigned 32-bit integer (little-endian) - uses direct load on x86-64
+  /// Read an unsigned 32-bit integer (little-endian) - uses direct load on
+  /// x86-64
   [[nodiscard]] LIMCODE_ALWAYS_INLINE uint32_t read_u32() LIMCODE_HOT {
     ensure_remaining(4);
 #if LIMCODE_HAS_X86_64_ASM
-    uint32_t value = *reinterpret_cast<const uint32_t*>(data_ + pos_);
+    uint32_t value = *reinterpret_cast<const uint32_t *>(data_ + pos_);
 #else
     uint32_t value;
     std::memcpy(&value, data_ + pos_, 4);
@@ -1745,11 +1781,12 @@ public:
     return static_cast<int32_t>(read_u32());
   }
 
-  /// Read an unsigned 64-bit integer (little-endian) - uses direct load on x86-64
+  /// Read an unsigned 64-bit integer (little-endian) - uses direct load on
+  /// x86-64
   [[nodiscard]] LIMCODE_ALWAYS_INLINE uint64_t read_u64() LIMCODE_HOT {
     ensure_remaining(8);
 #if LIMCODE_HAS_X86_64_ASM
-    uint64_t value = *reinterpret_cast<const uint64_t*>(data_ + pos_);
+    uint64_t value = *reinterpret_cast<const uint64_t *>(data_ + pos_);
 #else
     uint64_t value;
     std::memcpy(&value, data_ + pos_, 8);
@@ -1771,7 +1808,8 @@ public:
   /**
    * @brief Read a ShortVec length prefix (optimized for common case < 128)
    */
-  [[nodiscard]] LIMCODE_ALWAYS_INLINE uint16_t read_short_vec_len() LIMCODE_HOT {
+  [[nodiscard]] LIMCODE_ALWAYS_INLINE uint16_t read_short_vec_len()
+      LIMCODE_HOT {
     ensure_remaining(1);
     uint8_t first = data_[pos_++];
 
@@ -1807,13 +1845,14 @@ private:
   }
 
 public:
-
-  // ==================== Varint Methods (LEB128 for serde_varint) ====================
+  // ==================== Varint Methods (LEB128 for serde_varint)
+  // ====================
 
   /**
    * @brief Read a u64 from LEB128 varint encoding (serde_varint format)
    *
-   * This is the format used by Rust's serde_varint crate in Agave for fields like:
+   * This is the format used by Rust's serde_varint crate in Agave for fields
+   * like:
    * - ContactInfo.wallclock
    * - Version.major/minor/patch/client
    * - SocketEntry.offset
@@ -1862,8 +1901,9 @@ public:
 
   // ==================== Raw Byte Methods ====================
 
-  /// Read raw bytes into a buffer - ULTRA-OPTIMIZED with AVX-512, prefetch, and REP MOVSB
-  void read_bytes(uint8_t* out, size_t count) {
+  /// Read raw bytes into a buffer - ULTRA-OPTIMIZED with AVX-512, prefetch, and
+  /// REP MOVSB
+  void read_bytes(uint8_t *out, size_t count) {
     ensure_remaining(count);
 
 #if LIMCODE_HAS_X86_64_ASM
@@ -1873,24 +1913,25 @@ public:
     // 3. Medium (64B - 256B): REP MOVSB (ERMSB optimal range)
     // 4. Small (< 64B): memcpy
 
-    const uint8_t* src = data_ + pos_;
+    const uint8_t *src = data_ + pos_;
 
     if (count >= 1048576) {
       // Mega-block reads (>= 1MB, up to 48MB for Solana blocks)
 #if defined(__AVX512F__)
       // Ultra-aggressive prefetching for multi-MB blocks
       for (size_t i = 0; i < std::min(count, size_t(4194304)); i += 1048576) {
-        __builtin_prefetch(src + i, 0, 0);  // Non-temporal hint
+        __builtin_prefetch(src + i, 0, 0); // Non-temporal hint
       }
 
       // Use non-temporal loads to avoid cache pollution
       size_t simd_size = count & ~63ULL;
-      const uint8_t* s = src;
-      uint8_t* d = out;
+      const uint8_t *s = src;
+      uint8_t *d = out;
 
       for (size_t i = 0; i < simd_size; i += 64) {
-        __m512i chunk = _mm512_stream_load_si512(reinterpret_cast<__m512i*>(const_cast<uint8_t*>(s)));
-        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+        __m512i chunk = _mm512_stream_load_si512(
+            reinterpret_cast<__m512i *>(const_cast<uint8_t *>(s)));
+        _mm512_storeu_si512(reinterpret_cast<__m512i *>(d), chunk);
         s += 64;
         d += 64;
       }
@@ -1905,12 +1946,13 @@ public:
 
       // AVX2 fallback
       size_t simd_size = count & ~31ULL;
-      const uint8_t* s = src;
-      uint8_t* d = out;
+      const uint8_t *s = src;
+      uint8_t *d = out;
 
       for (size_t i = 0; i < simd_size; i += 32) {
-        __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(s));
-        _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+        __m256i chunk =
+            _mm256_loadu_si256(reinterpret_cast<const __m256i *>(s));
+        _mm256_storeu_si256(reinterpret_cast<__m256i *>(d), chunk);
         s += 32;
         d += 32;
       }
@@ -1931,12 +1973,13 @@ public:
 
       // Main AVX-512 loop: 64 bytes per iteration
       size_t simd_size = count & ~63ULL;
-      const uint8_t* s = src;
-      uint8_t* d = out;
+      const uint8_t *s = src;
+      uint8_t *d = out;
 
       for (size_t i = 0; i < simd_size; i += 64) {
-        __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
-        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+        __m512i chunk =
+            _mm512_loadu_si512(reinterpret_cast<const __m512i *>(s));
+        _mm512_storeu_si512(reinterpret_cast<__m512i *>(d), chunk);
         s += 64;
         d += 64;
       }
@@ -1953,12 +1996,13 @@ public:
 
       // Main AVX2 loop: 32 bytes per iteration
       size_t simd_size = count & ~31ULL;
-      const uint8_t* s = src;
-      uint8_t* d = out;
+      const uint8_t *s = src;
+      uint8_t *d = out;
 
       for (size_t i = 0; i < simd_size; i += 32) {
-        __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(s));
-        _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+        __m256i chunk =
+            _mm256_loadu_si256(reinterpret_cast<const __m256i *>(s));
+        _mm256_storeu_si256(reinterpret_cast<__m256i *>(d), chunk);
         s += 32;
         d += 32;
       }
@@ -1974,12 +2018,13 @@ public:
       // Large reads: Pure SIMD without prefetch overhead
 #if defined(__AVX512F__)
       size_t simd_size = count & ~63ULL;
-      const uint8_t* s = src;
-      uint8_t* d = out;
+      const uint8_t *s = src;
+      uint8_t *d = out;
 
       for (size_t i = 0; i < simd_size; i += 64) {
-        __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
-        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+        __m512i chunk =
+            _mm512_loadu_si512(reinterpret_cast<const __m512i *>(s));
+        _mm512_storeu_si512(reinterpret_cast<__m512i *>(d), chunk);
         s += 64;
         d += 64;
       }
@@ -1989,12 +2034,13 @@ public:
       }
 #elif defined(__AVX2__)
       size_t simd_size = count & ~31ULL;
-      const uint8_t* s = src;
-      uint8_t* d = out;
+      const uint8_t *s = src;
+      uint8_t *d = out;
 
       for (size_t i = 0; i < simd_size; i += 32) {
-        __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(s));
-        _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+        __m256i chunk =
+            _mm256_loadu_si256(reinterpret_cast<const __m256i *>(s));
+        _mm256_storeu_si256(reinterpret_cast<__m256i *>(d), chunk);
         s += 32;
         d += 32;
       }
@@ -2051,8 +2097,7 @@ public:
    * @brief Read a fixed-size POD type from raw bytes
    * @tparam T Trivially copyable type
    */
-  template <typename T>
-  [[nodiscard]] T read_pod() {
+  template <typename T> [[nodiscard]] T read_pod() {
     static_assert(std::is_trivially_copyable_v<T>,
                   "T must be trivially copyable for POD deserialization");
     ensure_remaining(sizeof(T));
@@ -2063,8 +2108,7 @@ public:
   }
 
   /// Read a fixed-size array - uses SIMD for 32/64 byte arrays
-  template <size_t N>
-  [[nodiscard]] std::array<uint8_t, N> read_pod_array() {
+  template <size_t N> [[nodiscard]] std::array<uint8_t, N> read_pod_array() {
     ensure_remaining(N);
     std::array<uint8_t, N> arr;
 
@@ -2126,7 +2170,7 @@ public:
   }
 
 private:
-  const uint8_t* data_;
+  const uint8_t *data_;
   size_t size_;
   size_t pos_;
 
@@ -2142,12 +2186,12 @@ private:
 /**
  * @brief Calculate the serialized size of an entry (forward declaration)
  */
-[[nodiscard]] size_t serialized_size(const Entry& entry);
+[[nodiscard]] size_t serialized_size(const Entry &entry);
 
 /**
  * @brief Serialize an entry to bytes
  */
-[[nodiscard]] inline std::vector<uint8_t> serialize_entry(const Entry& entry) {
+[[nodiscard]] inline std::vector<uint8_t> serialize_entry(const Entry &entry) {
   // Optimized: pre-allocate exact size to avoid reallocation
   // The encoder methods will use optimized SIMD copies internally
   LimcodeEncoder encoder(serialized_size(entry));
@@ -2158,7 +2202,7 @@ private:
 /**
  * @brief Deserialize an entry from bytes
  */
-[[nodiscard]] inline Entry deserialize_entry(const std::vector<uint8_t>& data) {
+[[nodiscard]] inline Entry deserialize_entry(const std::vector<uint8_t> &data) {
   LimcodeDecoder decoder(data);
   return decoder.read_entry();
 }
@@ -2174,13 +2218,13 @@ private:
 /**
  * @brief Calculate the serialized size of a transaction (forward declaration)
  */
-[[nodiscard]] size_t serialized_size(const VersionedTransaction& tx);
+[[nodiscard]] size_t serialized_size(const VersionedTransaction &tx);
 
 /**
  * @brief Serialize a transaction to bytes
  */
 [[nodiscard]] inline std::vector<uint8_t>
-serialize_transaction(const VersionedTransaction& tx) {
+serialize_transaction(const VersionedTransaction &tx) {
   // Optimized: pre-allocate exact size to avoid reallocation
   // The encoder methods will use optimized SIMD copies internally
   LimcodeEncoder encoder(serialized_size(tx));
@@ -2192,7 +2236,7 @@ serialize_transaction(const VersionedTransaction& tx) {
  * @brief Deserialize a transaction from bytes
  */
 [[nodiscard]] inline VersionedTransaction
-deserialize_transaction(const std::vector<uint8_t>& data) {
+deserialize_transaction(const std::vector<uint8_t> &data) {
   LimcodeDecoder decoder(data);
   return decoder.read_versioned_transaction();
 }
@@ -2211,64 +2255,71 @@ deserialize_transaction(std::span<const uint8_t> data) {
 /**
  * @brief Calculate the serialized size of a versioned message
  */
-[[nodiscard]] size_t serialized_size(const VersionedMessage& msg);
+[[nodiscard]] size_t serialized_size(const VersionedMessage &msg);
 
 /**
  * @brief Calculate the serialized size of a compiled instruction
  */
-[[nodiscard]] size_t serialized_size(const CompiledInstruction& instr);
+[[nodiscard]] size_t serialized_size(const CompiledInstruction &instr);
 
 /**
  * @brief Calculate the serialized size of an address table lookup
  */
-[[nodiscard]] size_t serialized_size(const AddressTableLookup& atl);
+[[nodiscard]] size_t serialized_size(const AddressTableLookup &atl);
 
-// ==================== Batch Serialization (bincode compatible) ====================
+// ==================== Batch Serialization (bincode compatible)
+// ====================
 
 /**
  * @brief Serialize multiple entries with bincode-compatible u64 length prefix
  *
  * This format is compatible with Rust's bincode serialization of Vec<Entry>.
- * The outer vector uses a u64 length prefix (not ShortVec) for bincode compatibility,
- * while inner structures use ShortVec as per wincode format.
+ * The outer vector uses a u64 length prefix (not ShortVec) for bincode
+ * compatibility, while inner structures use ShortVec as per wincode format.
  */
-[[nodiscard]] std::vector<uint8_t> serialize_entries(const std::vector<Entry>& entries);
+[[nodiscard]] std::vector<uint8_t>
+serialize_entries(const std::vector<Entry> &entries);
 
 /**
  * @brief Deserialize multiple entries from bincode-compatible format
  */
-[[nodiscard]] std::vector<Entry> deserialize_entries(const std::vector<uint8_t>& data);
+[[nodiscard]] std::vector<Entry>
+deserialize_entries(const std::vector<uint8_t> &data);
 
 /**
  * @brief Deserialize multiple entries from bincode-compatible format
  */
-[[nodiscard]] std::vector<Entry> deserialize_entries(std::span<const uint8_t> data);
+[[nodiscard]] std::vector<Entry>
+deserialize_entries(std::span<const uint8_t> data);
 
 /**
  * @brief Calculate the serialized size of multiple entries (bincode format)
  *
  * Uses u64 for the vector length prefix for bincode compatibility.
  */
-[[nodiscard]] size_t serialized_size(const std::vector<Entry>& entries);
+[[nodiscard]] size_t serialized_size(const std::vector<Entry> &entries);
 
 // ==================== Batch Transaction Serialization ====================
 
 /**
- * @brief Serialize multiple transactions with bincode-compatible u64 length prefix
+ * @brief Serialize multiple transactions with bincode-compatible u64 length
+ * prefix
  */
 [[nodiscard]] std::vector<uint8_t>
-serialize_transactions(const std::vector<VersionedTransaction>& txs);
+serialize_transactions(const std::vector<VersionedTransaction> &txs);
 
 /**
  * @brief Deserialize multiple transactions from bincode-compatible format
  */
 [[nodiscard]] std::vector<VersionedTransaction>
-deserialize_transactions(const std::vector<uint8_t>& data);
+deserialize_transactions(const std::vector<uint8_t> &data);
 
 /**
- * @brief Calculate the serialized size of multiple transactions (bincode format)
+ * @brief Calculate the serialized size of multiple transactions (bincode
+ * format)
  */
-[[nodiscard]] size_t serialized_size(const std::vector<VersionedTransaction>& txs);
+[[nodiscard]] size_t
+serialized_size(const std::vector<VersionedTransaction> &txs);
 
 // ==================== Parallel Batch Processing ====================
 
@@ -2284,21 +2335,23 @@ deserialize_transactions(const std::vector<uint8_t>& data);
  * @return Serialized bytes in bincode-compatible format
  */
 [[nodiscard]] inline ::std::vector<uint8_t>
-serialize_entries_parallel(const ::std::vector<Entry>& entries, size_t min_parallel_size = 16) {
+serialize_entries_parallel(const ::std::vector<Entry> &entries,
+                           size_t min_parallel_size = 16) {
   if (entries.size() < min_parallel_size) {
-    return serialize_entries(entries);  // Fall back to sequential
+    return serialize_entries(entries); // Fall back to sequential
   }
 
   // Phase 1: Calculate sizes in parallel
   ::std::vector<size_t> sizes(entries.size());
   ::std::transform(::std::execution::par_unseq, entries.begin(), entries.end(),
-                 sizes.begin(), [](const Entry& e) { return serialized_size(e); });
+                   sizes.begin(),
+                   [](const Entry &e) { return serialized_size(e); });
 
   // Phase 2: Calculate prefix sums for offsets
   ::std::vector<size_t> offsets(entries.size() + 1);
-  offsets[0] = 8;  // u64 length prefix
+  offsets[0] = 8; // u64 length prefix
   ::std::inclusive_scan(::std::execution::par_unseq, sizes.begin(), sizes.end(),
-                      offsets.begin() + 1, ::std::plus<>{}, offsets[0]);
+                        offsets.begin() + 1, ::std::plus<>{}, offsets[0]);
 
   // Phase 3: Allocate output buffer
   ::std::vector<uint8_t> result(offsets.back());
@@ -2312,12 +2365,13 @@ serialize_entries_parallel(const ::std::vector<Entry>& entries, size_t min_paral
   ::std::iota(indices.begin(), indices.end(), 0);
 
   ::std::for_each(::std::execution::par_unseq, indices.begin(), indices.end(),
-    [&](size_t i) {
-      LimcodeEncoder encoder(sizes[i]);
-      encoder.write_entry(entries[i]);
-      auto data = ::std::move(encoder).finish();
-      ::std::memcpy(result.data() + offsets[i], data.data(), data.size());
-    });
+                  [&](size_t i) {
+                    LimcodeEncoder encoder(sizes[i]);
+                    encoder.write_entry(entries[i]);
+                    auto data = ::std::move(encoder).finish();
+                    ::std::memcpy(result.data() + offsets[i], data.data(),
+                                  data.size());
+                  });
 
   return result;
 }
@@ -2326,24 +2380,23 @@ serialize_entries_parallel(const ::std::vector<Entry>& entries, size_t min_paral
  * @brief Serialize transactions in parallel using std::execution::par
  */
 [[nodiscard]] inline ::std::vector<uint8_t>
-serialize_transactions_parallel(const ::std::vector<VersionedTransaction>& txs,
-                                 size_t min_parallel_size = 16) {
+serialize_transactions_parallel(const ::std::vector<VersionedTransaction> &txs,
+                                size_t min_parallel_size = 16) {
   if (txs.size() < min_parallel_size) {
-    return serialize_transactions(txs);  // Fall back to sequential
+    return serialize_transactions(txs); // Fall back to sequential
   }
 
   // Phase 1: Calculate sizes in parallel
   ::std::vector<size_t> sizes(txs.size());
-  ::std::transform(::std::execution::par_unseq, txs.begin(), txs.end(),
-                 sizes.begin(), [](const VersionedTransaction& tx) {
-                   return serialized_size(tx);
-                 });
+  ::std::transform(
+      ::std::execution::par_unseq, txs.begin(), txs.end(), sizes.begin(),
+      [](const VersionedTransaction &tx) { return serialized_size(tx); });
 
   // Phase 2: Calculate prefix sums for offsets
   ::std::vector<size_t> offsets(txs.size() + 1);
-  offsets[0] = 8;  // u64 length prefix
+  offsets[0] = 8; // u64 length prefix
   ::std::inclusive_scan(::std::execution::par_unseq, sizes.begin(), sizes.end(),
-                      offsets.begin() + 1, ::std::plus<>{}, offsets[0]);
+                        offsets.begin() + 1, ::std::plus<>{}, offsets[0]);
 
   // Phase 3: Allocate output buffer
   ::std::vector<uint8_t> result(offsets.back());
@@ -2357,12 +2410,13 @@ serialize_transactions_parallel(const ::std::vector<VersionedTransaction>& txs,
   ::std::iota(indices.begin(), indices.end(), 0);
 
   ::std::for_each(::std::execution::par_unseq, indices.begin(), indices.end(),
-    [&](size_t i) {
-      LimcodeEncoder encoder(sizes[i]);
-      encoder.write_versioned_transaction(txs[i]);
-      auto data = ::std::move(encoder).finish();
-      ::std::memcpy(result.data() + offsets[i], data.data(), data.size());
-    });
+                  [&](size_t i) {
+                    LimcodeEncoder encoder(sizes[i]);
+                    encoder.write_versioned_transaction(txs[i]);
+                    auto data = ::std::move(encoder).finish();
+                    ::std::memcpy(result.data() + offsets[i], data.data(),
+                                  data.size());
+                  });
 
   return result;
 }
@@ -2377,7 +2431,7 @@ serialize_transactions_parallel(const ::std::vector<VersionedTransaction>& txs,
  * The view is valid as long as the underlying buffer exists.
  */
 struct HashView {
-  const uint8_t* data;
+  const uint8_t *data;
 
   [[nodiscard]] Hash to_array() const {
     Hash h;
@@ -2389,11 +2443,11 @@ struct HashView {
     return std::span<const uint8_t, HASH_BYTES>(data, HASH_BYTES);
   }
 
-  bool operator==(const HashView& other) const {
+  bool operator==(const HashView &other) const {
     return std::memcmp(data, other.data, HASH_BYTES) == 0;
   }
 
-  bool operator==(const Hash& other) const {
+  bool operator==(const Hash &other) const {
     return std::memcmp(data, other.data(), HASH_BYTES) == 0;
   }
 };
@@ -2402,7 +2456,7 @@ struct HashView {
  * @brief Zero-copy view of a signature in serialized data
  */
 struct SignatureView {
-  const uint8_t* data;
+  const uint8_t *data;
 
   [[nodiscard]] Signature to_array() const {
     Signature s;
@@ -2414,11 +2468,11 @@ struct SignatureView {
     return std::span<const uint8_t, SIGNATURE_BYTES>(data, SIGNATURE_BYTES);
   }
 
-  bool operator==(const SignatureView& other) const {
+  bool operator==(const SignatureView &other) const {
     return std::memcmp(data, other.data, SIGNATURE_BYTES) == 0;
   }
 
-  bool operator==(const Signature& other) const {
+  bool operator==(const Signature &other) const {
     return std::memcmp(data, other.data(), SIGNATURE_BYTES) == 0;
   }
 };
@@ -2431,7 +2485,7 @@ struct SignatureView {
  */
 class ZeroCopyDecoder {
 public:
-  ZeroCopyDecoder(const uint8_t* data, size_t size)
+  ZeroCopyDecoder(const uint8_t *data, size_t size)
       : data_(data), size_(size), pos_(0) {}
 
   explicit ZeroCopyDecoder(std::span<const uint8_t> data)
@@ -2447,7 +2501,7 @@ public:
 
   /// Read a pubkey as a view (zero-copy)
   [[nodiscard]] HashView read_pubkey_view() {
-    return read_hash_view();  // Same as hash (32 bytes)
+    return read_hash_view(); // Same as hash (32 bytes)
   }
 
   /// Read a signature as a view (zero-copy)
@@ -2528,10 +2582,12 @@ public:
 
 protected:
   /// Internal access to data pointer for derived classes
-  [[nodiscard]] const uint8_t* data_ptr_internal() const noexcept { return data_; }
+  [[nodiscard]] const uint8_t *data_ptr_internal() const noexcept {
+    return data_;
+  }
 
 private:
-  const uint8_t* data_;
+  const uint8_t *data_;
   size_t size_;
   size_t pos_;
 
@@ -2553,27 +2609,25 @@ class MappedFile {
 public:
   MappedFile() : data_(nullptr), size_(0), fd_(-1) {}
 
-  explicit MappedFile(const char* path) : data_(nullptr), size_(0), fd_(-1) {
+  explicit MappedFile(const char *path) : data_(nullptr), size_(0), fd_(-1) {
     open(path);
   }
 
-  ~MappedFile() {
-    close();
-  }
+  ~MappedFile() { close(); }
 
   // Non-copyable
-  MappedFile(const MappedFile&) = delete;
-  MappedFile& operator=(const MappedFile&) = delete;
+  MappedFile(const MappedFile &) = delete;
+  MappedFile &operator=(const MappedFile &) = delete;
 
   // Movable
-  MappedFile(MappedFile&& other) noexcept
+  MappedFile(MappedFile &&other) noexcept
       : data_(other.data_), size_(other.size_), fd_(other.fd_) {
     other.data_ = nullptr;
     other.size_ = 0;
     other.fd_ = -1;
   }
 
-  MappedFile& operator=(MappedFile&& other) noexcept {
+  MappedFile &operator=(MappedFile &&other) noexcept {
     if (this != &other) {
       close();
       data_ = other.data_;
@@ -2586,11 +2640,12 @@ public:
     return *this;
   }
 
-  bool open(const char* path) {
+  bool open(const char *path) {
     close();
 
     fd_ = ::open(path, O_RDONLY);
-    if (fd_ < 0) return false;
+    if (fd_ < 0)
+      return false;
 
     struct stat st;
     if (fstat(fd_, &st) < 0) {
@@ -2603,10 +2658,10 @@ public:
     if (size_ == 0) {
       ::close(fd_);
       fd_ = -1;
-      return true;  // Empty file is valid
+      return true; // Empty file is valid
     }
 
-    data_ = static_cast<uint8_t*>(
+    data_ = static_cast<uint8_t *>(
         mmap(nullptr, size_, PROT_READ, MAP_PRIVATE, fd_, 0));
 
     if (data_ == MAP_FAILED) {
@@ -2635,7 +2690,7 @@ public:
   }
 
   [[nodiscard]] bool is_open() const noexcept { return data_ != nullptr; }
-  [[nodiscard]] const uint8_t* data() const noexcept { return data_; }
+  [[nodiscard]] const uint8_t *data() const noexcept { return data_; }
   [[nodiscard]] size_t size() const noexcept { return size_; }
 
   [[nodiscard]] std::span<const uint8_t> as_span() const noexcept {
@@ -2651,7 +2706,7 @@ public:
   }
 
 private:
-  uint8_t* data_;
+  uint8_t *data_;
   size_t size_;
   int fd_;
 };
@@ -2662,13 +2717,13 @@ private:
 /**
  * @brief Zero-copy view of a CompiledInstruction in serialized data
  *
- * Instead of deserializing into a CompiledInstruction struct with vector copies,
- * this provides direct access to the data in the original buffer.
+ * Instead of deserializing into a CompiledInstruction struct with vector
+ * copies, this provides direct access to the data in the original buffer.
  */
 struct CompiledInstructionView {
   uint8_t program_id_index;
-  std::span<const uint8_t> accounts;  // View into buffer
-  std::span<const uint8_t> data;      // View into buffer
+  std::span<const uint8_t> accounts; // View into buffer
+  std::span<const uint8_t> data;     // View into buffer
 
   /// Convert to owned CompiledInstruction (copies data)
   [[nodiscard]] CompiledInstruction to_owned() const {
@@ -2679,16 +2734,20 @@ struct CompiledInstructionView {
     return instr;
   }
 
-  [[nodiscard]] bool operator==(const CompiledInstructionView& other) const {
+  [[nodiscard]] bool operator==(const CompiledInstructionView &other) const {
     return program_id_index == other.program_id_index &&
-           std::equal(accounts.begin(), accounts.end(), other.accounts.begin(), other.accounts.end()) &&
-           std::equal(data.begin(), data.end(), other.data.begin(), other.data.end());
+           std::equal(accounts.begin(), accounts.end(), other.accounts.begin(),
+                      other.accounts.end()) &&
+           std::equal(data.begin(), data.end(), other.data.begin(),
+                      other.data.end());
   }
 
-  [[nodiscard]] bool operator==(const CompiledInstruction& other) const {
+  [[nodiscard]] bool operator==(const CompiledInstruction &other) const {
     return program_id_index == other.program_id_index &&
-           std::equal(accounts.begin(), accounts.end(), other.accounts.begin(), other.accounts.end()) &&
-           std::equal(data.begin(), data.end(), other.data.begin(), other.data.end());
+           std::equal(accounts.begin(), accounts.end(), other.accounts.begin(),
+                      other.accounts.end()) &&
+           std::equal(data.begin(), data.end(), other.data.begin(),
+                      other.data.end());
   }
 };
 
@@ -2696,15 +2755,17 @@ struct CompiledInstructionView {
  * @brief Zero-copy view of an AddressTableLookup in serialized data
  */
 struct AddressTableLookupView {
-  HashView account_key;                     // View of pubkey
+  HashView account_key; // View of pubkey
   std::span<const uint8_t> writable_indexes;
   std::span<const uint8_t> readonly_indexes;
 
   [[nodiscard]] AddressTableLookup to_owned() const {
     AddressTableLookup atl;
     atl.account_key = account_key.to_array();
-    atl.writable_indexes.assign(writable_indexes.begin(), writable_indexes.end());
-    atl.readonly_indexes.assign(readonly_indexes.begin(), readonly_indexes.end());
+    atl.writable_indexes.assign(writable_indexes.begin(),
+                                writable_indexes.end());
+    atl.readonly_indexes.assign(readonly_indexes.begin(),
+                                readonly_indexes.end());
     return atl;
   }
 };
@@ -2714,19 +2775,19 @@ struct AddressTableLookupView {
  */
 class PubkeyViewIterator {
 public:
-  PubkeyViewIterator(const uint8_t* data, size_t count)
+  PubkeyViewIterator(const uint8_t *data, size_t count)
       : data_(data), count_(count), index_(0) {}
 
   [[nodiscard]] HashView operator*() const {
     return HashView{data_ + index_ * PUBKEY_BYTES};
   }
 
-  PubkeyViewIterator& operator++() {
+  PubkeyViewIterator &operator++() {
     ++index_;
     return *this;
   }
 
-  [[nodiscard]] bool operator!=(const PubkeyViewIterator& other) const {
+  [[nodiscard]] bool operator!=(const PubkeyViewIterator &other) const {
     return index_ != other.index_;
   }
 
@@ -2736,7 +2797,7 @@ public:
   [[nodiscard]] size_t size() const { return count_; }
 
 private:
-  const uint8_t* data_;
+  const uint8_t *data_;
   size_t count_;
   size_t index_;
 };
@@ -2749,7 +2810,7 @@ private:
  */
 struct LegacyMessageView {
   // Raw buffer range containing the entire message
-  const uint8_t* data;
+  const uint8_t *data;
   size_t size;
 
   // Pre-parsed header (3 bytes, trivial)
@@ -2789,7 +2850,7 @@ struct LegacyMessageView {
  */
 struct V0MessageView {
   // Raw buffer range
-  const uint8_t* data;
+  const uint8_t *data;
   size_t size;
 
   // Pre-parsed header
@@ -2836,8 +2897,8 @@ struct VersionedMessageView {
 
   [[nodiscard]] bool is_legacy() const { return !is_v0; }
 
-  [[nodiscard]] const LegacyMessageView& as_legacy() const { return legacy; }
-  [[nodiscard]] const V0MessageView& as_v0_view() const { return v0; }
+  [[nodiscard]] const LegacyMessageView &as_legacy() const { return legacy; }
+  [[nodiscard]] const V0MessageView &as_v0_view() const { return v0; }
 
   [[nodiscard]] VersionedMessage to_owned() const {
     if (is_v0) {
@@ -2854,7 +2915,7 @@ struct VersionedMessageView {
  * Provides zero-copy access to signatures and message without allocation.
  */
 struct VersionedTransactionView {
-  const uint8_t* data;
+  const uint8_t *data;
   size_t size;
 
   // Signatures
@@ -2871,9 +2932,7 @@ struct VersionedTransactionView {
   }
 
   /// Get first signature (transaction ID)
-  [[nodiscard]] SignatureView first_signature() const {
-    return signature(0);
-  }
+  [[nodiscard]] SignatureView first_signature() const { return signature(0); }
 
   /// Get number of signatures
   [[nodiscard]] size_t num_signatures() const { return signatures_count; }
@@ -2888,7 +2947,7 @@ struct VersionedTransactionView {
  * Provides zero-copy access to entry hash and transactions.
  */
 struct EntryView {
-  const uint8_t* data;
+  const uint8_t *data;
   size_t size;
 
   uint64_t num_hashes;
@@ -3125,7 +3184,9 @@ public:
   }
 
   /// Get pointer to underlying data
-  [[nodiscard]] const uint8_t* data_ptr() const { return ZeroCopyDecoder::data_ptr_internal(); }
+  [[nodiscard]] const uint8_t *data_ptr() const {
+    return ZeroCopyDecoder::data_ptr_internal();
+  }
 
 protected:
   [[nodiscard]] uint8_t peek_u8() const {
@@ -3150,12 +3211,11 @@ protected:
  */
 class TurboEncoder {
 public:
-  static constexpr size_t INITIAL_CAPACITY = 64 * 1024;  // 64KB default
+  static constexpr size_t INITIAL_CAPACITY = 64 * 1024; // 64KB default
 
   TurboEncoder() : buffer_(INITIAL_CAPACITY), pos_(0) {}
 
-  explicit TurboEncoder(size_t capacity)
-      : buffer_(capacity), pos_(0) {}
+  explicit TurboEncoder(size_t capacity) : buffer_(capacity), pos_(0) {}
 
   // Reset for reuse (zero-allocation serialization)
   void reset() noexcept { pos_ = 0; }
@@ -3168,7 +3228,7 @@ public:
   }
 
   // Get raw pointer for direct writing
-  [[nodiscard]] uint8_t* data() noexcept { return buffer_.data(); }
+  [[nodiscard]] uint8_t *data() noexcept { return buffer_.data(); }
   [[nodiscard]] size_t size() const noexcept { return pos_; }
   [[nodiscard]] size_t capacity() const noexcept { return buffer_.size(); }
 
@@ -3202,9 +3262,11 @@ public:
   }
 
   // Branchless ShortVec encoding
-  LIMCODE_ALWAYS_INLINE void write_short_vec_len_unchecked(uint16_t len) noexcept {
+  LIMCODE_ALWAYS_INLINE void
+  write_short_vec_len_unchecked(uint16_t len) noexcept {
 #if LIMCODE_HAS_X86_64_ASM
-    size_t bytes_written = limcode_encode_shortvec_branchless(len, buffer_.data() + pos_);
+    size_t bytes_written =
+        limcode_encode_shortvec_branchless(len, buffer_.data() + pos_);
     pos_ += bytes_written;
 #else
     if (len < 0x80) {
@@ -3222,18 +3284,20 @@ public:
 
   // ==================== SIMD Bulk Copies ====================
 
-  LIMCODE_ALWAYS_INLINE void write_hash_unchecked(const uint8_t* src) noexcept {
+  LIMCODE_ALWAYS_INLINE void write_hash_unchecked(const uint8_t *src) noexcept {
     limcode_copy32(buffer_.data() + pos_, src);
     pos_ += 32;
   }
 
-  LIMCODE_ALWAYS_INLINE void write_signature_unchecked(const uint8_t* src) noexcept {
+  LIMCODE_ALWAYS_INLINE void
+  write_signature_unchecked(const uint8_t *src) noexcept {
     limcode_copy64(buffer_.data() + pos_, src);
     pos_ += 64;
   }
 
-  LIMCODE_ALWAYS_INLINE void write_pubkeys_bulk_unchecked(const uint8_t* src, size_t count) noexcept {
-    uint8_t* dst = buffer_.data() + pos_;
+  LIMCODE_ALWAYS_INLINE void
+  write_pubkeys_bulk_unchecked(const uint8_t *src, size_t count) noexcept {
+    uint8_t *dst = buffer_.data() + pos_;
 #if LIMCODE_HAS_AVX512 || LIMCODE_HAS_AVX2
     // Process 2 pubkeys (64 bytes) at a time
     size_t pairs = count / 2;
@@ -3255,8 +3319,9 @@ public:
     pos_ += count * PUBKEY_BYTES;
   }
 
-  LIMCODE_ALWAYS_INLINE void write_signatures_bulk_unchecked(const uint8_t* src, size_t count) noexcept {
-    uint8_t* dst = buffer_.data() + pos_;
+  LIMCODE_ALWAYS_INLINE void
+  write_signatures_bulk_unchecked(const uint8_t *src, size_t count) noexcept {
+    uint8_t *dst = buffer_.data() + pos_;
     for (size_t i = 0; i < count; ++i) {
       limcode_copy64(dst, src);
       dst += 64;
@@ -3265,8 +3330,10 @@ public:
     pos_ += count * SIGNATURE_BYTES;
   }
 
-  LIMCODE_ALWAYS_INLINE void write_bytes_unchecked(const uint8_t* src, size_t len) noexcept {
-    if (len == 0) return;
+  LIMCODE_ALWAYS_INLINE void write_bytes_unchecked(const uint8_t *src,
+                                                   size_t len) noexcept {
+    if (len == 0)
+      return;
 #if LIMCODE_HAS_X86_64_ASM
     if (len >= 64) {
       limcode_rep_movsb(buffer_.data() + pos_, src, len);
@@ -3281,13 +3348,14 @@ public:
 
   // ==================== High-Level Turbo Serializers ====================
 
-  void write_message_header_turbo(const MessageHeader& header) noexcept {
+  void write_message_header_turbo(const MessageHeader &header) noexcept {
     buffer_[pos_++] = header.num_required_signatures;
     buffer_[pos_++] = header.num_readonly_signed_accounts;
     buffer_[pos_++] = header.num_readonly_unsigned_accounts;
   }
 
-  void write_compiled_instruction_turbo(const CompiledInstruction& instr) noexcept {
+  void
+  write_compiled_instruction_turbo(const CompiledInstruction &instr) noexcept {
     write_u8_unchecked(instr.program_id_index);
     write_short_vec_len_unchecked(static_cast<uint16_t>(instr.accounts.size()));
     write_bytes_unchecked(instr.accounts.data(), instr.accounts.size());
@@ -3295,49 +3363,59 @@ public:
     write_bytes_unchecked(instr.data.data(), instr.data.size());
   }
 
-  void write_address_table_lookup_turbo(const AddressTableLookup& atl) noexcept {
+  void
+  write_address_table_lookup_turbo(const AddressTableLookup &atl) noexcept {
     write_hash_unchecked(atl.account_key.data());
-    write_short_vec_len_unchecked(static_cast<uint16_t>(atl.writable_indexes.size()));
-    write_bytes_unchecked(atl.writable_indexes.data(), atl.writable_indexes.size());
-    write_short_vec_len_unchecked(static_cast<uint16_t>(atl.readonly_indexes.size()));
-    write_bytes_unchecked(atl.readonly_indexes.data(), atl.readonly_indexes.size());
+    write_short_vec_len_unchecked(
+        static_cast<uint16_t>(atl.writable_indexes.size()));
+    write_bytes_unchecked(atl.writable_indexes.data(),
+                          atl.writable_indexes.size());
+    write_short_vec_len_unchecked(
+        static_cast<uint16_t>(atl.readonly_indexes.size()));
+    write_bytes_unchecked(atl.readonly_indexes.data(),
+                          atl.readonly_indexes.size());
   }
 
-  void write_legacy_message_turbo(const LegacyMessage& msg) noexcept {
+  void write_legacy_message_turbo(const LegacyMessage &msg) noexcept {
     write_message_header_turbo(msg.header);
-    write_short_vec_len_unchecked(static_cast<uint16_t>(msg.account_keys.size()));
+    write_short_vec_len_unchecked(
+        static_cast<uint16_t>(msg.account_keys.size()));
     if (!msg.account_keys.empty()) {
       write_pubkeys_bulk_unchecked(
-          reinterpret_cast<const uint8_t*>(msg.account_keys.data()),
+          reinterpret_cast<const uint8_t *>(msg.account_keys.data()),
           msg.account_keys.size());
     }
     write_hash_unchecked(msg.recent_blockhash.data());
-    write_short_vec_len_unchecked(static_cast<uint16_t>(msg.instructions.size()));
-    for (const auto& instr : msg.instructions) {
+    write_short_vec_len_unchecked(
+        static_cast<uint16_t>(msg.instructions.size()));
+    for (const auto &instr : msg.instructions) {
       write_compiled_instruction_turbo(instr);
     }
   }
 
-  void write_v0_message_turbo(const V0Message& msg) noexcept {
+  void write_v0_message_turbo(const V0Message &msg) noexcept {
     write_message_header_turbo(msg.header);
-    write_short_vec_len_unchecked(static_cast<uint16_t>(msg.account_keys.size()));
+    write_short_vec_len_unchecked(
+        static_cast<uint16_t>(msg.account_keys.size()));
     if (!msg.account_keys.empty()) {
       write_pubkeys_bulk_unchecked(
-          reinterpret_cast<const uint8_t*>(msg.account_keys.data()),
+          reinterpret_cast<const uint8_t *>(msg.account_keys.data()),
           msg.account_keys.size());
     }
     write_hash_unchecked(msg.recent_blockhash.data());
-    write_short_vec_len_unchecked(static_cast<uint16_t>(msg.instructions.size()));
-    for (const auto& instr : msg.instructions) {
+    write_short_vec_len_unchecked(
+        static_cast<uint16_t>(msg.instructions.size()));
+    for (const auto &instr : msg.instructions) {
       write_compiled_instruction_turbo(instr);
     }
-    write_short_vec_len_unchecked(static_cast<uint16_t>(msg.address_table_lookups.size()));
-    for (const auto& atl : msg.address_table_lookups) {
+    write_short_vec_len_unchecked(
+        static_cast<uint16_t>(msg.address_table_lookups.size()));
+    for (const auto &atl : msg.address_table_lookups) {
       write_address_table_lookup_turbo(atl);
     }
   }
 
-  void write_versioned_message_turbo(const VersionedMessage& msg) noexcept {
+  void write_versioned_message_turbo(const VersionedMessage &msg) noexcept {
     if (msg.is_v0()) {
       write_u8_unchecked(VERSION_PREFIX_MASK);
       write_v0_message_turbo(msg.as_v0());
@@ -3346,21 +3424,23 @@ public:
     }
   }
 
-  void write_versioned_transaction_turbo(const VersionedTransaction& tx) noexcept {
+  void
+  write_versioned_transaction_turbo(const VersionedTransaction &tx) noexcept {
     write_short_vec_len_unchecked(static_cast<uint16_t>(tx.signatures.size()));
     if (!tx.signatures.empty()) {
       write_signatures_bulk_unchecked(
-          reinterpret_cast<const uint8_t*>(tx.signatures.data()),
+          reinterpret_cast<const uint8_t *>(tx.signatures.data()),
           tx.signatures.size());
     }
     write_versioned_message_turbo(tx.message);
   }
 
-  void write_entry_turbo(const Entry& entry) noexcept {
+  void write_entry_turbo(const Entry &entry) noexcept {
     write_u64_unchecked(entry.num_hashes);
     write_hash_unchecked(entry.hash.data());
-    write_short_vec_len_unchecked(static_cast<uint16_t>(entry.transactions.size()));
-    for (const auto& tx : entry.transactions) {
+    write_short_vec_len_unchecked(
+        static_cast<uint16_t>(entry.transactions.size()));
+    for (const auto &tx : entry.transactions) {
       write_versioned_transaction_turbo(tx);
     }
   }
@@ -3372,16 +3452,17 @@ private:
 
 // ==================== Thread-Local Turbo Encoder ====================
 
-inline TurboEncoder& get_thread_local_turbo_encoder() {
+inline TurboEncoder &get_thread_local_turbo_encoder() {
   static thread_local TurboEncoder encoder(256 * 1024);
   return encoder;
 }
 
 // ==================== Turbo Batch Serialization ====================
 
-inline std::vector<uint8_t> serialize_entries_turbo(const std::vector<Entry>& entries) {
+inline std::vector<uint8_t>
+serialize_entries_turbo(const std::vector<Entry> &entries) {
   size_t total_size = 8;
-  for (const auto& entry : entries) {
+  for (const auto &entry : entries) {
     total_size += serialized_size(entry);
   }
 
@@ -3401,19 +3482,19 @@ inline std::vector<uint8_t> serialize_entries_turbo(const std::vector<Entry>& en
   return encoder.finish();
 }
 
-inline std::span<const uint8_t> serialize_entries_turbo_zero_alloc(
-    const std::vector<Entry>& entries) {
-  auto& encoder = get_thread_local_turbo_encoder();
+inline std::span<const uint8_t>
+serialize_entries_turbo_zero_alloc(const std::vector<Entry> &entries) {
+  auto &encoder = get_thread_local_turbo_encoder();
   encoder.reset();
 
   size_t total_size = 8;
-  for (const auto& entry : entries) {
+  for (const auto &entry : entries) {
     total_size += serialized_size(entry);
   }
   encoder.reserve(total_size);
 
   encoder.write_u64_unchecked(entries.size());
-  for (const auto& entry : entries) {
+  for (const auto &entry : entries) {
     encoder.write_entry_turbo(entry);
   }
 
@@ -3432,21 +3513,21 @@ inline std::span<const uint8_t> serialize_entries_turbo_zero_alloc(
  */
 class TurboEncoderV2 {
 public:
-  static constexpr size_t AVG_ENTRY_SIZE = 350;  // Average bytes per entry
+  static constexpr size_t AVG_ENTRY_SIZE = 350; // Average bytes per entry
   static constexpr size_t GROWTH_FACTOR = 2;
 
   explicit TurboEncoderV2(size_t estimated_entries)
-      : capacity_(8 + estimated_entries * AVG_ENTRY_SIZE),
-        pos_(0) {
-    buffer_ = static_cast<uint8_t*>(std::malloc(capacity_));
+      : capacity_(8 + estimated_entries * AVG_ENTRY_SIZE), pos_(0) {
+    buffer_ = static_cast<uint8_t *>(std::malloc(capacity_));
   }
 
   ~TurboEncoderV2() {
-    if (buffer_) std::free(buffer_);
+    if (buffer_)
+      std::free(buffer_);
   }
 
-  TurboEncoderV2(const TurboEncoderV2&) = delete;
-  TurboEncoderV2& operator=(const TurboEncoderV2&) = delete;
+  TurboEncoderV2(const TurboEncoderV2 &) = delete;
+  TurboEncoderV2 &operator=(const TurboEncoderV2 &) = delete;
 
   [[nodiscard]] std::vector<uint8_t> finish() {
     std::vector<uint8_t> result(buffer_, buffer_ + pos_);
@@ -3455,13 +3536,14 @@ public:
 
   // Ensure at least n bytes available
   LIMCODE_ALWAYS_INLINE void ensure_capacity(size_t n) {
-    if (LIMCODE_LIKELY(pos_ + n <= capacity_)) return;
+    if (LIMCODE_LIKELY(pos_ + n <= capacity_))
+      return;
     grow(n);
   }
 
   void grow(size_t needed) {
     size_t new_cap = std::max(capacity_ * GROWTH_FACTOR, pos_ + needed + 1024);
-    buffer_ = static_cast<uint8_t*>(std::realloc(buffer_, new_cap));
+    buffer_ = static_cast<uint8_t *>(std::realloc(buffer_, new_cap));
     capacity_ = new_cap;
   }
 
@@ -3486,33 +3568,33 @@ public:
     }
   }
 
-  LIMCODE_ALWAYS_INLINE void write_bytes32(const uint8_t* src) {
+  LIMCODE_ALWAYS_INLINE void write_bytes32(const uint8_t *src) {
     limcode_copy32(buffer_ + pos_, src);
     pos_ += 32;
   }
 
-  LIMCODE_ALWAYS_INLINE void write_bytes64(const uint8_t* src) {
+  LIMCODE_ALWAYS_INLINE void write_bytes64(const uint8_t *src) {
     limcode_copy64(buffer_ + pos_, src);
     pos_ += 64;
   }
 
-  LIMCODE_ALWAYS_INLINE void write_bytes(const uint8_t* src, size_t len) {
+  LIMCODE_ALWAYS_INLINE void write_bytes(const uint8_t *src, size_t len) {
     std::memcpy(buffer_ + pos_, src, len);
     pos_ += len;
   }
 
   // Estimate capacity needed for an entry (upper bound)
-  static size_t estimate_entry_size(const Entry& e) {
+  static size_t estimate_entry_size(const Entry &e) {
     // 8 (num_hashes) + 32 (hash) + 3 (shortvec) + transactions
     size_t size = 43;
-    for (const auto& tx : e.transactions) {
-      size += 3 + tx.signatures.size() * 64;  // signatures
-      size += 256;  // message estimate
+    for (const auto &tx : e.transactions) {
+      size += 3 + tx.signatures.size() * 64; // signatures
+      size += 256;                           // message estimate
     }
     return size;
   }
 
-  void write_entry_v2(const Entry& entry) {
+  void write_entry_v2(const Entry &entry) {
     // Ensure we have enough space (estimate)
     ensure_capacity(estimate_entry_size(entry));
 
@@ -3520,15 +3602,15 @@ public:
     write_bytes32(entry.hash.data());
     write_shortvec(static_cast<uint16_t>(entry.transactions.size()));
 
-    for (const auto& tx : entry.transactions) {
+    for (const auto &tx : entry.transactions) {
       write_transaction_v2(tx);
     }
   }
 
-  void write_transaction_v2(const VersionedTransaction& tx) {
+  void write_transaction_v2(const VersionedTransaction &tx) {
     // Signatures
     write_shortvec(static_cast<uint16_t>(tx.signatures.size()));
-    for (const auto& sig : tx.signatures) {
+    for (const auto &sig : tx.signatures) {
       ensure_capacity(64);
       write_bytes64(sig.data());
     }
@@ -3537,7 +3619,7 @@ public:
     write_message_v2(tx.message);
   }
 
-  void write_message_v2(const VersionedMessage& msg) {
+  void write_message_v2(const VersionedMessage &msg) {
     if (msg.is_v0()) {
       write_u8(VERSION_PREFIX_MASK);
       write_v0_message_v2(msg.as_v0());
@@ -3546,7 +3628,7 @@ public:
     }
   }
 
-  void write_legacy_message_v2(const LegacyMessage& msg) {
+  void write_legacy_message_v2(const LegacyMessage &msg) {
     ensure_capacity(3 + msg.account_keys.size() * 32 + 32 + 128);
 
     // Header
@@ -3556,7 +3638,7 @@ public:
 
     // Account keys
     write_shortvec(static_cast<uint16_t>(msg.account_keys.size()));
-    for (const auto& key : msg.account_keys) {
+    for (const auto &key : msg.account_keys) {
       write_bytes32(key.data());
     }
 
@@ -3565,12 +3647,12 @@ public:
 
     // Instructions
     write_shortvec(static_cast<uint16_t>(msg.instructions.size()));
-    for (const auto& instr : msg.instructions) {
+    for (const auto &instr : msg.instructions) {
       write_instruction_v2(instr);
     }
   }
 
-  void write_v0_message_v2(const V0Message& msg) {
+  void write_v0_message_v2(const V0Message &msg) {
     ensure_capacity(4 + msg.account_keys.size() * 32 + 32 + 128);
 
     // Header
@@ -3580,7 +3662,7 @@ public:
 
     // Account keys
     write_shortvec(static_cast<uint16_t>(msg.account_keys.size()));
-    for (const auto& key : msg.account_keys) {
+    for (const auto &key : msg.account_keys) {
       write_bytes32(key.data());
     }
 
@@ -3589,14 +3671,15 @@ public:
 
     // Instructions
     write_shortvec(static_cast<uint16_t>(msg.instructions.size()));
-    for (const auto& instr : msg.instructions) {
+    for (const auto &instr : msg.instructions) {
       write_instruction_v2(instr);
     }
 
     // Address table lookups
     write_shortvec(static_cast<uint16_t>(msg.address_table_lookups.size()));
-    for (const auto& atl : msg.address_table_lookups) {
-      ensure_capacity(32 + atl.writable_indexes.size() + atl.readonly_indexes.size() + 6);
+    for (const auto &atl : msg.address_table_lookups) {
+      ensure_capacity(32 + atl.writable_indexes.size() +
+                      atl.readonly_indexes.size() + 6);
       write_bytes32(atl.account_key.data());
       write_shortvec(static_cast<uint16_t>(atl.writable_indexes.size()));
       write_bytes(atl.writable_indexes.data(), atl.writable_indexes.size());
@@ -3605,7 +3688,7 @@ public:
     }
   }
 
-  void write_instruction_v2(const CompiledInstruction& instr) {
+  void write_instruction_v2(const CompiledInstruction &instr) {
     ensure_capacity(1 + instr.accounts.size() + instr.data.size() + 6);
     write_u8(instr.program_id_index);
     write_shortvec(static_cast<uint16_t>(instr.accounts.size()));
@@ -3615,7 +3698,7 @@ public:
   }
 
 private:
-  uint8_t* buffer_;
+  uint8_t *buffer_;
   size_t capacity_;
   size_t pos_;
 };
@@ -3623,7 +3706,8 @@ private:
 /**
  * @brief Serialize entries using TurboEncoderV2 (no size pre-computation)
  */
-inline std::vector<uint8_t> serialize_entries_turbo_v2(const std::vector<Entry>& entries) {
+inline std::vector<uint8_t>
+serialize_entries_turbo_v2(const std::vector<Entry> &entries) {
   TurboEncoderV2 encoder(entries.size());
 
   encoder.ensure_capacity(8);
@@ -3657,24 +3741,26 @@ inline std::vector<uint8_t> serialize_entries_turbo_v2(const std::vector<Entry>&
  */
 
 // Non-temporal store for bypassing cache (useful for large blocks)
-LIMCODE_ALWAYS_INLINE void limcode_stream_store_256(void* dst, const void* src) noexcept {
+LIMCODE_ALWAYS_INLINE void limcode_stream_store_256(void *dst,
+                                                    const void *src) noexcept {
 #if LIMCODE_HAS_AVX2
-  __m256i data = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src));
-  _mm256_stream_si256(reinterpret_cast<__m256i*>(dst), data);
+  __m256i data = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src));
+  _mm256_stream_si256(reinterpret_cast<__m256i *>(dst), data);
 #else
   std::memcpy(dst, src, 32);
 #endif
 }
 
 // Non-temporal store for 64 bytes
-LIMCODE_ALWAYS_INLINE void limcode_stream_store_512(void* dst, const void* src) noexcept {
+LIMCODE_ALWAYS_INLINE void limcode_stream_store_512(void *dst,
+                                                    const void *src) noexcept {
 #if LIMCODE_HAS_AVX512
   __m512i data = _mm512_loadu_si512(src);
-  _mm512_stream_si512(reinterpret_cast<__m512i*>(dst), data);
+  _mm512_stream_si512(reinterpret_cast<__m512i *>(dst), data);
 #elif LIMCODE_HAS_AVX2
   limcode_stream_store_256(dst, src);
-  limcode_stream_store_256(static_cast<uint8_t*>(dst) + 32,
-                          static_cast<const uint8_t*>(src) + 32);
+  limcode_stream_store_256(static_cast<uint8_t *>(dst) + 32,
+                           static_cast<const uint8_t *>(src) + 32);
 #else
   std::memcpy(dst, src, 64);
 #endif
@@ -3686,7 +3772,7 @@ public:
   static constexpr size_t BUFFER_SIZE = 16 * 1024 * 1024;
 
   // Thread-local singleton for zero-allocation serialization
-  static UltraTurboEncoder& instance() {
+  static UltraTurboEncoder &instance() {
     thread_local UltraTurboEncoder encoder;
     return encoder;
   }
@@ -3722,9 +3808,10 @@ public:
     pos_ += 8;
   }
 
-  // Branchless ShortVec - always writes 3 bytes, but only advances by actual size
+  // Branchless ShortVec - always writes 3 bytes, but only advances by actual
+  // size
   LIMCODE_ALWAYS_INLINE void write_shortvec_branchless(uint16_t len) noexcept {
-    uint8_t* p = buffer_.data() + pos_;
+    uint8_t *p = buffer_.data() + pos_;
 
     // Calculate bytes needed: 1 if <128, 2 if <16384, 3 otherwise
     int b1 = (len >= 0x80) ? 1 : 0;
@@ -3737,7 +3824,8 @@ public:
     p[2] = static_cast<uint8_t>(len >> 14);
 
     // Conditional move to select correct byte for position 0 if single-byte
-    if (!b1) p[0] = static_cast<uint8_t>(len);
+    if (!b1)
+      p[0] = static_cast<uint8_t>(len);
 
     pos_ += static_cast<size_t>(bytes_needed);
   }
@@ -3745,20 +3833,21 @@ public:
   // ==================== SIMD Bulk Operations ====================
 
   // Copy 32 bytes (pubkey/hash) with optional streaming
-  LIMCODE_ALWAYS_INLINE void write_32(const uint8_t* src) noexcept {
+  LIMCODE_ALWAYS_INLINE void write_32(const uint8_t *src) noexcept {
     limcode_copy32(buffer_.data() + pos_, src);
     pos_ += 32;
   }
 
   // Copy 64 bytes (signature) with optional streaming
-  LIMCODE_ALWAYS_INLINE void write_64(const uint8_t* src) noexcept {
+  LIMCODE_ALWAYS_INLINE void write_64(const uint8_t *src) noexcept {
     limcode_copy64(buffer_.data() + pos_, src);
     pos_ += 64;
   }
 
   // Bulk copy with SIMD - unrolled 4x for maximum ILP
-  LIMCODE_ALWAYS_INLINE void write_bytes_bulk(const uint8_t* src, size_t len) noexcept {
-    uint8_t* dst = buffer_.data() + pos_;
+  LIMCODE_ALWAYS_INLINE void write_bytes_bulk(const uint8_t *src,
+                                              size_t len) noexcept {
+    uint8_t *dst = buffer_.data() + pos_;
 
     // Process 128 bytes at a time (4x32)
     size_t chunks = len / 128;
@@ -3793,9 +3882,10 @@ public:
   }
 
   // Copy N pubkeys (32 bytes each) with unrolling
-  template<size_t N>
-  LIMCODE_ALWAYS_INLINE void write_pubkeys(const std::array<uint8_t, 32> (&keys)[N]) noexcept {
-    uint8_t* dst = buffer_.data() + pos_;
+  template <size_t N>
+  LIMCODE_ALWAYS_INLINE void
+  write_pubkeys(const std::array<uint8_t, 32> (&keys)[N]) noexcept {
+    uint8_t *dst = buffer_.data() + pos_;
     for (size_t i = 0; i < N; ++i) {
       limcode_copy32(dst, keys[i].data());
       dst += 32;
@@ -3804,8 +3894,9 @@ public:
   }
 
   // Copy signatures with prefetch
-  void write_signatures_prefetch(const std::vector<std::array<uint8_t, 64>>& sigs) noexcept {
-    uint8_t* dst = buffer_.data() + pos_;
+  void write_signatures_prefetch(
+      const std::vector<std::array<uint8_t, 64>> &sigs) noexcept {
+    uint8_t *dst = buffer_.data() + pos_;
     const size_t n = sigs.size();
 
     for (size_t i = 0; i < n; ++i) {
@@ -3820,35 +3911,35 @@ public:
   }
 
   // Streaming store 32 bytes (bypass cache)
-  LIMCODE_ALWAYS_INLINE void write_32_stream(const uint8_t* src) noexcept {
+  LIMCODE_ALWAYS_INLINE void write_32_stream(const uint8_t *src) noexcept {
     limcode_stream_store_256(buffer_.data() + pos_, src);
     pos_ += 32;
   }
 
   // Streaming store 64 bytes (bypass cache)
-  LIMCODE_ALWAYS_INLINE void write_64_stream(const uint8_t* src) noexcept {
+  LIMCODE_ALWAYS_INLINE void write_64_stream(const uint8_t *src) noexcept {
     limcode_stream_store_512(buffer_.data() + pos_, src);
     pos_ += 64;
   }
 
   // ==================== Entry Serialization ====================
 
-  void write_entry_ultra(const Entry& entry) noexcept {
+  void write_entry_ultra(const Entry &entry) noexcept {
     write_u64(entry.num_hashes);
     write_32(entry.hash.data());
     write_shortvec_branchless(static_cast<uint16_t>(entry.transactions.size()));
 
-    for (const auto& tx : entry.transactions) {
+    for (const auto &tx : entry.transactions) {
       write_transaction_ultra(tx);
     }
   }
 
-  void write_transaction_ultra(const VersionedTransaction& tx) noexcept {
+  void write_transaction_ultra(const VersionedTransaction &tx) noexcept {
     // Signatures with prefetch
     const size_t num_sigs = tx.signatures.size();
     write_shortvec_branchless(static_cast<uint16_t>(num_sigs));
 
-    uint8_t* dst = buffer_.data() + pos_;
+    uint8_t *dst = buffer_.data() + pos_;
     for (size_t i = 0; i < num_sigs; ++i) {
       if (i + 2 < num_sigs) {
         limcode_prefetch_nta(tx.signatures[i + 2].data());
@@ -3862,7 +3953,7 @@ public:
     write_message_ultra(tx.message);
   }
 
-  void write_message_ultra(const VersionedMessage& msg) noexcept {
+  void write_message_ultra(const VersionedMessage &msg) noexcept {
     if (msg.is_v0()) {
       write_u8(VERSION_PREFIX_MASK);
       write_v0_message_ultra(msg.as_v0());
@@ -3871,7 +3962,7 @@ public:
     }
   }
 
-  void write_legacy_message_ultra(const LegacyMessage& msg) noexcept {
+  void write_legacy_message_ultra(const LegacyMessage &msg) noexcept {
     // Header (3 bytes)
     buffer_[pos_++] = msg.header.num_required_signatures;
     buffer_[pos_++] = msg.header.num_readonly_signed_accounts;
@@ -3881,7 +3972,7 @@ public:
     const size_t num_keys = msg.account_keys.size();
     write_shortvec_branchless(static_cast<uint16_t>(num_keys));
 
-    uint8_t* dst = buffer_.data() + pos_;
+    uint8_t *dst = buffer_.data() + pos_;
     // Unroll 4x for ILP
     size_t i = 0;
     for (; i + 4 <= num_keys; i += 4) {
@@ -3902,12 +3993,12 @@ public:
 
     // Instructions
     write_shortvec_branchless(static_cast<uint16_t>(msg.instructions.size()));
-    for (const auto& instr : msg.instructions) {
+    for (const auto &instr : msg.instructions) {
       write_instruction_ultra(instr);
     }
   }
 
-  void write_v0_message_ultra(const V0Message& msg) noexcept {
+  void write_v0_message_ultra(const V0Message &msg) noexcept {
     // Header
     buffer_[pos_++] = msg.header.num_required_signatures;
     buffer_[pos_++] = msg.header.num_readonly_signed_accounts;
@@ -3917,7 +4008,7 @@ public:
     const size_t num_keys = msg.account_keys.size();
     write_shortvec_branchless(static_cast<uint16_t>(num_keys));
 
-    uint8_t* dst = buffer_.data() + pos_;
+    uint8_t *dst = buffer_.data() + pos_;
     size_t i = 0;
     for (; i + 4 <= num_keys; i += 4) {
       limcode_copy32(dst, msg.account_keys[i].data());
@@ -3937,27 +4028,33 @@ public:
 
     // Instructions
     write_shortvec_branchless(static_cast<uint16_t>(msg.instructions.size()));
-    for (const auto& instr : msg.instructions) {
+    for (const auto &instr : msg.instructions) {
       write_instruction_ultra(instr);
     }
 
     // Address table lookups
-    write_shortvec_branchless(static_cast<uint16_t>(msg.address_table_lookups.size()));
-    for (const auto& atl : msg.address_table_lookups) {
+    write_shortvec_branchless(
+        static_cast<uint16_t>(msg.address_table_lookups.size()));
+    for (const auto &atl : msg.address_table_lookups) {
       write_32(atl.account_key.data());
-      write_shortvec_branchless(static_cast<uint16_t>(atl.writable_indexes.size()));
-      std::memcpy(buffer_.data() + pos_, atl.writable_indexes.data(), atl.writable_indexes.size());
+      write_shortvec_branchless(
+          static_cast<uint16_t>(atl.writable_indexes.size()));
+      std::memcpy(buffer_.data() + pos_, atl.writable_indexes.data(),
+                  atl.writable_indexes.size());
       pos_ += atl.writable_indexes.size();
-      write_shortvec_branchless(static_cast<uint16_t>(atl.readonly_indexes.size()));
-      std::memcpy(buffer_.data() + pos_, atl.readonly_indexes.data(), atl.readonly_indexes.size());
+      write_shortvec_branchless(
+          static_cast<uint16_t>(atl.readonly_indexes.size()));
+      std::memcpy(buffer_.data() + pos_, atl.readonly_indexes.data(),
+                  atl.readonly_indexes.size());
       pos_ += atl.readonly_indexes.size();
     }
   }
 
-  void write_instruction_ultra(const CompiledInstruction& instr) noexcept {
+  void write_instruction_ultra(const CompiledInstruction &instr) noexcept {
     buffer_[pos_++] = instr.program_id_index;
     write_shortvec_branchless(static_cast<uint16_t>(instr.accounts.size()));
-    std::memcpy(buffer_.data() + pos_, instr.accounts.data(), instr.accounts.size());
+    std::memcpy(buffer_.data() + pos_, instr.accounts.data(),
+                instr.accounts.size());
     pos_ += instr.accounts.size();
     write_shortvec_branchless(static_cast<uint16_t>(instr.data.size()));
     std::memcpy(buffer_.data() + pos_, instr.data.data(), instr.data.size());
@@ -3971,21 +4068,23 @@ private:
 
 // ==================== Pointer-Style Ultra Fast Encoding ====================
 // These functions use raw pointers and return the updated pointer
-// This eliminates position variable overhead and enables maximum compiler optimization
+// This eliminates position variable overhead and enables maximum compiler
+// optimization
 
 namespace ptr_enc {
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_u8(uint8_t* p, uint8_t v) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *write_u8(uint8_t *p, uint8_t v) noexcept {
   *p = v;
   return p + 1;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_u64(uint8_t* p, uint64_t v) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *write_u64(uint8_t *p, uint64_t v) noexcept {
   std::memcpy(p, &v, 8);
   return p + 8;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_shortvec(uint8_t* p, uint16_t len) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *write_shortvec(uint8_t *p,
+                                              uint16_t len) noexcept {
   if (len < 0x80) {
     *p = static_cast<uint8_t>(len);
     return p + 1;
@@ -4001,22 +4100,26 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_shortvec(uint8_t* p, uint16_t len) noexcept
   }
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_32(uint8_t* p, const uint8_t* src) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *write_32(uint8_t *p,
+                                        const uint8_t *src) noexcept {
   limcode_copy32(p, src);
   return p + 32;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_64(uint8_t* p, const uint8_t* src) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *write_64(uint8_t *p,
+                                        const uint8_t *src) noexcept {
   limcode_copy64(p, src);
   return p + 64;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_bytes(uint8_t* p, const uint8_t* src, size_t len) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *write_bytes(uint8_t *p, const uint8_t *src,
+                                           size_t len) noexcept {
   std::memcpy(p, src, len);
   return p + len;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_instruction(uint8_t* p, const CompiledInstruction& instr) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_instruction(uint8_t *p, const CompiledInstruction &instr) noexcept {
   const size_t acc_size = instr.accounts.size();
   const size_t data_size = instr.data.size();
 
@@ -4040,7 +4143,8 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_instruction(uint8_t* p, const CompiledInstr
   return p;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_legacy_message(uint8_t* p, const LegacyMessage& msg) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_legacy_message(uint8_t *p, const LegacyMessage &msg) noexcept {
   // Header - write all 3 bytes at once to reduce memory ops
   *p++ = msg.header.num_required_signatures;
   *p++ = msg.header.num_readonly_signed_accounts;
@@ -4071,14 +4175,15 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_legacy_message(uint8_t* p, const LegacyMess
 
   // Instructions
   p = write_shortvec(p, static_cast<uint16_t>(msg.instructions.size()));
-  for (const auto& instr : msg.instructions) {
+  for (const auto &instr : msg.instructions) {
     p = write_instruction(p, instr);
   }
 
   return p;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_v0_message(uint8_t* p, const V0Message& msg) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *write_v0_message(uint8_t *p,
+                                                const V0Message &msg) noexcept {
   // Header
   *p++ = msg.header.num_required_signatures;
   *p++ = msg.header.num_readonly_signed_accounts;
@@ -4107,25 +4212,29 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_v0_message(uint8_t* p, const V0Message& msg
 
   // Instructions
   p = write_shortvec(p, static_cast<uint16_t>(msg.instructions.size()));
-  for (const auto& instr : msg.instructions) {
+  for (const auto &instr : msg.instructions) {
     p = write_instruction(p, instr);
   }
 
   // Address table lookups
-  p = write_shortvec(p, static_cast<uint16_t>(msg.address_table_lookups.size()));
-  for (const auto& atl : msg.address_table_lookups) {
+  p = write_shortvec(p,
+                     static_cast<uint16_t>(msg.address_table_lookups.size()));
+  for (const auto &atl : msg.address_table_lookups) {
     limcode_copy32(p, atl.account_key.data());
     p += 32;
     p = write_shortvec(p, static_cast<uint16_t>(atl.writable_indexes.size()));
-    p = write_bytes(p, atl.writable_indexes.data(), atl.writable_indexes.size());
+    p = write_bytes(p, atl.writable_indexes.data(),
+                    atl.writable_indexes.size());
     p = write_shortvec(p, static_cast<uint16_t>(atl.readonly_indexes.size()));
-    p = write_bytes(p, atl.readonly_indexes.data(), atl.readonly_indexes.size());
+    p = write_bytes(p, atl.readonly_indexes.data(),
+                    atl.readonly_indexes.size());
   }
 
   return p;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_message(uint8_t* p, const VersionedMessage& msg) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_message(uint8_t *p, const VersionedMessage &msg) noexcept {
   if (msg.is_v0()) {
     *p++ = VERSION_PREFIX_MASK;
     return write_v0_message(p, msg.as_v0());
@@ -4134,13 +4243,14 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_message(uint8_t* p, const VersionedMessage&
   }
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_transaction(uint8_t* p, const VersionedTransaction& tx) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_transaction(uint8_t *p, const VersionedTransaction &tx) noexcept {
   const size_t num_sigs = tx.signatures.size();
 
   // 1-signature fast path: 99% of Solana transactions have exactly 1 signature
   // Avoids loop overhead and branch prediction misses
   if (LIMCODE_LIKELY(num_sigs == 1)) {
-    *p++ = 0x01;  // ShortVec for 1 element
+    *p++ = 0x01; // ShortVec for 1 element
     limcode_copy64(p, tx.signatures[0].data());
     p += 64;
   } else {
@@ -4162,21 +4272,23 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_transaction(uint8_t* p, const VersionedTran
   return write_message(p, tx.message);
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_entry(uint8_t* p, const Entry& entry) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *write_entry(uint8_t *p,
+                                           const Entry &entry) noexcept {
   p = write_u64(p, entry.num_hashes);
   p = write_32(p, entry.hash.data());
   p = write_shortvec(p, static_cast<uint16_t>(entry.transactions.size()));
 
-  for (const auto& tx : entry.transactions) {
+  for (const auto &tx : entry.transactions) {
     p = write_transaction(p, tx);
   }
 
   return p;
 }
 
-}  // namespace ptr_enc
+} // namespace ptr_enc
 
-// ==================== HyperTurbo: 10x Optimized Serialization ====================
+// ==================== HyperTurbo: 10x Optimized Serialization
+// ====================
 //
 // Key optimizations over ptr_enc:
 // 1. Bulk memcpy for contiguous data (signatures, account keys)
@@ -4189,7 +4301,8 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_entry(uint8_t* p, const Entry& entry) noexc
 namespace hyper_enc {
 
 // Branchless shortvec - compute all bytes, use cmov for size
-LIMCODE_ALWAYS_INLINE uint8_t* write_shortvec_branchless(uint8_t* p, uint16_t len) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_shortvec_branchless(uint8_t *p, uint16_t len) noexcept {
   // Most lengths are < 128 (single byte) - optimize for this
   const bool needs_2 = len >= 0x80;
   const bool needs_3 = len >= 0x4000;
@@ -4210,10 +4323,11 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_shortvec_branchless(uint8_t* p, uint16_t le
 }
 
 // Bulk copy N signatures (64 bytes each) - SIMD optimized
-LIMCODE_ALWAYS_INLINE uint8_t* write_signatures_bulk(uint8_t* p,
-    const std::vector<Signature>& sigs) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_signatures_bulk(uint8_t *p, const std::vector<Signature> &sigs) noexcept {
   const size_t n = sigs.size();
-  if (n == 0) return p;
+  if (n == 0)
+    return p;
 
   // Fast path: 1 signature (99% of transactions)
   if (LIMCODE_LIKELY(n == 1)) {
@@ -4231,10 +4345,11 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_signatures_bulk(uint8_t* p,
 }
 
 // Bulk copy N pubkeys (32 bytes each) - SIMD optimized with 4x unroll
-LIMCODE_ALWAYS_INLINE uint8_t* write_pubkeys_bulk(uint8_t* p,
-    const std::vector<Pubkey>& keys) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_pubkeys_bulk(uint8_t *p, const std::vector<Pubkey> &keys) noexcept {
   const size_t n = keys.size();
-  if (n == 0) return p;
+  if (n == 0)
+    return p;
 
   // Unroll 4x for ILP (instruction-level parallelism)
   size_t i = 0;
@@ -4253,8 +4368,8 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_pubkeys_bulk(uint8_t* p,
   return p;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_instruction_hyper(uint8_t* p,
-    const CompiledInstruction& instr) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_instruction_hyper(uint8_t *p, const CompiledInstruction &instr) noexcept {
   *p++ = instr.program_id_index;
 
   // Accounts
@@ -4276,8 +4391,8 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_instruction_hyper(uint8_t* p,
   return p;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_legacy_message_hyper(uint8_t* p,
-    const LegacyMessage& msg) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_legacy_message_hyper(uint8_t *p, const LegacyMessage &msg) noexcept {
   // Header (3 bytes as single write)
   p[0] = msg.header.num_required_signatures;
   p[1] = msg.header.num_readonly_signed_accounts;
@@ -4296,15 +4411,15 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_legacy_message_hyper(uint8_t* p,
   // Instructions
   const size_t num_instrs = msg.instructions.size();
   p = write_shortvec_branchless(p, static_cast<uint16_t>(num_instrs));
-  for (const auto& instr : msg.instructions) {
+  for (const auto &instr : msg.instructions) {
     p = write_instruction_hyper(p, instr);
   }
 
   return p;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_v0_message_hyper(uint8_t* p,
-    const V0Message& msg) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_v0_message_hyper(uint8_t *p, const V0Message &msg) noexcept {
   // Header
   p[0] = msg.header.num_required_signatures;
   p[1] = msg.header.num_readonly_signed_accounts;
@@ -4312,7 +4427,8 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_v0_message_hyper(uint8_t* p,
   p += 3;
 
   // Account keys - BULK COPY
-  p = write_shortvec_branchless(p, static_cast<uint16_t>(msg.account_keys.size()));
+  p = write_shortvec_branchless(p,
+                                static_cast<uint16_t>(msg.account_keys.size()));
   p = write_pubkeys_bulk(p, msg.account_keys);
 
   // Blockhash
@@ -4320,21 +4436,24 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_v0_message_hyper(uint8_t* p,
   p += 32;
 
   // Instructions
-  p = write_shortvec_branchless(p, static_cast<uint16_t>(msg.instructions.size()));
-  for (const auto& instr : msg.instructions) {
+  p = write_shortvec_branchless(p,
+                                static_cast<uint16_t>(msg.instructions.size()));
+  for (const auto &instr : msg.instructions) {
     p = write_instruction_hyper(p, instr);
   }
 
   // Address table lookups
   const size_t num_atl = msg.address_table_lookups.size();
   p = write_shortvec_branchless(p, static_cast<uint16_t>(num_atl));
-  for (const auto& atl : msg.address_table_lookups) {
+  for (const auto &atl : msg.address_table_lookups) {
     limcode_copy32(p, atl.account_key.data());
     p += 32;
-    p = write_shortvec_branchless(p, static_cast<uint16_t>(atl.writable_indexes.size()));
+    p = write_shortvec_branchless(
+        p, static_cast<uint16_t>(atl.writable_indexes.size()));
     std::memcpy(p, atl.writable_indexes.data(), atl.writable_indexes.size());
     p += atl.writable_indexes.size();
-    p = write_shortvec_branchless(p, static_cast<uint16_t>(atl.readonly_indexes.size()));
+    p = write_shortvec_branchless(
+        p, static_cast<uint16_t>(atl.readonly_indexes.size()));
     std::memcpy(p, atl.readonly_indexes.data(), atl.readonly_indexes.size());
     p += atl.readonly_indexes.size();
   }
@@ -4342,8 +4461,8 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_v0_message_hyper(uint8_t* p,
   return p;
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_transaction_hyper(uint8_t* p,
-    const VersionedTransaction& tx) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *
+write_transaction_hyper(uint8_t *p, const VersionedTransaction &tx) noexcept {
   // Signatures - BULK COPY with fast path for 1 sig
   p = write_shortvec_branchless(p, static_cast<uint16_t>(tx.signatures.size()));
   p = write_signatures_bulk(p, tx.signatures);
@@ -4357,8 +4476,8 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_transaction_hyper(uint8_t* p,
   }
 }
 
-LIMCODE_ALWAYS_INLINE uint8_t* write_entry_hyper(uint8_t* p,
-    const Entry& entry) noexcept {
+LIMCODE_ALWAYS_INLINE uint8_t *write_entry_hyper(uint8_t *p,
+                                                 const Entry &entry) noexcept {
   // Entry header
   std::memcpy(p, &entry.num_hashes, 8);
   p += 8;
@@ -4369,7 +4488,7 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_entry_hyper(uint8_t* p,
   const size_t num_txs = entry.transactions.size();
   p = write_shortvec_branchless(p, static_cast<uint16_t>(num_txs));
 
-  for (const auto& tx : entry.transactions) {
+  for (const auto &tx : entry.transactions) {
     p = write_transaction_hyper(p, tx);
   }
 
@@ -4377,13 +4496,13 @@ LIMCODE_ALWAYS_INLINE uint8_t* write_entry_hyper(uint8_t* p,
 }
 
 // Deep prefetch: prefetch the actual data, not just the struct pointers
-LIMCODE_ALWAYS_INLINE void deep_prefetch_entry(const Entry& entry) noexcept {
+LIMCODE_ALWAYS_INLINE void deep_prefetch_entry(const Entry &entry) noexcept {
   // Prefetch entry itself
   LIMCODE_PREFETCH(&entry);
 
   // Prefetch first transaction if exists
   if (!entry.transactions.empty()) {
-    const auto& tx = entry.transactions[0];
+    const auto &tx = entry.transactions[0];
     LIMCODE_PREFETCH(&tx);
 
     // Prefetch signature data
@@ -4392,7 +4511,8 @@ LIMCODE_ALWAYS_INLINE void deep_prefetch_entry(const Entry& entry) noexcept {
     }
 
     // Prefetch message account keys
-    if (tx.message.is_legacy() && !tx.message.as_legacy().account_keys.empty()) {
+    if (tx.message.is_legacy() &&
+        !tx.message.as_legacy().account_keys.empty()) {
       LIMCODE_PREFETCH(tx.message.as_legacy().account_keys[0].data());
     } else if (tx.message.is_v0() && !tx.message.as_v0().account_keys.empty()) {
       LIMCODE_PREFETCH(tx.message.as_v0().account_keys[0].data());
@@ -4400,7 +4520,7 @@ LIMCODE_ALWAYS_INLINE void deep_prefetch_entry(const Entry& entry) noexcept {
   }
 }
 
-}  // namespace hyper_enc
+} // namespace hyper_enc
 
 // ==================== HyperTurbo Serialization Functions ====================
 
@@ -4414,13 +4534,14 @@ LIMCODE_ALWAYS_INLINE void deep_prefetch_entry(const Entry& entry) noexcept {
  * - Streaming stores for large blocks
  * - Specialized 1-signature fast path
  */
-inline std::span<const uint8_t> serialize_entries_hyper(const std::vector<Entry>& entries) {
-  auto& encoder = UltraTurboEncoder::instance();
+inline std::span<const uint8_t>
+serialize_entries_hyper(const std::vector<Entry> &entries) {
+  auto &encoder = UltraTurboEncoder::instance();
   encoder.reset();
 
   const size_t n = entries.size();
-  uint8_t* p = const_cast<uint8_t*>(encoder.result().data());
-  uint8_t* start = p;
+  uint8_t *p = const_cast<uint8_t *>(encoder.result().data());
+  uint8_t *start = p;
 
   // Write count
   std::memcpy(p, &n, 8);
@@ -4450,7 +4571,8 @@ inline std::span<const uint8_t> serialize_entries_hyper(const std::vector<Entry>
 /**
  * @brief HyperTurbo with vector output
  */
-inline std::vector<uint8_t> serialize_entries_hyper_vec(const std::vector<Entry>& entries) {
+inline std::vector<uint8_t>
+serialize_entries_hyper_vec(const std::vector<Entry> &entries) {
   auto span = serialize_entries_hyper(entries);
   return {span.begin(), span.end()};
 }
@@ -4458,14 +4580,14 @@ inline std::vector<uint8_t> serialize_entries_hyper_vec(const std::vector<Entry>
 /**
  * @brief HyperTurbo transaction serialization
  */
-inline std::span<const uint8_t> serialize_transactions_hyper(
-    const std::vector<VersionedTransaction>& txs) {
-  auto& encoder = UltraTurboEncoder::instance();
+inline std::span<const uint8_t>
+serialize_transactions_hyper(const std::vector<VersionedTransaction> &txs) {
+  auto &encoder = UltraTurboEncoder::instance();
   encoder.reset();
 
   const size_t n = txs.size();
-  uint8_t* p = const_cast<uint8_t*>(encoder.result().data());
-  uint8_t* start = p;
+  uint8_t *p = const_cast<uint8_t *>(encoder.result().data());
+  uint8_t *start = p;
 
   std::memcpy(p, &n, 8);
   p += 8;
@@ -4473,7 +4595,7 @@ inline std::span<const uint8_t> serialize_transactions_hyper(
   constexpr size_t PREFETCH_DISTANCE = 8;
   for (size_t i = 0; i < n; ++i) {
     if (i + PREFETCH_DISTANCE < n) {
-      const auto& tx = txs[i + PREFETCH_DISTANCE];
+      const auto &tx = txs[i + PREFETCH_DISTANCE];
       LIMCODE_PREFETCH(&tx);
       if (!tx.signatures.empty()) {
         LIMCODE_PREFETCH(tx.signatures[0].data());
@@ -4485,37 +4607,43 @@ inline std::span<const uint8_t> serialize_transactions_hyper(
   return {start, static_cast<size_t>(p - start)};
 }
 
-inline std::vector<uint8_t> serialize_transactions_hyper_vec(
-    const std::vector<VersionedTransaction>& txs) {
+inline std::vector<uint8_t>
+serialize_transactions_hyper_vec(const std::vector<VersionedTransaction> &txs) {
   auto span = serialize_transactions_hyper(txs);
   return {span.begin(), span.end()};
 }
 
 /**
- * @brief Serialize entries using UltraTurbo encoder (thread-local, zero-alloc hot path)
- * @return Span pointing to thread-local buffer (valid until next call on same thread)
+ * @brief Serialize entries using UltraTurbo encoder (thread-local, zero-alloc
+ * hot path)
+ * @return Span pointing to thread-local buffer (valid until next call on same
+ * thread)
  */
-inline std::span<const uint8_t> serialize_entries_ultra(const std::vector<Entry>& entries) {
-  auto& encoder = UltraTurboEncoder::instance();
+inline std::span<const uint8_t>
+serialize_entries_ultra(const std::vector<Entry> &entries) {
+  auto &encoder = UltraTurboEncoder::instance();
   encoder.reset();
 
   const size_t n = entries.size();
 
   // Use pointer-style encoding for maximum speed
-  uint8_t* p = const_cast<uint8_t*>(encoder.result().data());  // Safe because we just reset
-  uint8_t* start = p;
+  uint8_t *p = const_cast<uint8_t *>(
+      encoder.result().data()); // Safe because we just reset
+  uint8_t *start = p;
 
   p = ptr_enc::write_u64(p, n);
 
-  // Deep prefetch: prefetch entry + transaction data for better cache utilization
-  constexpr size_t PREFETCH_DISTANCE = 4;  // Reduced distance for deeper prefetching
+  // Deep prefetch: prefetch entry + transaction data for better cache
+  // utilization
+  constexpr size_t PREFETCH_DISTANCE =
+      4; // Reduced distance for deeper prefetching
 
   // Initial deep prefetch burst
   for (size_t i = 0; i < std::min(n, PREFETCH_DISTANCE); ++i) {
-    const auto& entry = entries[i];
+    const auto &entry = entries[i];
     LIMCODE_PREFETCH(&entry);
     if (!entry.transactions.empty()) {
-      const auto& tx = entry.transactions[0];
+      const auto &tx = entry.transactions[0];
       LIMCODE_PREFETCH(&tx);
       // Prefetch signature data (most important for serialization)
       if (!tx.signatures.empty()) {
@@ -4529,17 +4657,17 @@ inline std::span<const uint8_t> serialize_entries_ultra(const std::vector<Entry>
   for (size_t i = 0; i < n; ++i) {
     // Deep prefetch ahead
     if (i + PREFETCH_DISTANCE < n) {
-      const auto& future_entry = entries[i + PREFETCH_DISTANCE];
+      const auto &future_entry = entries[i + PREFETCH_DISTANCE];
       LIMCODE_PREFETCH(&future_entry);
       if (!future_entry.transactions.empty()) {
-        const auto& tx = future_entry.transactions[0];
+        const auto &tx = future_entry.transactions[0];
         LIMCODE_PREFETCH(&tx);
         if (!tx.signatures.empty()) {
           LIMCODE_PREFETCH(tx.signatures[0].data());
         }
         // Prefetch account keys if message is available
         if (tx.message.is_legacy()) {
-          const auto& msg = tx.message.as_legacy();
+          const auto &msg = tx.message.as_legacy();
           if (!msg.account_keys.empty()) {
             LIMCODE_PREFETCH(msg.account_keys[0].data());
           }
@@ -4554,26 +4682,31 @@ inline std::span<const uint8_t> serialize_entries_ultra(const std::vector<Entry>
 }
 
 /**
- * @brief Serialize entries using UltraTurbo, returning a vector (for API compatibility)
+ * @brief Serialize entries using UltraTurbo, returning a vector (for API
+ * compatibility)
  */
-inline std::vector<uint8_t> serialize_entries_ultra_vec(const std::vector<Entry>& entries) {
+inline std::vector<uint8_t>
+serialize_entries_ultra_vec(const std::vector<Entry> &entries) {
   auto span = serialize_entries_ultra(entries);
   return {span.begin(), span.end()};
 }
 
 /**
- * @brief Serialize transactions using UltraTurbo encoder (thread-local, zero-alloc hot path)
- * @return Span pointing to thread-local buffer (valid until next call on same thread)
+ * @brief Serialize transactions using UltraTurbo encoder (thread-local,
+ * zero-alloc hot path)
+ * @return Span pointing to thread-local buffer (valid until next call on same
+ * thread)
  */
-inline std::span<const uint8_t> serialize_transactions_ultra(const std::vector<VersionedTransaction>& txs) {
-  auto& encoder = UltraTurboEncoder::instance();
+inline std::span<const uint8_t>
+serialize_transactions_ultra(const std::vector<VersionedTransaction> &txs) {
+  auto &encoder = UltraTurboEncoder::instance();
   encoder.reset();
 
   const size_t n = txs.size();
 
   // Use pointer-style encoding for maximum speed
-  uint8_t* p = const_cast<uint8_t*>(encoder.result().data());
-  uint8_t* start = p;
+  uint8_t *p = const_cast<uint8_t *>(encoder.result().data());
+  uint8_t *start = p;
 
   p = ptr_enc::write_u64(p, n);
 
@@ -4594,9 +4727,11 @@ inline std::span<const uint8_t> serialize_transactions_ultra(const std::vector<V
 }
 
 /**
- * @brief Serialize transactions using UltraTurbo, returning a vector (for API compatibility)
+ * @brief Serialize transactions using UltraTurbo, returning a vector (for API
+ * compatibility)
  */
-inline std::vector<uint8_t> serialize_transactions_ultra_vec(const std::vector<VersionedTransaction>& txs) {
+inline std::vector<uint8_t>
+serialize_transactions_ultra_vec(const std::vector<VersionedTransaction> &txs) {
   auto span = serialize_transactions_ultra(txs);
   return {span.begin(), span.end()};
 }
@@ -4610,14 +4745,14 @@ inline std::vector<uint8_t> serialize_transactions_ultra_vec(const std::vector<V
  */
 class SerializerThreadPool {
 public:
-  static SerializerThreadPool& instance() {
+  static SerializerThreadPool &instance() {
     static SerializerThreadPool pool;
     return pool;
   }
 
   // Parallel for: execute func(start, end) for each chunk
-  template<typename Func>
-  void parallel_for(size_t total, size_t num_chunks, Func&& func) {
+  template <typename Func>
+  void parallel_for(size_t total, size_t num_chunks, Func &&func) {
     if (num_chunks <= 1 || total < 64) {
       func(0, total);
       return;
@@ -4645,7 +4780,8 @@ public:
 
     // Main thread also does work
     size_t task_id;
-    while ((task_id = task_counter_.fetch_add(1, std::memory_order_relaxed)) < num_chunks) {
+    while ((task_id = task_counter_.fetch_add(1, std::memory_order_relaxed)) <
+           num_chunks) {
       size_t start = task_id * chunk_size;
       size_t end = std::min(start + chunk_size, total);
       if (start < total) {
@@ -4665,8 +4801,10 @@ public:
 private:
   SerializerThreadPool() : stop_(false), work_available_(false) {
     size_t num_threads = std::thread::hardware_concurrency();
-    if (num_threads == 0) num_threads = 4;
-    num_threads = std::max(size_t(1), num_threads - 1);  // Leave 1 for main thread
+    if (num_threads == 0)
+      num_threads = 4;
+    num_threads =
+        std::max(size_t(1), num_threads - 1); // Leave 1 for main thread
 
     for (size_t i = 0; i < num_threads; ++i) {
       workers_.emplace_back([this] { worker_loop(); });
@@ -4679,8 +4817,9 @@ private:
       stop_ = true;
     }
     cv_.notify_all();
-    for (auto& w : workers_) {
-      if (w.joinable()) w.join();
+    for (auto &w : workers_) {
+      if (w.joinable())
+        w.join();
     }
   }
 
@@ -4689,7 +4828,8 @@ private:
       {
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [this] { return stop_ || work_available_; });
-        if (stop_) return;
+        if (stop_)
+          return;
       }
 
       // Try to grab tasks
@@ -4729,58 +4869,62 @@ private:
  * @param num_threads Number of worker threads (0 = auto-detect)
  * @return Serialized bytes
  */
-inline std::vector<uint8_t> serialize_entries_ultra_parallel(
-    const std::vector<Entry>& entries,
-    size_t num_threads = 0) {
+inline std::vector<uint8_t>
+serialize_entries_ultra_parallel(const std::vector<Entry> &entries,
+                                 size_t num_threads = 0) {
 
   const size_t n = entries.size();
   if (n < 64) {
-    return serialize_entries_ultra_vec(entries);  // Not worth parallelizing
+    return serialize_entries_ultra_vec(entries); // Not worth parallelizing
   }
 
   if (num_threads == 0) {
     num_threads = std::thread::hardware_concurrency();
-    if (num_threads == 0) num_threads = 4;
+    if (num_threads == 0)
+      num_threads = 4;
   }
-  num_threads = std::min(num_threads, n / 16);  // At least 16 entries per thread
+  num_threads = std::min(num_threads, n / 16); // At least 16 entries per thread
 
   // Pre-allocate result vectors for each chunk
   std::vector<std::vector<uint8_t>> chunk_results(num_threads);
   std::vector<size_t> chunk_sizes(num_threads, 0);
 
   // Use thread pool to serialize chunks in parallel
-  SerializerThreadPool::instance().parallel_for(n, num_threads,
-    [&entries, &chunk_results, &chunk_sizes, n, num_threads](size_t start, size_t end) {
-      // Determine which chunk this is
-      size_t chunk_idx = start / ((n + num_threads - 1) / num_threads);
-      if (chunk_idx >= num_threads) chunk_idx = num_threads - 1;
+  SerializerThreadPool::instance().parallel_for(
+      n, num_threads,
+      [&entries, &chunk_results, &chunk_sizes, n, num_threads](size_t start,
+                                                               size_t end) {
+        // Determine which chunk this is
+        size_t chunk_idx = start / ((n + num_threads - 1) / num_threads);
+        if (chunk_idx >= num_threads)
+          chunk_idx = num_threads - 1;
 
-      // Use thread-local encoder
-      auto& encoder = UltraTurboEncoder::instance();
-      encoder.reset();
+        // Use thread-local encoder
+        auto &encoder = UltraTurboEncoder::instance();
+        encoder.reset();
 
-      // Serialize entries with prefetching
-      for (size_t i = start; i < end; ++i) {
-        if (i + 4 < end) {
-          LIMCODE_PREFETCH(&entries[i + 4]);
+        // Serialize entries with prefetching
+        for (size_t i = start; i < end; ++i) {
+          if (i + 4 < end) {
+            LIMCODE_PREFETCH(&entries[i + 4]);
+          }
+          encoder.write_entry_ultra(entries[i]);
         }
-        encoder.write_entry_ultra(entries[i]);
-      }
 
-      // Copy to result
-      auto span = encoder.result();
-      chunk_results[chunk_idx].assign(span.begin(), span.end());
-      chunk_sizes[chunk_idx] = span.size();
-    });
+        // Copy to result
+        auto span = encoder.result();
+        chunk_results[chunk_idx].assign(span.begin(), span.end());
+        chunk_sizes[chunk_idx] = span.size();
+      });
 
   // Calculate total size and assemble result
-  size_t total_size = 8;  // entry count (u64)
+  size_t total_size = 8; // entry count (u64)
   for (size_t i = 0; i < num_threads; ++i) {
     total_size += chunk_sizes[i];
   }
 
   std::vector<uint8_t> output(total_size);
-  uint8_t* ptr = output.data();
+  uint8_t *ptr = output.data();
 
   // Write entry count
   uint64_t count = n;
@@ -4797,7 +4941,7 @@ inline std::vector<uint8_t> serialize_entries_ultra_parallel(
 
   return output;
 }
-#endif  // LIMCODE_HAS_PARALLEL_STL
+#endif // LIMCODE_HAS_PARALLEL_STL
 
 // ==================== Lock-Free Buffer Pool ====================
 
@@ -4815,7 +4959,7 @@ inline std::vector<uint8_t> serialize_entries_ultra_parallel(
 class LockFreeBufferPool {
 public:
   static constexpr size_t DEFAULT_BUFFER_SIZE = 4096;
-  static constexpr size_t MAX_POOL_SIZE = 64;  // Max buffers to keep
+  static constexpr size_t MAX_POOL_SIZE = 64; // Max buffers to keep
 
   /**
    * @brief A pooled buffer that returns itself to the pool on destruction
@@ -4824,9 +4968,10 @@ public:
   public:
     PooledBuffer() : pool_(nullptr), data_(nullptr), capacity_(0) {}
 
-    PooledBuffer(LockFreeBufferPool* pool, std::vector<uint8_t>* buf)
+    PooledBuffer(LockFreeBufferPool *pool, std::vector<uint8_t> *buf)
         : pool_(pool), data_(buf), capacity_(buf ? buf->capacity() : 0) {
-      if (data_) data_->clear();
+      if (data_)
+        data_->clear();
     }
 
     ~PooledBuffer() {
@@ -4836,16 +4981,17 @@ public:
     }
 
     // Move-only
-    PooledBuffer(PooledBuffer&& other) noexcept
+    PooledBuffer(PooledBuffer &&other) noexcept
         : pool_(other.pool_), data_(other.data_), capacity_(other.capacity_) {
       other.pool_ = nullptr;
       other.data_ = nullptr;
       other.capacity_ = 0;
     }
 
-    PooledBuffer& operator=(PooledBuffer&& other) noexcept {
+    PooledBuffer &operator=(PooledBuffer &&other) noexcept {
       if (this != &other) {
-        if (pool_ && data_) pool_->release(data_);
+        if (pool_ && data_)
+          pool_->release(data_);
         pool_ = other.pool_;
         data_ = other.data_;
         capacity_ = other.capacity_;
@@ -4856,49 +5002,53 @@ public:
       return *this;
     }
 
-    PooledBuffer(const PooledBuffer&) = delete;
-    PooledBuffer& operator=(const PooledBuffer&) = delete;
+    PooledBuffer(const PooledBuffer &) = delete;
+    PooledBuffer &operator=(const PooledBuffer &) = delete;
 
-    [[nodiscard]] std::vector<uint8_t>* get() { return data_; }
-    [[nodiscard]] const std::vector<uint8_t>* get() const { return data_; }
+    [[nodiscard]] std::vector<uint8_t> *get() { return data_; }
+    [[nodiscard]] const std::vector<uint8_t> *get() const { return data_; }
 
-    [[nodiscard]] std::vector<uint8_t>& operator*() { return *data_; }
-    [[nodiscard]] std::vector<uint8_t>* operator->() { return data_; }
+    [[nodiscard]] std::vector<uint8_t> &operator*() { return *data_; }
+    [[nodiscard]] std::vector<uint8_t> *operator->() { return data_; }
 
     [[nodiscard]] bool valid() const { return data_ != nullptr; }
     [[nodiscard]] explicit operator bool() const { return valid(); }
 
     /// Take ownership and detach from pool
     [[nodiscard]] std::vector<uint8_t> take() {
-      if (!data_) return {};
+      if (!data_)
+        return {};
       auto result = std::move(*data_);
-      pool_ = nullptr;  // Don't return to pool
+      pool_ = nullptr; // Don't return to pool
       delete data_;
       data_ = nullptr;
       return result;
     }
 
   private:
-    LockFreeBufferPool* pool_;
-    std::vector<uint8_t>* data_;
+    LockFreeBufferPool *pool_;
+    std::vector<uint8_t> *data_;
     size_t capacity_;
   };
 
 private:
   // Tagged pointer for ABA prevention
   struct LIMCODE_CACHE_ALIGNED Node {
-    std::vector<uint8_t>* buffer;
-    Node* next;
+    std::vector<uint8_t> *buffer;
+    Node *next;
   };
 
   // Pack version and pointer together
-  // On x86-64, only the lower 48 bits of a pointer are used (canonical addresses)
-  // We use the upper 16 bits for the version tag to prevent ABA problem
+  // On x86-64, only the lower 48 bits of a pointer are used (canonical
+  // addresses) We use the upper 16 bits for the version tag to prevent ABA
+  // problem
   struct TaggedPtr {
     uintptr_t value;
 
-    static constexpr uintptr_t PTR_MASK = 0x0000FFFFFFFFFFFFULL;  // Lower 48 bits
-    static constexpr uintptr_t TAG_MASK = 0xFFFF000000000000ULL;  // Upper 16 bits
+    static constexpr uintptr_t PTR_MASK =
+        0x0000FFFFFFFFFFFFULL; // Lower 48 bits
+    static constexpr uintptr_t TAG_MASK =
+        0xFFFF000000000000ULL; // Upper 16 bits
     static constexpr int TAG_SHIFT = 48;
 
     TaggedPtr() : value(0) {}
@@ -4911,15 +5061,15 @@ private:
     }
 
     // Constructor from pointer and tag
-    static TaggedPtr make(Node* ptr, uintptr_t tag = 0) {
+    static TaggedPtr make(Node *ptr, uintptr_t tag = 0) {
       TaggedPtr tp;
       tp.value = (reinterpret_cast<uintptr_t>(ptr) & PTR_MASK) |
                  ((tag & 0xFFFF) << TAG_SHIFT);
       return tp;
     }
 
-    [[nodiscard]] Node* ptr() const {
-      return reinterpret_cast<Node*>(value & PTR_MASK);
+    [[nodiscard]] Node *ptr() const {
+      return reinterpret_cast<Node *>(value & PTR_MASK);
     }
 
     [[nodiscard]] uintptr_t tag() const {
@@ -4930,7 +5080,9 @@ private:
       return make(ptr(), (tag() + 1) & 0xFFFF);
     }
 
-    bool operator==(const TaggedPtr& other) const { return value == other.value; }
+    bool operator==(const TaggedPtr &other) const {
+      return value == other.value;
+    }
   };
 
 public:
@@ -4942,15 +5094,16 @@ public:
   ~LockFreeBufferPool() {
     // Drain the pool
     while (true) {
-      TaggedPtr old_head = TaggedPtr::from_raw(head_.load(std::memory_order_acquire));
-      Node* node = old_head.ptr();
-      if (!node) break;
+      TaggedPtr old_head =
+          TaggedPtr::from_raw(head_.load(std::memory_order_acquire));
+      Node *node = old_head.ptr();
+      if (!node)
+        break;
 
       TaggedPtr new_head = TaggedPtr::make(node->next, old_head.tag() + 1);
-      if (head_.compare_exchange_weak(
-              old_head.value, new_head.value,
-              std::memory_order_release,
-              std::memory_order_relaxed)) {
+      if (head_.compare_exchange_weak(old_head.value, new_head.value,
+                                      std::memory_order_release,
+                                      std::memory_order_relaxed)) {
         delete node->buffer;
         delete node;
       }
@@ -4963,29 +5116,29 @@ public:
   [[nodiscard]] PooledBuffer acquire() {
     // Try to pop from the lock-free stack
     while (true) {
-      TaggedPtr old_head = TaggedPtr::from_raw(head_.load(std::memory_order_acquire));
-      Node* node = old_head.ptr();
+      TaggedPtr old_head =
+          TaggedPtr::from_raw(head_.load(std::memory_order_acquire));
+      Node *node = old_head.ptr();
 
       if (!node) {
         // Pool empty, allocate new buffer
-        auto* buf = new std::vector<uint8_t>();
+        auto *buf = new std::vector<uint8_t>();
         buf->reserve(buffer_size_);
         return PooledBuffer(this, buf);
       }
 
       TaggedPtr new_head = TaggedPtr::make(node->next, old_head.tag() + 1);
-      if (head_.compare_exchange_weak(
-              old_head.value, new_head.value,
-              std::memory_order_release,
-              std::memory_order_relaxed)) {
+      if (head_.compare_exchange_weak(old_head.value, new_head.value,
+                                      std::memory_order_release,
+                                      std::memory_order_relaxed)) {
         pool_size_.fetch_sub(1, std::memory_order_relaxed);
-        auto* buf = node->buffer;
+        auto *buf = node->buffer;
         delete node;
         return PooledBuffer(this, buf);
       }
 
 #if LIMCODE_HAS_X86_64_ASM
-      limcode_pause();  // Reduce contention
+      limcode_pause(); // Reduce contention
 #endif
     }
   }
@@ -4993,8 +5146,9 @@ public:
   /**
    * @brief Release a buffer back to the pool
    */
-  void release(std::vector<uint8_t>* buffer) {
-    if (!buffer) return;
+  void release(std::vector<uint8_t> *buffer) {
+    if (!buffer)
+      return;
 
     // Check if pool is full
     if (pool_size_.load(std::memory_order_relaxed) >= MAX_POOL_SIZE) {
@@ -5004,19 +5158,19 @@ public:
 
     buffer->clear();
 
-    auto* node = new Node{buffer, nullptr};
+    auto *node = new Node{buffer, nullptr};
 
     // Push to lock-free stack
     while (true) {
-      TaggedPtr old_head = TaggedPtr::from_raw(head_.load(std::memory_order_acquire));
+      TaggedPtr old_head =
+          TaggedPtr::from_raw(head_.load(std::memory_order_acquire));
 
       node->next = old_head.ptr();
       TaggedPtr new_head = TaggedPtr::make(node, old_head.tag() + 1);
 
-      if (head_.compare_exchange_weak(
-              old_head.value, new_head.value,
-              std::memory_order_release,
-              std::memory_order_relaxed)) {
+      if (head_.compare_exchange_weak(old_head.value, new_head.value,
+                                      std::memory_order_release,
+                                      std::memory_order_relaxed)) {
         pool_size_.fetch_add(1, std::memory_order_relaxed);
         return;
       }
@@ -5045,7 +5199,7 @@ private:
  */
 class ThreadLocalBufferPool {
 public:
-  static LockFreeBufferPool& get() {
+  static LockFreeBufferPool &get() {
     static thread_local LockFreeBufferPool pool;
     return pool;
   }
@@ -5068,9 +5222,9 @@ public:
  * - Wait-free consumers (bounded retries)
  * - Cache-line aligned slots to avoid false sharing
  */
-template <typename T, size_t Capacity>
-class LockFreeMPMCQueue {
-  static_assert((Capacity & (Capacity - 1)) == 0, "Capacity must be power of 2");
+template <typename T, size_t Capacity> class LockFreeMPMCQueue {
+  static_assert((Capacity & (Capacity - 1)) == 0,
+                "Capacity must be power of 2");
 
 public:
   LockFreeMPMCQueue() : enqueue_pos_(0), dequeue_pos_(0) {
@@ -5084,7 +5238,7 @@ public:
    * @return true if successful, false if queue is full
    */
   bool try_enqueue(T item) {
-    Cell* cell;
+    Cell *cell;
     size_t pos = enqueue_pos_.load(std::memory_order_relaxed);
 
     for (;;) {
@@ -5094,11 +5248,11 @@ public:
 
       if (diff == 0) {
         if (enqueue_pos_.compare_exchange_weak(pos, pos + 1,
-                                                std::memory_order_relaxed)) {
+                                               std::memory_order_relaxed)) {
           break;
         }
       } else if (diff < 0) {
-        return false;  // Queue is full
+        return false; // Queue is full
       } else {
         pos = enqueue_pos_.load(std::memory_order_relaxed);
       }
@@ -5111,24 +5265,26 @@ public:
 
   /**
    * @brief Try to dequeue an item
-   * @return optional containing the item if successful, nullopt if queue is empty
+   * @return optional containing the item if successful, nullopt if queue is
+   * empty
    */
   std::optional<T> try_dequeue() {
-    Cell* cell;
+    Cell *cell;
     size_t pos = dequeue_pos_.load(std::memory_order_relaxed);
 
     for (;;) {
       cell = &buffer_[pos & (Capacity - 1)];
       size_t seq = cell->sequence.load(std::memory_order_acquire);
-      intptr_t diff = static_cast<intptr_t>(seq) - static_cast<intptr_t>(pos + 1);
+      intptr_t diff =
+          static_cast<intptr_t>(seq) - static_cast<intptr_t>(pos + 1);
 
       if (diff == 0) {
         if (dequeue_pos_.compare_exchange_weak(pos, pos + 1,
-                                                std::memory_order_relaxed)) {
+                                               std::memory_order_relaxed)) {
           break;
         }
       } else if (diff < 0) {
-        return std::nullopt;  // Queue is empty
+        return std::nullopt; // Queue is empty
       } else {
         pos = dequeue_pos_.load(std::memory_order_relaxed);
       }
@@ -5181,10 +5337,9 @@ private:
 class LIMCODE_CACHE_ALIGNED AtomicStats {
 public:
   AtomicStats()
-      : bytes_serialized_(0), bytes_deserialized_(0),
-        entries_serialized_(0), entries_deserialized_(0),
-        transactions_serialized_(0), transactions_deserialized_(0),
-        pool_hits_(0), pool_misses_(0) {}
+      : bytes_serialized_(0), bytes_deserialized_(0), entries_serialized_(0),
+        entries_deserialized_(0), transactions_serialized_(0),
+        transactions_deserialized_(0), pool_hits_(0), pool_misses_(0) {}
 
   // Serialization stats
   void add_bytes_serialized(size_t bytes) {
@@ -5216,9 +5371,7 @@ public:
   }
 
   // Pool stats
-  void record_pool_hit() {
-    pool_hits_.fetch_add(1, std::memory_order_relaxed);
-  }
+  void record_pool_hit() { pool_hits_.fetch_add(1, std::memory_order_relaxed); }
 
   void record_pool_miss() {
     pool_misses_.fetch_add(1, std::memory_order_relaxed);
@@ -5289,7 +5442,7 @@ private:
 /**
  * @brief Global statistics instance
  */
-inline AtomicStats& global_stats() {
+inline AtomicStats &global_stats() {
   static AtomicStats stats;
   return stats;
 }
@@ -5304,7 +5457,7 @@ inline AtomicStats& global_stats() {
 class PooledLimcodeEncoder : public LimcodeEncoder {
 public:
   PooledLimcodeEncoder()
-      : LimcodeEncoder(0),  // Don't pre-allocate in base
+      : LimcodeEncoder(0), // Don't pre-allocate in base
         pooled_buffer_(ThreadLocalBufferPool::acquire()) {
     if (pooled_buffer_) {
       // Swap in the pooled buffer
@@ -5321,5 +5474,3 @@ private:
 };
 
 } // namespace limcode
-
-
