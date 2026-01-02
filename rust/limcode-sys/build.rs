@@ -1,7 +1,7 @@
 use std::env;
 
 fn main() {
-    // Compile C++ library
+    // Compile C++ library - remove LTO flag which causes issues
     let mut build = cc::Build::new();
     build
         .cpp(true)
@@ -17,12 +17,13 @@ fn main() {
         .flag_if_supported("-mavx2")
         .flag_if_supported("-msse4.2")
         .flag_if_supported("-mbmi2")
-        .flag_if_supported("-flto=auto")
+        //Note: -flto removed - it conflicts with Rust's LTO
         .compile("limcode");
 
     println!("cargo:rerun-if-changed=../../src/limcode_ffi.cpp");
     println!("cargo:rerun-if-changed=../../include/limcode_ffi.h");
     println!("cargo:rerun-if-changed=../../include/limcode.h");
+    println!("cargo:rerun-if-changed=../../include/limcode/limcode.h");
 
     // Link C++ stdlib
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();

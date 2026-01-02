@@ -35,7 +35,7 @@ serde = ["dep:serde"]
 
 [profile.release]
 opt-level = 3
-lto = "fat"
+lto = false  # Disabled: conflicts with C++ FFI linking
 codegen-units = 1
 panic = "abort"
 strip = false
