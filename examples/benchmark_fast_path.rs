@@ -1,4 +1,4 @@
-use limcode::{Encoder, Decoder};
+use limcode::Encoder;
 use std::time::Instant;
 
 fn main() {
