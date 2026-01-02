@@ -1,4 +1,4 @@
-use limcode::{Encoder, Decoder};
+use limcode::{Decoder, Encoder};
 
 fn main() {
     println!("Testing decoder only with various sizes...\n");

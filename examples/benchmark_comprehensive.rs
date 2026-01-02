@@ -1,4 +1,4 @@
-use limcode::{serialize_bincode, deserialize_bincode};
+use limcode::{deserialize_bincode, serialize_bincode};
 use std::time::Instant;
 
 fn validate_formats(data: &[u8]) -> bool {
@@ -8,7 +8,11 @@ fn validate_formats(data: &[u8]) -> bool {
     // Verify limcode matches bincode format exactly
     if limcode_encoded != bincode_encoded {
         println!("    ⚠️  Format mismatch! Limcode != Bincode");
-        println!("       Limcode len: {}, Bincode len: {}", limcode_encoded.len(), bincode_encoded.len());
+        println!(
+            "       Limcode len: {}, Bincode len: {}",
+            limcode_encoded.len(),
+            bincode_encoded.len()
+        );
         return false;
     }
 
@@ -90,8 +94,10 @@ fn main() {
             format!("{}B", size)
         };
 
-        println!("│ {:>4} │ {:>6}ns │ {:>6}ns │ {:>6}ns │ {:>6.1}x faster │",
-                 size_str, limcode_ns, wincode_ns, bincode_ns, improvement);
+        println!(
+            "│ {:>4} │ {:>6}ns │ {:>6}ns │ {:>6}ns │ {:>6.1}x faster │",
+            size_str, limcode_ns, wincode_ns, bincode_ns, improvement
+        );
     }
     println!("└──────┴─────────┴─────────┴─────────┴─────────────┘");
     println!();
@@ -138,8 +144,10 @@ fn main() {
             format!("{}B", size)
         };
 
-        println!("│ {:>4} │ {:>6}ns │ {:>6}ns │ {:>6}ns │ {:>6.1}x faster │",
-                 size_str, limcode_ns, wincode_ns, bincode_ns, improvement);
+        println!(
+            "│ {:>4} │ {:>6}ns │ {:>6}ns │ {:>6}ns │ {:>6.1}x faster │",
+            size_str, limcode_ns, wincode_ns, bincode_ns, improvement
+        );
     }
     println!("└──────┴─────────┴─────────┴─────────┴─────────────┘");
     println!();
@@ -166,7 +174,10 @@ fn main() {
             format!("{}B", size)
         };
 
-        println!("│ {:>4} │ {:>6}ns │ Zero alloc, zero copy    │", size_str, zerocopy_ns);
+        println!(
+            "│ {:>4} │ {:>6}ns │ Zero alloc, zero copy    │",
+            size_str, zerocopy_ns
+        );
     }
     println!("└──────┴─────────┴──────────────────────────┘");
     println!();

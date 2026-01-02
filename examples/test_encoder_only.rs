@@ -10,7 +10,11 @@ fn main() {
         let mut enc = Encoder::new();
         enc.write_bytes(&data);
         let bytes = enc.finish();
-        println!("Encoded {:>6} bytes: SUCCESS (output: {} bytes)", size, bytes.len());
+        println!(
+            "Encoded {:>6} bytes: SUCCESS (output: {} bytes)",
+            size,
+            bytes.len()
+        );
     }
 
     println!("\nAll encoder tests passed!");

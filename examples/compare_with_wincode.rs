@@ -1,4 +1,4 @@
-use limcode::{Encoder, Decoder};
+use limcode::{Decoder, Encoder};
 use std::time::Instant;
 
 fn main() {
@@ -15,13 +15,23 @@ fn main() {
         (262144, "256KB"),
         (1048576, "1MB"),
         (10 * 1024 * 1024, "10MB"),
-        (50 * 1024 * 1024, "48MB"),  // Solana block size
+        (50 * 1024 * 1024, "48MB"), // Solana block size
     ];
 
-    println!("{:>8} │ {:>12} │ {:>14} │ {:>12} │ {:>12} │ {:>14} │ {:>12}",
-        "Size", "Limcode Enc", "Wincode Enc", "Bincode Enc", "Limcode Dec", "Wincode Dec", "Bincode Dec");
-    println!("{:─>8}─┼─{:─>12}─┼─{:─>14}─┼─{:─>12}─┼─{:─>12}─┼─{:─>14}─┼─{:─>12}",
-        "", "", "", "", "", "", "");
+    println!(
+        "{:>8} │ {:>12} │ {:>14} │ {:>12} │ {:>12} │ {:>14} │ {:>12}",
+        "Size",
+        "Limcode Enc",
+        "Wincode Enc",
+        "Bincode Enc",
+        "Limcode Dec",
+        "Wincode Dec",
+        "Bincode Dec"
+    );
+    println!(
+        "{:─>8}─┼─{:─>12}─┼─{:─>14}─┼─{:─>12}─┼─{:─>12}─┼─{:─>14}─┼─{:─>12}",
+        "", "", "", "", "", "", ""
+    );
 
     for (size, name) in test_sizes {
         benchmark_size(size, name);
@@ -139,7 +149,8 @@ fn benchmark_size(size: usize, name: &str) {
         "    N/A (>4MB)".to_string()
     };
 
-    println!("{:>8} │ {:>10.2}ms │ {:>14} │ {:>10.2}ms │ {:>10.2}ms │ {:>14} │ {:>10.2}ms",
+    println!(
+        "{:>8} │ {:>10.2}ms │ {:>14} │ {:>10.2}ms │ {:>10.2}ms │ {:>14} │ {:>10.2}ms",
         name,
         limcode_enc_time.as_secs_f64() * 1000.0,
         wincode_enc_str,

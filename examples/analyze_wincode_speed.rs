@@ -25,8 +25,10 @@ fn main() {
     println!("Wincode encoding (1KB, {} iterations):", iterations);
     println!("  Total time: {:?}", wincode_time);
     println!("  Per operation: {} nanoseconds", wincode_ns_per_op);
-    println!("  Throughput: {:.2} GB/s",
-        (1024.0 * iterations as f64) / wincode_time.as_secs_f64() / 1e9);
+    println!(
+        "  Throughput: {:.2} GB/s",
+        (1024.0 * iterations as f64) / wincode_time.as_secs_f64() / 1e9
+    );
     println!();
 
     // Measure bincode for comparison
@@ -40,12 +42,17 @@ fn main() {
     println!("Bincode encoding (1KB, {} iterations):", iterations);
     println!("  Total time: {:?}", bincode_time);
     println!("  Per operation: {} nanoseconds", bincode_ns_per_op);
-    println!("  Throughput: {:.2} GB/s",
-        (1024.0 * iterations as f64) / bincode_time.as_secs_f64() / 1e9);
+    println!(
+        "  Throughput: {:.2} GB/s",
+        (1024.0 * iterations as f64) / bincode_time.as_secs_f64() / 1e9
+    );
     println!();
 
     println!("Wincode vs Bincode:");
-    println!("  Speedup: {:.2}x faster", bincode_ns_per_op as f64 / wincode_ns_per_op as f64);
+    println!(
+        "  Speedup: {:.2}x faster",
+        bincode_ns_per_op as f64 / wincode_ns_per_op as f64
+    );
     println!();
 
     // Analyze what wincode does
@@ -120,8 +127,10 @@ fn main() {
 
     println!("\nWincode decoding (1KB, {} iterations):", iterations);
     println!("  Per operation: {} nanoseconds", wincode_dec_ns);
-    println!("  Throughput: {:.2} GB/s",
-        (1024.0 * iterations as f64) / wincode_dec_time.as_secs_f64() / 1e9);
+    println!(
+        "  Throughput: {:.2} GB/s",
+        (1024.0 * iterations as f64) / wincode_dec_time.as_secs_f64() / 1e9
+    );
     println!();
     println!("Why so fast? PLACEMENT INITIALIZATION!");
     println!("  • Reads length: 8 bytes");

@@ -11,15 +11,19 @@ fn main() {
         (512, "512B"),
         (1024, "1KB"),
         (2048, "2KB"),
-        (4096, "4KB"),   // Fast path threshold
-        (8192, "8KB"),   // Switches to C++ path
+        (4096, "4KB"), // Fast path threshold
+        (8192, "8KB"), // Switches to C++ path
         (16384, "16KB"),
     ];
 
-    println!("{:>8} │ {:>12} │ {:>12} │ {:>12} │ {:>10}",
-        "Size", "Limcode", "Wincode", "Bincode", "Speedup");
-    println!("{:─>8}─┼─{:─>12}─┼─{:─>12}─┼─{:─>12}─┼─{:─>10}",
-        "", "", "", "", "");
+    println!(
+        "{:>8} │ {:>12} │ {:>12} │ {:>12} │ {:>10}",
+        "Size", "Limcode", "Wincode", "Bincode", "Speedup"
+    );
+    println!(
+        "{:─>8}─┼─{:─>12}─┼─{:─>12}─┼─{:─>12}─┼─{:─>10}",
+        "", "", "", "", ""
+    );
 
     for (size, name) in test_sizes {
         benchmark_size(size, name);
@@ -94,15 +98,20 @@ fn benchmark_size(size: usize, name: &str) {
         "N/A".to_string()
     };
 
-    println!("{:>8} │ {:>10}ns │ {:>10}ns │ {:>10}ns │ {:>10}",
-        name, limcode_ns, wincode_ns, bincode_ns, speedup_str);
+    println!(
+        "{:>8} │ {:>10}ns │ {:>10}ns │ {:>10}ns │ {:>10}",
+        name, limcode_ns, wincode_ns, bincode_ns, speedup_str
+    );
 }
 
 fn detailed_analysis(size: usize) {
     let data = vec![0xABu8; size];
     let iterations = 10_000_000;
 
-    println!("Testing with {} iterations for precise measurement...\n", iterations);
+    println!(
+        "Testing with {} iterations for precise measurement...\n",
+        iterations
+    );
 
     // Limcode encoding
     let start = Instant::now();
@@ -125,7 +134,10 @@ fn detailed_analysis(size: usize) {
     println!("Encoding Performance ({}B):", size);
     println!("  Limcode: {}ns per operation", limcode_ns);
     println!("  Wincode: {}ns per operation", wincode_ns);
-    println!("  Ratio:   {:.2}x (wincode / limcode)", wincode_ns as f64 / limcode_ns as f64);
+    println!(
+        "  Ratio:   {:.2}x (wincode / limcode)",
+        wincode_ns as f64 / limcode_ns as f64
+    );
     println!();
 
     if limcode_ns <= 25 {
@@ -144,6 +156,12 @@ fn detailed_analysis(size: usize) {
 
     println!();
     println!("Throughput:");
-    println!("  Limcode: {:.2} GB/s", (size as f64 * iterations as f64) / limcode_time.as_secs_f64() / 1e9);
-    println!("  Wincode: {:.2} GB/s", (size as f64 * iterations as f64) / wincode_time.as_secs_f64() / 1e9);
+    println!(
+        "  Limcode: {:.2} GB/s",
+        (size as f64 * iterations as f64) / limcode_time.as_secs_f64() / 1e9
+    );
+    println!(
+        "  Wincode: {:.2} GB/s",
+        (size as f64 * iterations as f64) / wincode_time.as_secs_f64() / 1e9
+    );
 }

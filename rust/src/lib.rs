@@ -188,10 +188,10 @@ impl Encoder {
     pub fn write_bytes(&mut self, data: &[u8]) {
         // Adaptive chunking strategy balancing safety vs FFI overhead
         let chunk_size = match data.len() {
-            0..=4096 => data.len(),      // Tiny: no chunking, single FFI call
-            4097..=65536 => 16 * 1024,   // Small: 16KB chunks
+            0..=4096 => data.len(),       // Tiny: no chunking, single FFI call
+            4097..=65536 => 16 * 1024,    // Small: 16KB chunks
             65537..=1048576 => 32 * 1024, // Medium: 32KB chunks
-            _ => 48 * 1024,              // Large: 48KB chunks (maximum safe size)
+            _ => 48 * 1024,               // Large: 48KB chunks (maximum safe size)
         };
 
         let inner = self.get_or_create_inner();
@@ -235,18 +235,10 @@ impl Encoder {
                 let ptr = self.fast_buffer.as_mut_ptr();
 
                 // Write length (8 bytes, little-endian) directly
-                std::ptr::copy_nonoverlapping(
-                    (data.len() as u64).to_le_bytes().as_ptr(),
-                    ptr,
-                    8
-                );
+                std::ptr::copy_nonoverlapping((data.len() as u64).to_le_bytes().as_ptr(), ptr, 8);
 
                 // Write data directly
-                std::ptr::copy_nonoverlapping(
-                    data.as_ptr(),
-                    ptr.add(8),
-                    data.len()
-                );
+                std::ptr::copy_nonoverlapping(data.as_ptr(), ptr.add(8), data.len());
 
                 // Set length
                 self.fast_buffer.set_len(total_len);
@@ -256,7 +248,11 @@ impl Encoder {
             if !self.fast_buffer.is_empty() {
                 let inner = self.get_or_create_inner();
                 unsafe {
-                    limcode_encoder_write_bytes(inner, self.fast_buffer.as_ptr(), self.fast_buffer.len());
+                    limcode_encoder_write_bytes(
+                        inner,
+                        self.fast_buffer.as_ptr(),
+                        self.fast_buffer.len(),
+                    );
                 }
                 self.fast_buffer.clear();
             }
@@ -281,11 +277,7 @@ impl Encoder {
             let ptr = limcode_encoder_alloc_space(self.get_or_create_inner(), 8, &mut offset);
 
             // Write u64 as little-endian bytes directly
-            std::ptr::copy_nonoverlapping(
-                value.to_le_bytes().as_ptr(),
-                ptr.add(offset),
-                8
-            );
+            std::ptr::copy_nonoverlapping(value.to_le_bytes().as_ptr(), ptr.add(offset), 8);
         }
     }
 
@@ -306,14 +298,11 @@ impl Encoder {
         unsafe {
             // Allocate space first (resizes buffer), then write
             let mut offset = 0;
-            let ptr = limcode_encoder_alloc_space(self.get_or_create_inner(), data.len(), &mut offset);
+            let ptr =
+                limcode_encoder_alloc_space(self.get_or_create_inner(), data.len(), &mut offset);
 
             // Direct memcpy - compiler optimizes to fastest instruction
-            std::ptr::copy_nonoverlapping(
-                data.as_ptr(),
-                ptr.add(offset),
-                data.len()
-            );
+            std::ptr::copy_nonoverlapping(data.as_ptr(), ptr.add(offset), data.len());
         }
     }
 
@@ -339,7 +328,11 @@ impl Encoder {
             if let Some(inner) = self.inner {
                 // Flush fast buffer if needed
                 if !self.fast_buffer.is_empty() {
-                    limcode_encoder_write_bytes(inner, self.fast_buffer.as_ptr(), self.fast_buffer.len());
+                    limcode_encoder_write_bytes(
+                        inner,
+                        self.fast_buffer.as_ptr(),
+                        self.fast_buffer.len(),
+                    );
                 }
 
                 // Get C++ buffer
@@ -440,10 +433,10 @@ impl<'a> Decoder<'a> {
     pub fn read_bytes(&mut self, out: &mut [u8]) -> Result<(), &'static str> {
         // Adaptive chunking strategy balancing safety vs FFI overhead
         let chunk_size = match out.len() {
-            0..=4096 => out.len(),       // Tiny: no chunking
-            4097..=65536 => 16 * 1024,   // Small: 16KB chunks
+            0..=4096 => out.len(),        // Tiny: no chunking
+            4097..=65536 => 16 * 1024,    // Small: 16KB chunks
             65537..=1048576 => 32 * 1024, // Medium: 32KB chunks
-            _ => 48 * 1024,              // Large: 48KB chunks (maximum safe)
+            _ => 48 * 1024,               // Large: 48KB chunks (maximum safe)
         };
 
         if out.len() <= chunk_size {
@@ -455,7 +448,8 @@ impl<'a> Decoder<'a> {
         } else {
             for chunk in out.chunks_mut(chunk_size) {
                 unsafe {
-                    if limcode_decoder_read_bytes(self.inner, chunk.as_mut_ptr(), chunk.len()) != 0 {
+                    if limcode_decoder_read_bytes(self.inner, chunk.as_mut_ptr(), chunk.len()) != 0
+                    {
                         return Err("Failed to read bytes");
                     }
                 }

@@ -81,24 +81,45 @@ fn main() {
 
         println!("\nSpeedup vs Bincode:");
         if maybe_uninit < bincode_time {
-            println!("  MaybeUninit:     {:.2}x FASTER ✓", bincode_time as f64 / maybe_uninit as f64);
+            println!(
+                "  MaybeUninit:     {:.2}x FASTER ✓",
+                bincode_time as f64 / maybe_uninit as f64
+            );
         }
         if direct < bincode_time {
-            println!("  Direct write:    {:.2}x FASTER ✓", bincode_time as f64 / direct as f64);
+            println!(
+                "  Direct write:    {:.2}x FASTER ✓",
+                bincode_time as f64 / direct as f64
+            );
         }
         if stack < bincode_time {
-            println!("  Stack alloc:     {:.2}x FASTER ✓", bincode_time as f64 / stack as f64);
+            println!(
+                "  Stack alloc:     {:.2}x FASTER ✓",
+                bincode_time as f64 / stack as f64
+            );
         }
         if hybrid < bincode_time {
-            println!("  Hybrid:          {:.2}x FASTER ✓", bincode_time as f64 / hybrid as f64);
+            println!(
+                "  Hybrid:          {:.2}x FASTER ✓",
+                bincode_time as f64 / hybrid as f64
+            );
         }
         if pooled < bincode_time {
-            println!("  Pooled:          {:.2}x FASTER ✓", bincode_time as f64 / pooled as f64);
+            println!(
+                "  Pooled:          {:.2}x FASTER ✓",
+                bincode_time as f64 / pooled as f64
+            );
         }
 
-        let best = *[maybe_uninit, direct, stack, hybrid, pooled].iter().min().unwrap();
+        let best = *[maybe_uninit, direct, stack, hybrid, pooled]
+            .iter()
+            .min()
+            .unwrap();
         if best < current {
-            println!("\n  Best strategy is {:.2}x faster than current!", current as f64 / best as f64);
+            println!(
+                "\n  Best strategy is {:.2}x faster than current!",
+                current as f64 / best as f64
+            );
         }
     }
 

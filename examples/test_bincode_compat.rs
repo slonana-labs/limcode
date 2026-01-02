@@ -1,6 +1,6 @@
-use limcode::{Encoder, Decoder};
 #[allow(unused_imports)]
 use limcode::Decoder as _;
+use limcode::{Decoder, Encoder};
 
 fn main() {
     println!("Testing Bincode Compatibility...\n");
@@ -41,7 +41,10 @@ fn test_vec_u8_compatibility() {
     let mut limcode_enc2 = Encoder::new();
     limcode_enc2.write_vec_bincode(&test_data);
     let limcode_encoded2 = limcode_enc2.finish();
-    println!("  Limcode (bincode) output: {} bytes", limcode_encoded2.len());
+    println!(
+        "  Limcode (bincode) output: {} bytes",
+        limcode_encoded2.len()
+    );
     println!("  Limcode (bincode) bytes: {:02X?}", limcode_encoded2);
 
     // Check if they match
@@ -81,14 +84,25 @@ fn test_various_sizes() {
         let compatible = bincode_enc == limcode_enc;
         let status = if compatible { "✓" } else { "✗" };
 
-        println!("  Size {:>5}: {} (bincode: {} bytes, limcode: {} bytes)",
-            size, status, bincode_enc.len(), limcode_enc.len());
+        println!(
+            "  Size {:>5}: {} (bincode: {} bytes, limcode: {} bytes)",
+            size,
+            status,
+            bincode_enc.len(),
+            limcode_enc.len()
+        );
 
         if !compatible {
             println!("    ERROR: Mismatch detected!");
             if bincode_enc.len() < 100 {
-                println!("    Bincode: {:02X?}", &bincode_enc[..bincode_enc.len().min(20)]);
-                println!("    Limcode: {:02X?}", &limcode_enc[..limcode_enc.len().min(20)]);
+                println!(
+                    "    Bincode: {:02X?}",
+                    &bincode_enc[..bincode_enc.len().min(20)]
+                );
+                println!(
+                    "    Limcode: {:02X?}",
+                    &limcode_enc[..limcode_enc.len().min(20)]
+                );
             }
         }
     }

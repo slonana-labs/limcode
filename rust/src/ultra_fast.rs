@@ -1,6 +1,5 @@
 /// Ultra-optimized serialization experiments
 /// Goal: Beat wincode performance through advanced techniques
-
 use std::mem::MaybeUninit;
 
 /// Strategy 1: MaybeUninit to avoid Vec initialization overhead

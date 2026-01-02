@@ -9,7 +9,10 @@ fn main() {
     let data = vec![0xABu8; 1024]; // 1KB
     let iterations = 10_000_000;
 
-    println!("Testing with {} iterations for precise measurement...\n", iterations);
+    println!(
+        "Testing with {} iterations for precise measurement...\n",
+        iterations
+    );
 
     // Limcode standalone function (maximum speed)
     let start = Instant::now();
@@ -49,16 +52,37 @@ fn main() {
     println!("┌────────────────────────────┬──────────┬─────────────┐");
     println!("│ Implementation             │ Time/Op  │ vs Bincode  │");
     println!("├────────────────────────────┼──────────┼─────────────┤");
-    println!("│ serialize_bincode()        │ {:>6}ns │ {:>6.1}x     │", standalone_ns, bincode_ns as f64 / standalone_ns.max(1) as f64);
-    println!("│ Encoder::write_vec_bincode │ {:>6}ns │ {:>6.1}x     │", encoder_ns, bincode_ns as f64 / encoder_ns as f64);
-    println!("│ wincode::serialize         │ {:>6}ns │ {:>6.1}x     │", wincode_ns, bincode_ns as f64 / wincode_ns.max(1) as f64);
-    println!("│ bincode::serialize         │ {:>6}ns │ {:>6}.0x     │", bincode_ns, 1);
+    println!(
+        "│ serialize_bincode()        │ {:>6}ns │ {:>6.1}x     │",
+        standalone_ns,
+        bincode_ns as f64 / standalone_ns.max(1) as f64
+    );
+    println!(
+        "│ Encoder::write_vec_bincode │ {:>6}ns │ {:>6.1}x     │",
+        encoder_ns,
+        bincode_ns as f64 / encoder_ns as f64
+    );
+    println!(
+        "│ wincode::serialize         │ {:>6}ns │ {:>6.1}x     │",
+        wincode_ns,
+        bincode_ns as f64 / wincode_ns.max(1) as f64
+    );
+    println!(
+        "│ bincode::serialize         │ {:>6}ns │ {:>6}.0x     │",
+        bincode_ns, 1
+    );
     println!("└────────────────────────────┴──────────┴─────────────┘");
     println!();
 
     println!("Throughput:");
-    println!("  serialize_bincode(): {:.2} GB/s", (data.len() as f64 * iterations as f64) / standalone_time.as_secs_f64() / 1e9);
-    println!("  Encoder API:         {:.2} GB/s", (data.len() as f64 * iterations as f64) / encoder_time.as_secs_f64() / 1e9);
+    println!(
+        "  serialize_bincode(): {:.2} GB/s",
+        (data.len() as f64 * iterations as f64) / standalone_time.as_secs_f64() / 1e9
+    );
+    println!(
+        "  Encoder API:         {:.2} GB/s",
+        (data.len() as f64 * iterations as f64) / encoder_time.as_secs_f64() / 1e9
+    );
     println!();
 
     println!("Recommendation:");
@@ -68,6 +92,9 @@ fn main() {
         println!("  ✓ Use Encoder for complex workflows (multiple writes)");
     } else {
         println!("  serialize_bincode(): {}ns (target: <5ns)", standalone_ns);
-        println!("  Encoder API: {}ns (acceptable for complex workflows)", encoder_ns);
+        println!(
+            "  Encoder API: {}ns (acceptable for complex workflows)",
+            encoder_ns
+        );
     }
 }

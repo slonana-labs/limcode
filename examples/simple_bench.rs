@@ -1,6 +1,6 @@
 //! Simple benchmark to verify limcode Rust bindings work correctly
 
-use limcode::{Encoder, Decoder};
+use limcode::{Decoder, Encoder};
 use std::time::Instant;
 
 fn main() {
@@ -59,12 +59,16 @@ fn main() {
         let decode_ops_per_sec = (ITERATIONS as f64 / decode_duration.as_secs_f64()) as u64;
 
         println!("\n[PERFORMANCE]");
-        println!("Encode: {:.2}μs per op ({} ops/s)",
-                 encode_duration.as_micros() as f64 / ITERATIONS as f64,
-                 encode_ops_per_sec);
-        println!("Decode: {:.2}μs per op ({} ops/s)",
-                 decode_duration.as_micros() as f64 / ITERATIONS as f64,
-                 decode_ops_per_sec);
+        println!(
+            "Encode: {:.2}μs per op ({} ops/s)",
+            encode_duration.as_micros() as f64 / ITERATIONS as f64,
+            encode_ops_per_sec
+        );
+        println!(
+            "Decode: {:.2}μs per op ({} ops/s)",
+            decode_duration.as_micros() as f64 / ITERATIONS as f64,
+            decode_ops_per_sec
+        );
     }
 
     // Test 3: Large buffer (48MB - Solana block size)
@@ -79,9 +83,11 @@ fn main() {
         let duration = start.elapsed();
 
         println!("\n[LARGE BUFFER]");
-        println!("48MB encode: {:.2}ms ({:.1} GB/s)",
-                 duration.as_millis(),
-                 48.0 / duration.as_secs_f64() / 1024.0);
+        println!(
+            "48MB encode: {:.2}ms ({:.1} GB/s)",
+            duration.as_millis(),
+            48.0 / duration.as_secs_f64() / 1024.0
+        );
 
         let start = Instant::now();
         let mut dec = Decoder::new(&bytes);
@@ -89,10 +95,14 @@ fn main() {
         dec.read_bytes(&mut buf).unwrap();
         let duration = start.elapsed();
 
-        println!("48MB decode: {:.2}ms ({:.1} GB/s)",
-                 duration.as_millis(),
-                 48.0 / duration.as_secs_f64() / 1024.0);
+        println!(
+            "48MB decode: {:.2}ms ({:.1} GB/s)",
+            duration.as_millis(),
+            48.0 / duration.as_secs_f64() / 1024.0
+        );
     }
 
-    println!("\n[SUCCESS] All tests passed! Limcode is working with ultra-aggressive optimizations.");
+    println!(
+        "\n[SUCCESS] All tests passed! Limcode is working with ultra-aggressive optimizations."
+    );
 }
