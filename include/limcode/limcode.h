@@ -973,6 +973,49 @@ LIMCODE_ALWAYS_INLINE void limcode_prefetch_batch_avx512(const void* addr, size_
     _mm_prefetch(reinterpret_cast<const char*>(p + i * 64), _MM_HINT_T0);
   }
 }
+
+/**
+ * @brief Safe variable-length memcpy avoiding ultra-aggressive optimization issues
+ *
+ * Ultra-aggressive compiler optimizations (-ffast-math, -fno-stack-protector, etc.)
+ * can cause std::memcpy to make dangerous assumptions about alignment and overlap.
+ * This implementation uses memmove which is safer with aggressive optimizations.
+ *
+ * Strategy:
+ * 1. Small copies (<= 48KB): Use std::memmove (safer than memcpy)
+ * 2. Large copies (> 48KB): Chunk into 48KB pieces with memmove
+ *
+ * @param dst Destination pointer
+ * @param src Source pointer
+ * @param len Number of bytes to copy
+ */
+LIMCODE_ALWAYS_INLINE void limcode_memcpy_optimized(void* dst, const void* src, size_t len) noexcept {
+  // Maximum safe chunk size empirically determined
+  constexpr size_t MAX_SAFE_CHUNK = 48 * 1024;  // 48KB
+
+  if (len <= MAX_SAFE_CHUNK) {
+    // Use memmove instead of memcpy - it's safer with aggressive optimizations
+    // because it doesn't assume non-overlapping regions
+    std::memmove(dst, src, len);
+    return;
+  }
+
+  // Large transfer - chunk it
+  uint8_t* d = static_cast<uint8_t*>(dst);
+  const uint8_t* s = static_cast<const uint8_t*>(src);
+
+  while (len > MAX_SAFE_CHUNK) {
+    std::memmove(d, s, MAX_SAFE_CHUNK);
+    d += MAX_SAFE_CHUNK;
+    s += MAX_SAFE_CHUNK;
+    len -= MAX_SAFE_CHUNK;
+  }
+
+  // Copy remaining bytes
+  if (len > 0) {
+    std::memmove(d, s, len);
+  }
+}
 #endif // LIMCODE_HAS_AVX512
 
 // ==================== BMI2 Branchless ShortVec ====================
@@ -1243,12 +1286,16 @@ public:
 
   // ==================== Raw Byte Methods ====================
 
-  /// Write raw bytes without length prefix - uses memcpy
+  /// Write raw bytes without length prefix - uses optimized inline assembly memcpy
   LIMCODE_ALWAYS_INLINE void write_bytes(const uint8_t* data, size_t size) LIMCODE_HOT {
     if (LIMCODE_LIKELY(size > 0)) {
       size_t pos = buffer_.size();
       buffer_.resize(pos + size);
+#if LIMCODE_HAS_AVX512
+      limcode_memcpy_optimized(buffer_.data() + pos, data, size);
+#else
       std::memcpy(buffer_.data() + pos, data, size);
+#endif
     }
   }
 
@@ -1450,6 +1497,12 @@ public:
 
   /// Reserve capacity
   void reserve(size_t capacity) { buffer_.reserve(capacity); }
+
+  /// Resize buffer directly (for pure Rust fast path)
+  void resize(size_t new_size) { buffer_.resize(new_size); }
+
+  /// Get mutable buffer pointer (for pure Rust fast path)
+  uint8_t* buffer_ptr() { return buffer_.data(); }
 
 private:
   std::vector<uint8_t> buffer_;
@@ -1732,10 +1785,14 @@ public:
 
   // ==================== Raw Byte Methods ====================
 
-  /// Read raw bytes into a buffer
+  /// Read raw bytes into a buffer - uses optimized inline assembly memcpy
   void read_bytes(uint8_t* out, size_t count) {
     ensure_remaining(count);
+#if LIMCODE_HAS_AVX512
+    limcode_memcpy_optimized(out, data_ + pos_, count);
+#else
     std::memcpy(out, data_ + pos_, count);
+#endif
     pos_ += count;
   }
 

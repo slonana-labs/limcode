@@ -1655,6 +1655,12 @@ public:
   /// Reserve capacity
   void reserve(size_t capacity) { buffer_.reserve(capacity); }
 
+  /// Resize buffer directly (for pure Rust fast path)
+  void resize(size_t new_size) { buffer_.resize(new_size); }
+
+  /// Get mutable buffer pointer (for pure Rust fast path)
+  uint8_t* buffer_ptr() { return buffer_.data(); }
+
 private:
   std::vector<uint8_t> buffer_;
 };

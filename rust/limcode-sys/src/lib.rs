@@ -43,4 +43,10 @@ extern "C" {
 
     // ==================== Memory Management ====================
     pub fn limcode_free_buffer(buffer: *mut u8);
+
+    // ==================== Direct Buffer Access (for pure Rust fast path) ====================
+    pub fn limcode_encoder_reserve_and_get_offset(encoder: *mut LimcodeEncoder, bytes: usize) -> usize;
+    pub fn limcode_encoder_buffer_ptr(encoder: *mut LimcodeEncoder) -> *mut u8;
+    pub fn limcode_encoder_advance(encoder: *mut LimcodeEncoder, bytes: usize);
+    pub fn limcode_encoder_alloc_space(encoder: *mut LimcodeEncoder, bytes: usize, out_offset: *mut usize) -> *mut u8;
 }

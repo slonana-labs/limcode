@@ -96,7 +96,20 @@ uint8_t* limcode_encoder_into_vec(LimcodeEncoder* encoder, size_t* out_size) {
     *out_size = vec.size();
     uint8_t* buffer = static_cast<uint8_t*>(malloc(vec.size()));
     if (buffer) {
-        std::memcpy(buffer, vec.data(), vec.size());
+        // Use chunked copy for safety with ultra-aggressive optimizations
+        constexpr size_t MAX_SAFE_CHUNK = 48 * 1024;  // 48KB
+        size_t remaining = vec.size();
+        size_t offset = 0;
+
+        while (remaining > MAX_SAFE_CHUNK) {
+            std::memmove(buffer + offset, vec.data() + offset, MAX_SAFE_CHUNK);
+            offset += MAX_SAFE_CHUNK;
+            remaining -= MAX_SAFE_CHUNK;
+        }
+
+        if (remaining > 0) {
+            std::memmove(buffer + offset, vec.data() + offset, remaining);
+        }
     }
     return buffer;
 }
@@ -201,6 +214,52 @@ void limcode_free_buffer(uint8_t* buffer) {
     if (buffer) {
         free(buffer);
     }
+}
+
+// ==================== Direct Buffer Access ====================
+
+size_t limcode_encoder_reserve_and_get_offset(LimcodeEncoder* encoder, size_t bytes) {
+    if (!encoder) {
+        return 0;
+    }
+    auto* enc = reinterpret_cast<limcode::LimcodeEncoder*>(encoder);
+    size_t current_size = enc->size();
+    enc->reserve(current_size + bytes);
+    return current_size;
+}
+
+uint8_t* limcode_encoder_buffer_ptr(LimcodeEncoder* encoder) {
+    if (!encoder) {
+        return nullptr;
+    }
+    auto* enc = reinterpret_cast<limcode::LimcodeEncoder*>(encoder);
+    return enc->buffer_ptr();
+}
+
+void limcode_encoder_advance(LimcodeEncoder* encoder, size_t bytes) {
+    if (!encoder) {
+        return;
+    }
+    auto* enc = reinterpret_cast<limcode::LimcodeEncoder*>(encoder);
+    size_t new_size = enc->size() + bytes;
+    enc->resize(new_size);
+}
+
+uint8_t* limcode_encoder_alloc_space(LimcodeEncoder* encoder, size_t bytes, size_t* out_offset) {
+    if (!encoder || !out_offset) {
+        return nullptr;
+    }
+    auto* enc = reinterpret_cast<limcode::LimcodeEncoder*>(encoder);
+    size_t old_size = enc->size();
+
+    // Resize FIRST (this allocates space, may zero-initialize)
+    enc->resize(old_size + bytes);
+
+    // Return offset where caller should write
+    *out_offset = old_size;
+
+    // Return buffer pointer
+    return enc->buffer_ptr();
 }
 
 } // extern "C"

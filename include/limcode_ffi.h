@@ -47,6 +47,21 @@ size_t limcode_decoder_remaining(const LimcodeDecoder* decoder);
 
 void limcode_free_buffer(uint8_t* buffer);
 
+// ==================== Direct Buffer Access (for pure Rust fast path) ====================
+
+// Reserve space and return current offset (before reservation)
+size_t limcode_encoder_reserve_and_get_offset(LimcodeEncoder* encoder, size_t bytes);
+
+// Get mutable pointer to encoder buffer
+uint8_t* limcode_encoder_buffer_ptr(LimcodeEncoder* encoder);
+
+// Advance encoder position after direct write
+void limcode_encoder_advance(LimcodeEncoder* encoder, size_t bytes);
+
+// Allocate space (resize buffer) and return pointer + offset where to write
+// This is the CORRECT way: resize first, then write to avoid zero-initialization overwriting data
+uint8_t* limcode_encoder_alloc_space(LimcodeEncoder* encoder, size_t bytes, size_t* out_offset);
+
 #ifdef __cplusplus
 }
 #endif
