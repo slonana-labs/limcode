@@ -53,7 +53,7 @@ int main() {
         double standard = benchmark("  Standard LimcodeEncoder", [&] {
             LimcodeEncoder enc;
             enc.write_bytes(data64.data(), 64);
-            volatile auto bytes = enc.finish();
+            volatile auto bytes = std::move(enc).finish();
         }, ITERATIONS);
 
         double specialized = benchmark("  Specialized FixedSizeEncoder<64>", [&] {
@@ -80,7 +80,7 @@ int main() {
         double standard = benchmark("  Standard LimcodeEncoder", [&] {
             LimcodeEncoder enc;
             enc.write_bytes(data128.data(), 128);
-            volatile auto bytes = enc.finish();
+            volatile auto bytes = std::move(enc).finish();
         }, ITERATIONS);
 
         double specialized = benchmark("  Specialized FixedSizeEncoder<128>", [&] {
@@ -107,7 +107,7 @@ int main() {
         double standard = benchmark("  Standard LimcodeEncoder", [&] {
             LimcodeEncoder enc;
             enc.write_bytes(data1k.data(), 1024);
-            volatile auto bytes = enc.finish();
+            volatile auto bytes = std::move(enc).finish();
         }, 1'000'000);
 
         double specialized = benchmark("  Specialized FixedSizeEncoder<1024>", [&] {
@@ -138,7 +138,7 @@ int main() {
             size_t idx = rand() % datasets.size();
             LimcodeEncoder enc;
             enc.write_bytes(datasets[idx].data(), datasets[idx].size());
-            volatile auto bytes = enc.finish();
+            volatile auto bytes = std::move(enc).finish();
         }, 1'000'000);
 
         double pooled = benchmark("  PooledEncoder (reuses buffers)", [&] {

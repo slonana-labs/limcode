@@ -34,7 +34,7 @@ void benchmark_serialize(size_t size, size_t iterations) {
     for (size_t i = 0; i < iterations; ++i) {
         LimcodeEncoder enc;
         enc.write_bytes(data.data(), data.size());
-        volatile auto bytes = enc.finish();  // Prevent optimization
+        volatile auto bytes = std::move(enc).finish();  // Prevent optimization
     }
     auto end = high_resolution_clock::now();
 
@@ -47,7 +47,7 @@ void benchmark_deserialize(size_t size, size_t iterations) {
 
     LimcodeEncoder enc;
     enc.write_bytes(data.data(), data.size());
-    auto encoded = enc.finish();
+    auto encoded = std::move(enc).finish();
 
     auto start = high_resolution_clock::now();
     for (size_t i = 0; i < iterations; ++i) {
