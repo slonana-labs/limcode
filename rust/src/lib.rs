@@ -65,13 +65,17 @@ pub fn serialize_bincode(data: &[u8]) -> Vec<u8> {
 ///
 /// **API Design: Zero-copy by default, copy when you need it**
 ///
-/// ```rust
+/// ```rust,no_run
+/// # use limcode::deserialize_bincode;
+/// # let encoded = vec![8, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8];
+/// # fn process_readonly(_data: &[u8]) {}
 /// // Fast path - just use the reference
 /// let data = deserialize_bincode(&encoded)?;
 /// process_readonly(data);
 ///
 /// // When you need ownership - explicit copy
 /// let owned = deserialize_bincode(&encoded)?.to_vec();
+/// # Ok::<(), &str>(())
 /// ```
 ///
 /// **Performance:** ~17ns with safety checks
@@ -103,7 +107,9 @@ pub fn deserialize_bincode(data: &[u8]) -> Result<&[u8], &'static str> {
 ///
 /// **Undefined Behavior if these invariants are violated!**
 ///
-/// ```rust
+/// ```rust,no_run
+/// # use limcode::{serialize_bincode, deserialize_bincode_unchecked};
+/// # let data = vec![1, 2, 3, 4];
 /// // ONLY use when you control the input and know it's valid
 /// let encoded = serialize_bincode(&data);
 /// let decoded = unsafe { deserialize_bincode_unchecked(&encoded) };
