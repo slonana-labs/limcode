@@ -52,7 +52,12 @@ void limcode_encoder_write_u64(LimcodeEncoder* encoder, uint64_t value) {
 
 void limcode_encoder_write_bytes(LimcodeEncoder* encoder, const uint8_t* data, size_t len) {
     if (encoder && data) {
-        reinterpret_cast<limcode::LimcodeEncoder*>(encoder)->write_bytes(data, len);
+        try {
+            reinterpret_cast<limcode::LimcodeEncoder*>(encoder)->write_bytes(data, len);
+        } catch (...) {
+            // Swallow exceptions to prevent crashes across FFI boundary
+            // In a production system, you'd want to return an error code
+        }
     }
 }
 

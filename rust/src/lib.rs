@@ -101,8 +101,11 @@ impl Encoder {
             if ptr.is_null() {
                 return Vec::new();
             }
-            let vec = Vec::from_raw_parts(ptr, size, size);
-            self.inner = ptr::null_mut(); // Prevent double-free
+            // Copy the data into a Rust-allocated Vec to avoid allocator mismatch
+            // (C++ uses malloc, Rust uses its own allocator)
+            let vec = std::slice::from_raw_parts(ptr, size).to_vec();
+            limcode_free_buffer(ptr); // Free the C-allocated buffer
+            self.inner = ptr::null_mut(); // Prevent double-free of encoder
             vec
         }
     }
