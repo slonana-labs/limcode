@@ -68,6 +68,43 @@ pub fn serialize_bincode(data: &[u8]) -> Vec<u8> {
     buf
 }
 
+/// Ultra-fast ZERO-COPY deserialization (returns slice reference, no allocation)
+///
+/// Maximum performance optimizations:
+/// - Zero-copy: Returns reference to input buffer
+/// - Zero-allocation: No Vec allocation
+/// - #[inline(always)] for complete compiler inlining
+/// - Direct pointer arithmetic (zero abstraction cost)
+///
+/// Format: u64 little-endian length prefix + raw data
+#[inline(always)]
+pub fn deserialize_bincode_zerocopy(data: &[u8]) -> Result<&[u8], &'static str> {
+    if data.len() < 8 {
+        return Err("Buffer too small for length prefix");
+    }
+
+    unsafe {
+        // Read length (8 bytes, little-endian)
+        let len = std::ptr::read_unaligned(data.as_ptr() as *const u64) as usize;
+
+        if data.len() < 8 + len {
+            return Err("Buffer too small for data");
+        }
+
+        // Return slice reference (ZERO-COPY, ZERO-ALLOCATION!)
+        Ok(std::slice::from_raw_parts(data.as_ptr().add(8), len))
+    }
+}
+
+/// Deserialization with Vec allocation (when you need owned data)
+///
+/// Use deserialize_bincode_zerocopy() instead if you can work with borrowed data.
+#[inline(always)]
+pub fn deserialize_bincode(data: &[u8]) -> Result<Vec<u8>, &'static str> {
+    let slice = deserialize_bincode_zerocopy(data)?;
+    Ok(slice.to_vec())
+}
+
 /// High-performance binary encoder with SIMD optimizations
 pub struct Encoder {
     // Lazy-initialized C++ encoder (only created when needed for large buffers)

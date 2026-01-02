@@ -29,6 +29,14 @@ fn main() {
     let encoder_time = start.elapsed();
     let encoder_ns = encoder_time.as_nanos() / iterations;
 
+    // Wincode (comparison)
+    let start = Instant::now();
+    for _ in 0..iterations {
+        let _ = wincode::serialize(&data).unwrap();
+    }
+    let wincode_time = start.elapsed();
+    let wincode_ns = wincode_time.as_nanos() / iterations;
+
     // Bincode (reference implementation)
     let start = Instant::now();
     for _ in 0..iterations {
@@ -43,6 +51,7 @@ fn main() {
     println!("├────────────────────────────┼──────────┼─────────────┤");
     println!("│ serialize_bincode()        │ {:>6}ns │ {:>6.1}x     │", standalone_ns, bincode_ns as f64 / standalone_ns.max(1) as f64);
     println!("│ Encoder::write_vec_bincode │ {:>6}ns │ {:>6.1}x     │", encoder_ns, bincode_ns as f64 / encoder_ns as f64);
+    println!("│ wincode::serialize         │ {:>6}ns │ {:>6.1}x     │", wincode_ns, bincode_ns as f64 / wincode_ns.max(1) as f64);
     println!("│ bincode::serialize         │ {:>6}ns │ {:>6}.0x     │", bincode_ns, 1);
     println!("└────────────────────────────┴──────────┴─────────────┘");
     println!();
