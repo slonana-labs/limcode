@@ -76,8 +76,20 @@ impl Encoder {
 
     /// Write raw bytes
     pub fn write_bytes(&mut self, data: &[u8]) {
-        unsafe {
-            limcode_encoder_write_bytes(self.inner, data.as_ptr(), data.len());
+        // Write in chunks to avoid C++ memcpy issues with large buffers (>64KB)
+        const MAX_CHUNK: usize = 16 * 1024; // 16KB chunks
+
+        if data.len() <= MAX_CHUNK {
+            unsafe {
+                limcode_encoder_write_bytes(self.inner, data.as_ptr(), data.len());
+            }
+        } else {
+            // Chunk large writes
+            for chunk in data.chunks(MAX_CHUNK) {
+                unsafe {
+                    limcode_encoder_write_bytes(self.inner, chunk.as_ptr(), chunk.len());
+                }
+            }
         }
     }
 
@@ -186,12 +198,26 @@ impl<'a> Decoder<'a> {
 
     /// Read raw bytes
     pub fn read_bytes(&mut self, out: &mut [u8]) -> Result<(), &'static str> {
-        unsafe {
-            if limcode_decoder_read_bytes(self.inner, out.as_mut_ptr(), out.len()) != 0 {
-                return Err("Failed to read bytes");
+        // Read in chunks to avoid C++ memcpy issues with large buffers (>64KB)
+        const MAX_CHUNK: usize = 16 * 1024; // 16KB chunks
+
+        if out.len() <= MAX_CHUNK {
+            unsafe {
+                if limcode_decoder_read_bytes(self.inner, out.as_mut_ptr(), out.len()) != 0 {
+                    return Err("Failed to read bytes");
+                }
             }
-            Ok(())
+        } else {
+            // Chunk large reads
+            for chunk in out.chunks_mut(MAX_CHUNK) {
+                unsafe {
+                    if limcode_decoder_read_bytes(self.inner, chunk.as_mut_ptr(), chunk.len()) != 0 {
+                        return Err("Failed to read bytes");
+                    }
+                }
+            }
         }
+        Ok(())
     }
 
     /// Read a varint (LEB128)
