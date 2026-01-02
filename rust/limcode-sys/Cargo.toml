@@ -12,7 +12,9 @@ links = "limcode"
 name = "limcode_sys"
 
 [build-dependencies]
-bindgen = "0.70"
 cc = "1.0"
+
+# bindgen disabled - using pre-written bindings to avoid llvm-dev dependency in CI
+# bindgen = "0.70"
 
 [dependencies]
