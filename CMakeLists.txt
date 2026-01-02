@@ -7,6 +7,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Hyper-optimization for maximum speed
 option(ENABLE_HYPER_OPTIMIZATION "Enable aggressive optimizations for speed and memory efficiency" ON)
+option(ENABLE_PGO_GENERATE "Generate PGO profile data" OFF)
+option(ENABLE_PGO_USE "Use PGO profile data for optimization" OFF)
 
 if(ENABLE_HYPER_OPTIMIZATION AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   message(STATUS "Hyper-optimization enabled: -O3 -march=native -flto -ffast-math")
@@ -60,6 +62,17 @@ if(ENABLE_HYPER_OPTIMIZATION AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 
   # Additional linker optimizations
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto=auto -fuse-linker-plugin")
+
+  # Profile-Guided Optimization (PGO)
+  if(ENABLE_PGO_GENERATE)
+    message(STATUS "PGO: Generating profile data (-fprofile-generate)")
+    add_compile_options(-fprofile-generate)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-generate")
+  elseif(ENABLE_PGO_USE)
+    message(STATUS "PGO: Using profile data (-fprofile-use)")
+    add_compile_options(-fprofile-use -fprofile-correction)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-use")
+  endif()
 endif()
 
 # Header-only library
@@ -77,7 +90,13 @@ target_include_directories(limcode_ffi PUBLIC
 )
 target_link_libraries(limcode_ffi PUBLIC limcode)
 
-# Benchmarks removed - use rust_serialization_benchmark instead for honest comparisons
+# PGO Profiling Benchmark
+add_executable(pgo_profile benchmark/pgo_profile.cpp)
+target_link_libraries(pgo_profile PRIVATE limcode)
+
+# Optimized API Benchmark
+add_executable(optimized_bench benchmark/optimized_bench.cpp)
+target_link_libraries(optimized_bench PRIVATE limcode)
 
 # Tests
 enable_testing()
