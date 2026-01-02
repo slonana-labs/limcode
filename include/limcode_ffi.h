@@ -26,6 +26,7 @@ void limcode_encoder_write_u32(LimcodeEncoder* encoder, uint32_t value);
 void limcode_encoder_write_u64(LimcodeEncoder* encoder, uint64_t value);
 void limcode_encoder_write_bytes(LimcodeEncoder* encoder, const uint8_t* data, size_t len);
 void limcode_encoder_write_varint(LimcodeEncoder* encoder, uint64_t value);
+void limcode_encoder_reserve(LimcodeEncoder* encoder, size_t capacity);
 size_t limcode_encoder_size(const LimcodeEncoder* encoder);
 const uint8_t* limcode_encoder_data(const LimcodeEncoder* encoder);
 uint8_t* limcode_encoder_into_vec(LimcodeEncoder* encoder, size_t* out_size);

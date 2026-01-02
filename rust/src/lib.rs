@@ -76,15 +76,17 @@ impl Encoder {
 
     /// Write raw bytes
     pub fn write_bytes(&mut self, data: &[u8]) {
-        // Write in chunks to avoid C++ memcpy issues with large buffers (>64KB)
-        const MAX_CHUNK: usize = 16 * 1024; // 16KB chunks
+        // Write in chunks to avoid C++ memcpy issues with very large buffers
+        // Larger chunks = fewer FFI calls = better performance
+        // Optimal chunk size: 48KB (testing for best performance)
+        const MAX_CHUNK: usize = 48 * 1024; // 48KB chunks
 
         if data.len() <= MAX_CHUNK {
             unsafe {
                 limcode_encoder_write_bytes(self.inner, data.as_ptr(), data.len());
             }
         } else {
-            // Chunk large writes
+            // Chunk large writes to reduce FFI overhead
             for chunk in data.chunks(MAX_CHUNK) {
                 unsafe {
                     limcode_encoder_write_bytes(self.inner, chunk.as_ptr(), chunk.len());
@@ -198,8 +200,10 @@ impl<'a> Decoder<'a> {
 
     /// Read raw bytes
     pub fn read_bytes(&mut self, out: &mut [u8]) -> Result<(), &'static str> {
-        // Read in chunks to avoid C++ memcpy issues with large buffers (>64KB)
-        const MAX_CHUNK: usize = 16 * 1024; // 16KB chunks
+        // Read in chunks to avoid C++ memcpy issues with very large buffers
+        // Larger chunks = fewer FFI calls = better performance
+        // Optimal chunk size: 48KB (testing for best performance)
+        const MAX_CHUNK: usize = 48 * 1024; // 48KB chunks
 
         if out.len() <= MAX_CHUNK {
             unsafe {
@@ -208,7 +212,7 @@ impl<'a> Decoder<'a> {
                 }
             }
         } else {
-            // Chunk large reads
+            // Chunk large reads to reduce FFI overhead
             for chunk in out.chunks_mut(MAX_CHUNK) {
                 unsafe {
                     if limcode_decoder_read_bytes(self.inner, chunk.as_mut_ptr(), chunk.len()) != 0 {

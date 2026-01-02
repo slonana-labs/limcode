@@ -70,11 +70,17 @@ fn main() {
     // Test 3: Large buffer (48MB - Solana block size)
     {
         use std::time::Instant;
+        eprintln!("DEBUG: Starting 48MB test");
 
         let start = Instant::now();
         let mut enc = Encoder::new();
+        eprintln!("DEBUG: Created encoder");
+
         let large_data = vec![0u8; 48 * 1024 * 1024]; // 48MB
+        eprintln!("DEBUG: Allocated 48MB");
+
         enc.write_bytes(&large_data);
+        eprintln!("DEBUG: Wrote bytes");
         let bytes = enc.finish();
         let duration = start.elapsed();
 

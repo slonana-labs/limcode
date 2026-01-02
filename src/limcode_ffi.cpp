@@ -67,6 +67,12 @@ void limcode_encoder_write_varint(LimcodeEncoder* encoder, uint64_t value) {
     }
 }
 
+void limcode_encoder_reserve(LimcodeEncoder* encoder, size_t capacity) {
+    if (encoder) {
+        reinterpret_cast<limcode::LimcodeEncoder*>(encoder)->reserve(capacity);
+    }
+}
+
 size_t limcode_encoder_size(const LimcodeEncoder* encoder) {
     if (encoder) {
         return reinterpret_cast<const limcode::LimcodeEncoder*>(encoder)->size();
