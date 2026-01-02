@@ -31,6 +31,43 @@
 use limcode_sys::*;
 use std::ptr;
 
+/// Ultra-fast bincode-compatible serialization (standalone, fully inlined)
+///
+/// Maximum performance optimizations:
+/// - Standalone function (no struct overhead)
+/// - #[inline(always)] for complete compiler inlining
+/// - Direct unsafe pointer operations (zero abstraction cost)
+/// - Single Vec allocation, moved to caller
+///
+/// Format: u64 little-endian length prefix + raw data
+#[inline(always)]
+pub fn serialize_bincode(data: &[u8]) -> Vec<u8> {
+    let total_len = data.len() + 8;
+    let mut buf = Vec::with_capacity(total_len);
+
+    unsafe {
+        let ptr = buf.as_mut_ptr();
+
+        // Write length (8 bytes, little-endian)
+        std::ptr::copy_nonoverlapping(
+            (data.len() as u64).to_le_bytes().as_ptr(),
+            ptr,
+            8
+        );
+
+        // Write data
+        std::ptr::copy_nonoverlapping(
+            data.as_ptr(),
+            ptr.add(8),
+            data.len()
+        );
+
+        buf.set_len(total_len);
+    }
+
+    buf
+}
+
 /// High-performance binary encoder with SIMD optimizations
 pub struct Encoder {
     // Lazy-initialized C++ encoder (only created when needed for large buffers)
