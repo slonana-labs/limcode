@@ -1,0 +1,18 @@
+[package]
+name = "limcode-sys"
+version = "0.1.0"
+edition = "2021"
+authors = ["Slonana Labs", "Rin Fhenzig @ OpenSVM"]
+license = "MIT"
+description = "Raw FFI bindings to limcode C++ library"
+repository = "https://github.com/slonana-labs/limcode"
+links = "limcode"
+
+[lib]
+name = "limcode_sys"
+
+[build-dependencies]
+bindgen = "0.70"
+cc = "1.0"
+
+[dependencies]

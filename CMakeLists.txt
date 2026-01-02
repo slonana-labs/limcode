@@ -5,11 +5,62 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Compiler flags
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -flto")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+# Hyper-optimization for maximum speed
+option(ENABLE_HYPER_OPTIMIZATION "Enable aggressive optimizations for speed and memory efficiency" ON)
+
+if(ENABLE_HYPER_OPTIMIZATION AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  message(STATUS "Hyper-optimization enabled: -O3 -march=native -flto -ffast-math")
+
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -mtune=native -flto -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+
+  # ULTRA-AGGRESSIVE optimizations for maximum speed
+  add_compile_options(
+    # Math optimizations
+    -ffast-math                 # Aggressive FP math (unsafe but fast)
+    -fno-math-errno            # Don't set errno for math functions
+    -ffinite-math-only         # Assume no NaN/Inf
+    -fno-signed-zeros          # Ignore sign of zero
+    -fno-trapping-math         # No FP exceptions
+    -fassociative-math         # Reassociate FP operations
+
+    # Loop optimizations
+    -funroll-loops              # Unroll loops aggressively
+    -funroll-all-loops          # Unroll ALL loops
+    -fvariable-expansion-in-unroller  # Better unrolling
+    -fpeel-loops               # Peel loop iterations
+    -funswitch-loops           # Loop unswitching
+
+    # Inlining
+    -finline-functions         # Inline everything possible
+    -finline-limit=1000        # Huge inline limit
+
+    # Code generation
+    -fno-omit-frame-pointer    # Better profiling
+    -fno-plt                   # No PLT for faster calls
+    -fno-stack-protector       # Remove stack canaries (unsafe but fast)
+
+    # Aliasing
+    -fstrict-aliasing          # Strict aliasing rules
+    -fno-semantic-interposition  # No symbol interposition
+
+    # SIMD
+    -mavx512f -mavx512bw -mavx512dq -mavx512vl  # All AVX-512
+    -mavx2 -msse4.2            # AVX2/SSE4.2 fallback
+    -mbmi2                     # PDEP/PEXT for varint
+    -mprefer-vector-width=512  # Prefer 512-bit vectors
+
+    # Branch prediction
+    -fprofile-arcs             # Profile-guided optimization prep
+    -fbranch-probabilities     # Better branch prediction
+  )
+
+  # LTO for whole-program optimization
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+  # Additional linker optimizations
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto=auto -fuse-linker-plugin")
 endif()
 
 # Header-only library
@@ -18,6 +69,14 @@ target_include_directories(limcode INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+
+# FFI library for Rust bindings (static library)
+add_library(limcode_ffi STATIC src/limcode_ffi.cpp)
+target_include_directories(limcode_ffi PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(limcode_ffi PUBLIC limcode)
 
 # Benchmark executables
 add_executable(limcode_benchmark benchmark/main.cpp)

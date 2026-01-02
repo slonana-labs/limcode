@@ -5,3 +5,8 @@ cmake-build-*/
 *.swo
 *~
 .DS_Store
+target/
+build/
+*.o
+*.a
+*.so

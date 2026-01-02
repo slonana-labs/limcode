@@ -749,6 +749,62 @@ LIMCODE_ALWAYS_INLINE void limcode_rep_movsq(void* dst, const void* src, size_t 
 }
 
 /**
+ * @brief Non-temporal copy using AVX-512 (bypasses cache for very large data)
+ *
+ * For very large transfers (>= 64KB) that won't be read back soon,
+ * non-temporal stores bypass the CPU cache, improving performance for
+ * streaming operations and reducing cache pollution.
+ *
+ * Requirements: AVX-512, 64-byte aligned src and dst for best performance
+ */
+#if defined(__AVX512F__)
+LIMCODE_ALWAYS_INLINE void limcode_nt_copy_avx512(void* dst, const void* src, size_t size) noexcept {
+  const uint8_t* s = static_cast<const uint8_t*>(src);
+  uint8_t* d = static_cast<uint8_t*>(dst);
+
+  // Process 64-byte chunks with non-temporal stores
+  size_t chunks = size / 64;
+  for (size_t i = 0; i < chunks; ++i) {
+    __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
+    _mm512_stream_si512(reinterpret_cast<__m512i*>(d), chunk);
+    s += 64;
+    d += 64;
+  }
+
+  // Handle tail with regular memcpy
+  size_t remaining = size % 64;
+  if (remaining > 0) {
+    std::memcpy(d, s, remaining);
+  }
+
+  // Ensure stores are visible (non-temporal stores are weakly ordered)
+  _mm_sfence();
+}
+#elif defined(__AVX2__)
+LIMCODE_ALWAYS_INLINE void limcode_nt_copy_avx2(void* dst, const void* src, size_t size) noexcept {
+  const uint8_t* s = static_cast<const uint8_t*>(src);
+  uint8_t* d = static_cast<uint8_t*>(dst);
+
+  // Process 32-byte chunks with non-temporal stores
+  size_t chunks = size / 32;
+  for (size_t i = 0; i < chunks; ++i) {
+    __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(s));
+    _mm256_stream_si256(reinterpret_cast<__m256i*>(d), chunk);
+    s += 32;
+    d += 32;
+  }
+
+  // Handle tail
+  size_t remaining = size % 32;
+  if (remaining > 0) {
+    std::memcpy(d, s, remaining);
+  }
+
+  _mm_sfence();
+}
+#endif
+
+/**
  * @brief Branchless u64 store with inline assembly
  * Avoids function call overhead for simple stores
  */
@@ -1200,7 +1256,7 @@ public:
   // ==================== Varint Methods (LEB128 for serde_varint) ====================
 
   /**
-   * @brief Write a u64 as LEB128 varint (serde_varint format)
+   * @brief Write a u64 as LEB128 varint (serde_varint format) - OPTIMIZED with unrolling
    *
    * This is the format used by Rust's serde_varint crate in Agave for fields like:
    * - ContactInfo.wallclock
@@ -1209,13 +1265,38 @@ public:
    *
    * LEB128 uses 7 bits per byte with continuation bit (0x80).
    * Values 0-127 use 1 byte, 128-16383 use 2 bytes, etc.
+   *
+   * Optimization: Most varints are 1-2 bytes (< 16384), so optimize for that case
    */
   LIMCODE_ALWAYS_INLINE void write_varint(uint64_t value) LIMCODE_HOT {
-    while (value >= 0x80) {
+    // Fast path: single byte (0-127) - most common case
+    if (LIMCODE_LIKELY(value < 0x80)) {
+      buffer_.push_back(static_cast<uint8_t>(value));
+      return;
+    }
+
+    // Fast path: two bytes (128-16383) - second most common
+    if (LIMCODE_LIKELY(value < 0x4000)) {
       buffer_.push_back(static_cast<uint8_t>((value & 0x7F) | 0x80));
+      buffer_.push_back(static_cast<uint8_t>(value >> 7));
+      return;
+    }
+
+    // Slow path: 3+ bytes - use unrolled loop
+    // Max 10 bytes for uint64 (64 bits / 7 bits per byte = 9.14)
+    uint8_t bytes[10];
+    size_t count = 0;
+
+    while (value >= 0x80) {
+      bytes[count++] = static_cast<uint8_t>((value & 0x7F) | 0x80);
       value >>= 7;
     }
-    buffer_.push_back(static_cast<uint8_t>(value & 0x7F));
+    bytes[count++] = static_cast<uint8_t>(value);
+
+    // Bulk write all bytes at once
+    size_t pos = buffer_.size();
+    buffer_.resize(pos + count);
+    std::memcpy(buffer_.data() + pos, bytes, count);
   }
 
   /**
@@ -1234,12 +1315,144 @@ public:
 
   // ==================== Raw Byte Methods ====================
 
-  /// Write raw bytes without length prefix - uses memcpy
+  /// Write raw bytes without length prefix - ULTRA-OPTIMIZED with AVX-512, prefetch, and REP MOVSB
   LIMCODE_ALWAYS_INLINE void write_bytes(const uint8_t* data, size_t size) LIMCODE_HOT {
     if (LIMCODE_LIKELY(size > 0)) {
       size_t pos = buffer_.size();
       buffer_.resize(pos + size);
-      std::memcpy(buffer_.data() + pos, data, size);
+      uint8_t* dst = buffer_.data() + pos;
+
+#if LIMCODE_HAS_X86_64_ASM
+      // Strategy:
+      // 1. Very large (>= 2KB): Prefetch + AVX-512/AVX2 + REP MOVSB for tail
+      // 2. Large (256B - 2KB): AVX-512/AVX2 SIMD loops
+      // 3. Medium (64B - 256B): REP MOVSB (ERMSB optimal range)
+      // 4. Small (< 64B): memcpy
+
+      if (size >= 1048576) {
+        // Mega-blocks (>= 1MB, up to 48MB for Solana): Aggressive prefetch + non-temporal
+#if defined(__AVX512F__)
+        // Ultra-aggressive prefetching for multi-MB blocks (Solana supports up to 48MB!)
+        // Prefetch in 1MB strides to stay ahead of processing
+        for (size_t i = 0; i < std::min(size, size_t(4194304)); i += 1048576) {
+          __builtin_prefetch(data + i, 0, 0);  // Non-temporal hint (won't pollute cache)
+        }
+
+        // Non-temporal stores: bypass ALL cache levels for streaming to network/disk
+        limcode_nt_copy_avx512(dst, data, size);
+#elif defined(__AVX2__)
+        // Prefetch for AVX2 path
+        for (size_t i = 0; i < std::min(size, size_t(4194304)); i += 1048576) {
+          __builtin_prefetch(data + i, 0, 0);
+        }
+        limcode_nt_copy_avx2(dst, data, size);
+#else
+        limcode_rep_movsb(dst, data, size);
+#endif
+      } else if (size >= 65536) {
+        // Large blocks (64KB - 1MB): Non-temporal stores (bypass cache)
+#if defined(__AVX512F__)
+        limcode_nt_copy_avx512(dst, data, size);
+#elif defined(__AVX2__)
+        limcode_nt_copy_avx2(dst, data, size);
+#else
+        limcode_rep_movsb(dst, data, size);
+#endif
+      } else if (size >= 2048) {
+        // Very large transfers: Prefetch + aggressive SIMD
+#if defined(__AVX512F__)
+        // Prefetch ahead in 256-byte strides (4 cache lines)
+        for (size_t i = 0; i < size; i += 256) {
+          __builtin_prefetch(data + i, 0, 3);  // High temporal locality
+        }
+
+        // Main AVX-512 loop: 64 bytes per iteration
+        size_t simd_size = size & ~63ULL;  // Round down to 64-byte boundary
+        const uint8_t* src = data;
+        uint8_t* d = dst;
+
+        for (size_t i = 0; i < simd_size; i += 64) {
+          __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(src));
+          _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+          src += 64;
+          d += 64;
+        }
+
+        // Tail: Use REP MOVSB for remaining bytes
+        if (size > simd_size) {
+          limcode_rep_movsb(d, src, size - simd_size);
+        }
+#elif defined(__AVX2__)
+        // Prefetch ahead
+        for (size_t i = 0; i < size; i += 256) {
+          __builtin_prefetch(data + i, 0, 3);
+        }
+
+        // Main AVX2 loop: 32 bytes per iteration
+        size_t simd_size = size & ~31ULL;
+        const uint8_t* src = data;
+        uint8_t* d = dst;
+
+        for (size_t i = 0; i < simd_size; i += 32) {
+          __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src));
+          _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+          src += 32;
+          d += 32;
+        }
+
+        // Tail
+        if (size > simd_size) {
+          limcode_rep_movsb(d, src, size - simd_size);
+        }
+#else
+        // Fallback: REP MOVSB for entire transfer
+        limcode_rep_movsb(dst, data, size);
+#endif
+      } else if (size >= 256) {
+        // Large transfers: Pure SIMD without prefetch overhead
+#if defined(__AVX512F__)
+        size_t simd_size = size & ~63ULL;
+        const uint8_t* src = data;
+        uint8_t* d = dst;
+
+        for (size_t i = 0; i < simd_size; i += 64) {
+          __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(src));
+          _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+          src += 64;
+          d += 64;
+        }
+
+        if (size > simd_size) {
+          std::memcpy(d, src, size - simd_size);
+        }
+#elif defined(__AVX2__)
+        size_t simd_size = size & ~31ULL;
+        const uint8_t* src = data;
+        uint8_t* d = dst;
+
+        for (size_t i = 0; i < simd_size; i += 32) {
+          __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src));
+          _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+          src += 32;
+          d += 32;
+        }
+
+        if (size > simd_size) {
+          std::memcpy(d, src, size - simd_size);
+        }
+#else
+        limcode_rep_movsb(dst, data, size);
+#endif
+      } else if (size >= 64) {
+        // Medium transfers: REP MOVSB sweet spot with ERMSB
+        limcode_rep_movsb(dst, data, size);
+      } else {
+        // Small transfers: Plain memcpy
+        std::memcpy(dst, data, size);
+      }
+#else
+      std::memcpy(dst, data, size);
+#endif
     }
   }
 
@@ -1643,10 +1856,160 @@ public:
 
   // ==================== Raw Byte Methods ====================
 
-  /// Read raw bytes into a buffer
+  /// Read raw bytes into a buffer - ULTRA-OPTIMIZED with AVX-512, prefetch, and REP MOVSB
   void read_bytes(uint8_t* out, size_t count) {
     ensure_remaining(count);
-    std::memcpy(out, data_ + pos_, count);
+
+#if LIMCODE_HAS_X86_64_ASM
+    // Strategy (same as write_bytes for symmetry):
+    // 1. Very large (>= 2KB): Prefetch + AVX-512/AVX2 + REP MOVSB for tail
+    // 2. Large (256B - 2KB): AVX-512/AVX2 SIMD loops
+    // 3. Medium (64B - 256B): REP MOVSB (ERMSB optimal range)
+    // 4. Small (< 64B): memcpy
+
+    const uint8_t* src = data_ + pos_;
+
+    if (count >= 1048576) {
+      // Mega-block reads (>= 1MB, up to 48MB for Solana blocks)
+#if defined(__AVX512F__)
+      // Ultra-aggressive prefetching for multi-MB blocks
+      for (size_t i = 0; i < std::min(count, size_t(4194304)); i += 1048576) {
+        __builtin_prefetch(src + i, 0, 0);  // Non-temporal hint
+      }
+
+      // Use non-temporal loads to avoid cache pollution
+      size_t simd_size = count & ~63ULL;
+      const uint8_t* s = src;
+      uint8_t* d = out;
+
+      for (size_t i = 0; i < simd_size; i += 64) {
+        __m512i chunk = _mm512_stream_load_si512(reinterpret_cast<__m512i*>(const_cast<uint8_t*>(s)));
+        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+        s += 64;
+        d += 64;
+      }
+
+      if (count > simd_size) {
+        std::memcpy(d, s, count - simd_size);
+      }
+#elif defined(__AVX2__)
+      for (size_t i = 0; i < std::min(count, size_t(4194304)); i += 1048576) {
+        __builtin_prefetch(src + i, 0, 0);
+      }
+
+      // AVX2 fallback
+      size_t simd_size = count & ~31ULL;
+      const uint8_t* s = src;
+      uint8_t* d = out;
+
+      for (size_t i = 0; i < simd_size; i += 32) {
+        __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(s));
+        _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+        s += 32;
+        d += 32;
+      }
+
+      if (count > simd_size) {
+        std::memcpy(d, s, count - simd_size);
+      }
+#else
+      limcode_rep_movsb(out, src, count);
+#endif
+    } else if (count >= 2048) {
+      // Very large reads: Prefetch + aggressive SIMD
+#if defined(__AVX512F__)
+      // Prefetch ahead in 256-byte strides
+      for (size_t i = 0; i < count; i += 256) {
+        __builtin_prefetch(src + i, 0, 3);
+      }
+
+      // Main AVX-512 loop: 64 bytes per iteration
+      size_t simd_size = count & ~63ULL;
+      const uint8_t* s = src;
+      uint8_t* d = out;
+
+      for (size_t i = 0; i < simd_size; i += 64) {
+        __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
+        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+        s += 64;
+        d += 64;
+      }
+
+      // Tail
+      if (count > simd_size) {
+        limcode_rep_movsb(d, s, count - simd_size);
+      }
+#elif defined(__AVX2__)
+      // Prefetch ahead
+      for (size_t i = 0; i < count; i += 256) {
+        __builtin_prefetch(src + i, 0, 3);
+      }
+
+      // Main AVX2 loop: 32 bytes per iteration
+      size_t simd_size = count & ~31ULL;
+      const uint8_t* s = src;
+      uint8_t* d = out;
+
+      for (size_t i = 0; i < simd_size; i += 32) {
+        __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(s));
+        _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+        s += 32;
+        d += 32;
+      }
+
+      // Tail
+      if (count > simd_size) {
+        limcode_rep_movsb(d, s, count - simd_size);
+      }
+#else
+      limcode_rep_movsb(out, src, count);
+#endif
+    } else if (count >= 256) {
+      // Large reads: Pure SIMD without prefetch overhead
+#if defined(__AVX512F__)
+      size_t simd_size = count & ~63ULL;
+      const uint8_t* s = src;
+      uint8_t* d = out;
+
+      for (size_t i = 0; i < simd_size; i += 64) {
+        __m512i chunk = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
+        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), chunk);
+        s += 64;
+        d += 64;
+      }
+
+      if (count > simd_size) {
+        std::memcpy(d, s, count - simd_size);
+      }
+#elif defined(__AVX2__)
+      size_t simd_size = count & ~31ULL;
+      const uint8_t* s = src;
+      uint8_t* d = out;
+
+      for (size_t i = 0; i < simd_size; i += 32) {
+        __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(s));
+        _mm256_storeu_si256(reinterpret_cast<__m256i*>(d), chunk);
+        s += 32;
+        d += 32;
+      }
+
+      if (count > simd_size) {
+        std::memcpy(d, s, count - simd_size);
+      }
+#else
+      limcode_rep_movsb(out, src, count);
+#endif
+    } else if (count >= 64) {
+      // Medium reads: REP MOVSB sweet spot
+      limcode_rep_movsb(out, src, count);
+    } else {
+      // Small reads: Plain memcpy
+      std::memcpy(out, src, count);
+    }
+#else
+    std::memcpy(out, src, count);
+#endif
+
     pos_ += count;
   }
 
@@ -4952,4 +5315,5 @@ private:
 };
 
 } // namespace limcode
+
 
