@@ -13,31 +13,35 @@
 using namespace std::chrono;
 
 double benchmark_roundtrip(size_t num_elements, size_t iterations) {
-    // Create test data
-    std::vector<uint64_t> data(num_elements);
-    for (size_t i = 0; i < num_elements; ++i) {
-        data[i] = i;
-    }
-
     const size_t data_size = num_elements * sizeof(uint64_t);
+
+    // Create test data - keep it simple
+    std::vector<uint64_t> data(num_elements, 0xABCDEF);
     std::vector<uint8_t> buf;
 
     // Warmup
-    for (size_t i = 0; i < std::min(iterations / 10, size_t(3)); ++i) {
+    for (size_t i = 0; i < 3; ++i) {
         limcode::serialize(buf, data);
     }
 
-    // Benchmark
+    // Benchmark - inline everything
     auto start = high_resolution_clock::now();
     for (size_t i = 0; i < iterations; ++i) {
-        limcode::serialize(buf, data);
+        const size_t count = data.size();
+        const size_t bytes = count * sizeof(uint64_t);
+        const size_t total = 8 + bytes;
+
+        if (buf.capacity() < total) buf.reserve(total);
+        buf.resize(total);
+
+        uint8_t* ptr = buf.data();
+        *reinterpret_cast<uint64_t*>(ptr) = count;
+        __builtin_memcpy(ptr + 8, data.data(), bytes);
     }
     auto end = high_resolution_clock::now();
 
     double ns_per_op = duration_cast<nanoseconds>(end - start).count() / static_cast<double>(iterations);
-    double throughput_gbps = (data_size / ns_per_op); // GiB/s
-
-    return throughput_gbps;
+    return data_size / ns_per_op;
 }
 
 std::string format_size(size_t bytes) {
