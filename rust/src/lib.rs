@@ -134,7 +134,7 @@ unsafe fn prefault_pages(ptr: *mut u8, len: usize) {
     const PAGE_SIZE: usize = 4096; // Standard 4KB page size
 
     // Touch one byte per page to force allocation
-    let num_pages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
+    let num_pages = len.div_ceil(PAGE_SIZE);
     for i in 0..num_pages {
         let offset = i * PAGE_SIZE;
         if offset < len {
