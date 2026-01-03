@@ -1,0 +1,286 @@
+    Finished `bench` profile [optimized] target(s) in 0.03s
+     Running benches/large_memory.rs (target/release/deps/large_memory-4d2cbabbe10f83c3)
+
+=== Testing 1 MB (131072 elements) ===
+Benchmarking memory_1MB/limcode_pod_ser
+Benchmarking memory_1MB/limcode_pod_ser: Warming up for 3.0000 s
+Benchmarking memory_1MB/limcode_pod_ser: Collecting 10 samples in estimated 5.0002 s (196k iterations)
+Benchmarking memory_1MB/limcode_pod_ser: Analyzing
+memory_1MB/limcode_pod_ser
+                        time:   [24.636 µs 24.827 µs 25.165 µs]
+                        thrpt:  [38.807 GiB/s 39.335 GiB/s 39.640 GiB/s]
+                 change:
+                        time:   [+23.363% +25.678% +28.131%] (p = 0.00 < 0.05)
+                        thrpt:  [-21.955% -20.432% -18.939%]
+                        Performance has regressed.
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+Benchmarking memory_1MB/limcode_pod_de
+Benchmarking memory_1MB/limcode_pod_de: Warming up for 3.0000 s
+Benchmarking memory_1MB/limcode_pod_de: Collecting 10 samples in estimated 5.0011 s (246k iterations)
+Benchmarking memory_1MB/limcode_pod_de: Analyzing
+memory_1MB/limcode_pod_de
+                        time:   [20.007 µs 20.178 µs 20.283 µs]
+                        thrpt:  [48.146 GiB/s 48.398 GiB/s 48.810 GiB/s]
+                 change:
+                        time:   [-5.6348% -3.7757% -1.6106%] (p = 0.00 < 0.05)
+                        thrpt:  [+1.6369% +3.9238% +5.9713%]
+                        Performance has improved.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking memory_1MB/wincode_ser
+Benchmarking memory_1MB/wincode_ser: Warming up for 3.0000 s
+Benchmarking memory_1MB/wincode_ser: Collecting 10 samples in estimated 5.0004 s (256k iterations)
+Benchmarking memory_1MB/wincode_ser: Analyzing
+memory_1MB/wincode_ser  time:   [19.615 µs 20.135 µs 20.655 µs]
+                        thrpt:  [47.280 GiB/s 48.502 GiB/s 49.787 GiB/s]
+                 change:
+                        time:   [-4.2107% -1.0679% +1.6249%] (p = 0.56 > 0.05)
+                        thrpt:  [-1.5989% +1.0794% +4.3958%]
+                        No change in performance detected.
+Benchmarking memory_1MB/wincode_de
+Benchmarking memory_1MB/wincode_de: Warming up for 3.0000 s
+Benchmarking memory_1MB/wincode_de: Collecting 10 samples in estimated 5.0005 s (258k iterations)
+Benchmarking memory_1MB/wincode_de: Analyzing
+memory_1MB/wincode_de   time:   [18.991 µs 19.206 µs 19.515 µs]
+                        thrpt:  [50.042 GiB/s 50.846 GiB/s 51.421 GiB/s]
+                 change:
+                        time:   [-5.0377% -2.8986% -0.6219%] (p = 0.03 < 0.05)
+                        thrpt:  [+0.6257% +2.9852% +5.3050%]
+                        Change within noise threshold.
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) high mild
+  1 (10.00%) high severe
+Benchmarking memory_1MB/bincode_ser
+Benchmarking memory_1MB/bincode_ser: Warming up for 3.0000 s
+Benchmarking memory_1MB/bincode_ser: Collecting 10 samples in estimated 5.0028 s (80k iterations)
+Benchmarking memory_1MB/bincode_ser: Analyzing
+memory_1MB/bincode_ser  time:   [62.106 µs 62.942 µs 63.506 µs]
+                        thrpt:  [15.377 GiB/s 15.515 GiB/s 15.724 GiB/s]
+                 change:
+                        time:   [-4.1673% -2.6601% -1.0408%] (p = 0.01 < 0.05)
+                        thrpt:  [+1.0517% +2.7327% +4.3486%]
+                        Performance has improved.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking memory_1MB/bincode_de
+Benchmarking memory_1MB/bincode_de: Warming up for 3.0000 s
+Benchmarking memory_1MB/bincode_de: Collecting 10 samples in estimated 5.0037 s (73k iterations)
+Benchmarking memory_1MB/bincode_de: Analyzing
+memory_1MB/bincode_de   time:   [67.728 µs 68.568 µs 70.076 µs]
+                        thrpt:  [13.936 GiB/s 14.242 GiB/s 14.419 GiB/s]
+                 change:
+                        time:   [+0.1139% +3.0822% +6.6467%] (p = 0.09 > 0.05)
+                        thrpt:  [-6.2324% -2.9900% -0.1137%]
+                        No change in performance detected.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+
+=== Testing 8 MB (1048576 elements) ===
+Benchmarking memory_8MB/limcode_pod_ser
+Benchmarking memory_8MB/limcode_pod_ser: Warming up for 3.0000 s
+Benchmarking memory_8MB/limcode_pod_ser: Collecting 10 samples in estimated 5.0199 s (11k iterations)
+Benchmarking memory_8MB/limcode_pod_ser: Analyzing
+memory_8MB/limcode_pod_ser
+                        time:   [459.90 µs 466.17 µs 471.73 µs]
+                        thrpt:  [16.561 GiB/s 16.759 GiB/s 16.987 GiB/s]
+                 change:
+                        time:   [+11.060% +15.333% +18.947%] (p = 0.00 < 0.05)
+                        thrpt:  [-15.929% -13.294% -9.9589%]
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking memory_8MB/limcode_pod_de
+Benchmarking memory_8MB/limcode_pod_de: Warming up for 3.0000 s
+Benchmarking memory_8MB/limcode_pod_de: Collecting 10 samples in estimated 5.0223 s (11k iterations)
+Benchmarking memory_8MB/limcode_pod_de: Analyzing
+memory_8MB/limcode_pod_de
+                        time:   [446.11 µs 458.00 µs 468.70 µs]
+                        thrpt:  [16.668 GiB/s 17.058 GiB/s 17.513 GiB/s]
+                 change:
+                        time:   [-4.2551% +1.5944% +7.5037%] (p = 0.62 > 0.05)
+                        thrpt:  [-6.9800% -1.5693% +4.4442%]
+                        No change in performance detected.
+Benchmarking memory_8MB/bincode_ser
+Benchmarking memory_8MB/bincode_ser: Warming up for 3.0000 s
+Benchmarking memory_8MB/bincode_ser: Collecting 10 samples in estimated 5.0021 s (8140 iterations)
+Benchmarking memory_8MB/bincode_ser: Analyzing
+memory_8MB/bincode_ser  time:   [587.62 µs 597.10 µs 606.51 µs]
+                        thrpt:  [12.881 GiB/s 13.084 GiB/s 13.295 GiB/s]
+                 change:
+                        time:   [-0.7760% +4.5654% +9.9013%] (p = 0.12 > 0.05)
+                        thrpt:  [-9.0093% -4.3661% +0.7820%]
+                        No change in performance detected.
+Benchmarking memory_8MB/bincode_de
+Benchmarking memory_8MB/bincode_de: Warming up for 3.0000 s
+Benchmarking memory_8MB/bincode_de: Collecting 10 samples in estimated 5.0045 s (7535 iterations)
+Benchmarking memory_8MB/bincode_de: Analyzing
+memory_8MB/bincode_de   time:   [626.41 µs 647.78 µs 671.08 µs]
+                        thrpt:  [11.642 GiB/s 12.060 GiB/s 12.472 GiB/s]
+                 change:
+                        time:   [-5.5770% -2.3099% +1.2665%] (p = 0.24 > 0.05)
+                        thrpt:  [-1.2507% +2.3645% +5.9065%]
+                        No change in performance detected.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+
+=== Testing 64 MB (8388608 elements) ===
+Benchmarking memory_64MB/limcode_pod_ser
+Benchmarking memory_64MB/limcode_pod_ser: Warming up for 3.0000 s
+Benchmarking memory_64MB/limcode_pod_ser: Collecting 10 samples in estimated 6.5077 s (220 iterations)
+Benchmarking memory_64MB/limcode_pod_ser: Analyzing
+memory_64MB/limcode_pod_ser
+                        time:   [29.513 ms 29.949 ms 30.255 ms]
+                        thrpt:  [2.0657 GiB/s 2.0869 GiB/s 2.1177 GiB/s]
+                 change:
+                        time:   [-4.0799% -2.8226% -1.3613%] (p = 0.00 < 0.05)
+                        thrpt:  [+1.3801% +2.9046% +4.2534%]
+                        Performance has improved.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking memory_64MB/limcode_pod_de
+Benchmarking memory_64MB/limcode_pod_de: Warming up for 3.0000 s
+Benchmarking memory_64MB/limcode_pod_de: Collecting 10 samples in estimated 6.5648 s (220 iterations)
+Benchmarking memory_64MB/limcode_pod_de: Analyzing
+memory_64MB/limcode_pod_de
+                        time:   [30.973 ms 32.050 ms 32.783 ms]
+                        thrpt:  [1.9065 GiB/s 1.9500 GiB/s 2.0179 GiB/s]
+                 change:
+                        time:   [-5.9202% -3.4112% -0.5068%] (p = 0.03 < 0.05)
+                        thrpt:  [+0.5094% +3.5317% +6.2927%]
+                        Change within noise threshold.
+Benchmarking memory_64MB/bincode_ser
+Benchmarking memory_64MB/bincode_ser: Warming up for 3.0000 s
+Benchmarking memory_64MB/bincode_ser: Collecting 10 samples in estimated 5.4057 s (165 iterations)
+Benchmarking memory_64MB/bincode_ser: Analyzing
+memory_64MB/bincode_ser time:   [32.256 ms 32.510 ms 32.696 ms]
+                        thrpt:  [1.9115 GiB/s 1.9225 GiB/s 1.9376 GiB/s]
+                 change:
+                        time:   [+0.1737% +2.0966% +3.9093%] (p = 0.05 > 0.05)
+                        thrpt:  [-3.7622% -2.0535% -0.1734%]
+                        No change in performance detected.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking memory_64MB/bincode_de
+Benchmarking memory_64MB/bincode_de: Warming up for 3.0000 s
+Benchmarking memory_64MB/bincode_de: Collecting 10 samples in estimated 5.2653 s (165 iterations)
+Benchmarking memory_64MB/bincode_de: Analyzing
+memory_64MB/bincode_de  time:   [31.840 ms 32.224 ms 32.566 ms]
+                        thrpt:  [1.9192 GiB/s 1.9395 GiB/s 1.9630 GiB/s]
+                 change:
+                        time:   [-2.2013% +1.5451% +6.4876%] (p = 0.58 > 0.05)
+                        thrpt:  [-6.0924% -1.5216% +2.2509%]
+                        No change in performance detected.
+Found 3 outliers among 10 measurements (30.00%)
+  1 (10.00%) low mild
+  1 (10.00%) high mild
+  1 (10.00%) high severe
+
+
+=== Testing 128 MB (16777216 elements) ===
+Benchmarking memory_128MB/limcode_pod_ser
+Benchmarking memory_128MB/limcode_pod_ser: Warming up for 3.0000 s
+Benchmarking memory_128MB/limcode_pod_ser: Collecting 10 samples in estimated 6.9729 s (110 iterations)
+Benchmarking memory_128MB/limcode_pod_ser: Analyzing
+memory_128MB/limcode_pod_ser
+                        time:   [62.496 ms 64.518 ms 65.940 ms]
+                        thrpt:  [1.8957 GiB/s 1.9374 GiB/s 2.0001 GiB/s]
+                 change:
+                        time:   [-36.429% -34.777% -33.178%] (p = 0.00 < 0.05)
+                        thrpt:  [+49.652% +53.320% +57.305%]
+                        Performance has improved.
+Benchmarking memory_128MB/limcode_pod_de
+Benchmarking memory_128MB/limcode_pod_de: Warming up for 3.0000 s
+Benchmarking memory_128MB/limcode_pod_de: Collecting 10 samples in estimated 6.8017 s (110 iterations)
+Benchmarking memory_128MB/limcode_pod_de: Analyzing
+memory_128MB/limcode_pod_de
+                        time:   [61.134 ms 62.195 ms 63.928 ms]
+                        thrpt:  [1.9553 GiB/s 2.0098 GiB/s 2.0447 GiB/s]
+                 change:
+                        time:   [-12.423% -10.132% -7.8488%] (p = 0.00 < 0.05)
+                        thrpt:  [+8.5173% +11.274% +14.185%]
+                        Performance has improved.
+Benchmarking memory_128MB/bincode_ser
+Benchmarking memory_128MB/bincode_ser: Warming up for 3.0000 s
+Benchmarking memory_128MB/bincode_ser: Collecting 10 samples in estimated 7.9103 s (110 iterations)
+Benchmarking memory_128MB/bincode_ser: Analyzing
+memory_128MB/bincode_ser
+                        time:   [71.810 ms 72.499 ms 73.260 ms]
+                        thrpt:  [1.7063 GiB/s 1.7242 GiB/s 1.7407 GiB/s]
+                 change:
+                        time:   [-8.7637% -7.2396% -5.5465%] (p = 0.00 < 0.05)
+                        thrpt:  [+5.8722% +7.8047% +9.6055%]
+                        Performance has improved.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking memory_128MB/bincode_de
+Benchmarking memory_128MB/bincode_de: Warming up for 3.0000 s
+Benchmarking memory_128MB/bincode_de: Collecting 10 samples in estimated 6.5997 s (110 iterations)
+Benchmarking memory_128MB/bincode_de: Analyzing
+memory_128MB/bincode_de time:   [58.454 ms 61.181 ms 64.206 ms]
+                        thrpt:  [1.9469 GiB/s 2.0431 GiB/s 2.1384 GiB/s]
+                 change:
+                        time:   [-11.392% -7.9397% -4.6164%] (p = 0.00 < 0.05)
+                        thrpt:  [+4.8398% +8.6245% +12.857%]
+                        Performance has improved.
+
+
+=== Testing 256 MB (33554432 elements) ===
+Benchmarking memory_256MB/limcode_pod_ser
+Benchmarking memory_256MB/limcode_pod_ser: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 6.2s or enable flat sampling.
+Benchmarking memory_256MB/limcode_pod_ser: Collecting 10 samples in estimated 6.1903 s (55 iterations)
+Benchmarking memory_256MB/limcode_pod_ser: Analyzing
+memory_256MB/limcode_pod_ser
+                        time:   [113.04 ms 114.90 ms 117.82 ms]
+                        thrpt:  [2.1219 GiB/s 2.1758 GiB/s 2.2116 GiB/s]
+                 change:
+                        time:   [-45.037% -42.991% -40.785%] (p = 0.00 < 0.05)
+                        thrpt:  [+68.876% +75.410% +81.940%]
+                        Performance has improved.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking memory_256MB/limcode_pod_de
+Benchmarking memory_256MB/limcode_pod_de: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 6.6s or enable flat sampling.
+Benchmarking memory_256MB/limcode_pod_de: Collecting 10 samples in estimated 6.5835 s (55 iterations)
+Benchmarking memory_256MB/limcode_pod_de: Analyzing
+memory_256MB/limcode_pod_de
+                        time:   [114.34 ms 116.34 ms 118.10 ms]
+                        thrpt:  [2.1168 GiB/s 2.1489 GiB/s 2.1864 GiB/s]
+                 change:
+                        time:   [-19.605% -17.576% -15.510%] (p = 0.00 < 0.05)
+                        thrpt:  [+18.357% +21.325% +24.385%]
+                        Performance has improved.
+Benchmarking memory_256MB/bincode_ser
+Benchmarking memory_256MB/bincode_ser: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 6.4s or enable flat sampling.
+Benchmarking memory_256MB/bincode_ser: Collecting 10 samples in estimated 6.4260 s (55 iterations)
+Benchmarking memory_256MB/bincode_ser: Analyzing
+memory_256MB/bincode_ser
+                        time:   [117.00 ms 118.52 ms 120.11 ms]
+                        thrpt:  [2.0814 GiB/s 2.1094 GiB/s 2.1368 GiB/s]
+                 change:
+                        time:   [-14.663% -12.459% -10.362%] (p = 0.00 < 0.05)
+                        thrpt:  [+11.559% +14.232% +17.182%]
+                        Performance has improved.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking memory_256MB/bincode_de
+Benchmarking memory_256MB/bincode_de: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 6.5s or enable flat sampling.
+Benchmarking memory_256MB/bincode_de: Collecting 10 samples in estimated 6.5362 s (55 iterations)
+Benchmarking memory_256MB/bincode_de: Analyzing
+memory_256MB/bincode_de time:   [111.33 ms 113.89 ms 115.76 ms]
+                        thrpt:  [2.1597 GiB/s 2.1952 GiB/s 2.2456 GiB/s]
+                 change:
+                        time:   [-22.074% -19.320% -16.773%] (p = 0.00 < 0.05)
+                        thrpt:  [+20.153% +23.947% +28.327%]
+                        Performance has improved.
+

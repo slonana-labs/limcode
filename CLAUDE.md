@@ -1,5 +1,17 @@
 # CLAUDE.md - Limcode Serialization Library
 
+## RESTRICTED COMMANDS - READ FIRST
+
+**The `rm` command is BANNED.** NEVER use `rm`, `rm -r`, `rm -rf`, or `rm -f`. NEVER DELETE ANYTHING. PERIOD.
+
+- NEVER delete folders or files
+- NEVER "clean up" data directories
+- NEVER use any delete command
+
+NO EXCEPTIONS.
+
+---
+
 ## What is Limcode?
 
 **Limcode** is an ultra-high-performance binary serialization library designed for Solana-compatible blockchains. It achieves exceptional speed through aggressive SIMD optimizations (AVX-512/AVX2), non-temporal memory operations, and lock-free parallel encoding.

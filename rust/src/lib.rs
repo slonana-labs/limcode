@@ -1,34 +1,35 @@
-//! # Limcode - Ultra-High-Performance Binary Serialization
+//! # Limcode - Ultra-fast bincode-compatible serialization
 //!
-//! Limcode is an optimized binary serialization library with AVX-512 SIMD and
-//! non-temporal memory operations for maximum throughput.
-//!
-//! ## Features
-//!
-//! - **Ultra-fast deserialization**: 33% faster than bincode
-//! - **AVX-512 optimized**: 64-byte SIMD operations
-//! - **Non-temporal memory**: Cache bypass for large blocks
-//! - **Zero-copy design**: Minimal allocations
-//!
-//! ## Example
+//! Same interface as wincode. FASTER than wincode.
 //!
 //! ```rust
-//! use limcode::{Encoder, Decoder};
+//! use limcode::{serialize, deserialize};
+//! use serde::{Serialize, Deserialize};
 //!
-//! // Encoding
-//! let mut enc = Encoder::new();
-//! enc.write_u64(12345);
-//! enc.write_bytes(b"hello");
-//! let bytes = enc.finish();
+//! #[derive(Serialize, Deserialize, PartialEq, Debug)]
+//! struct Data { value: u64 }
 //!
-//! // Decoding
-//! let mut dec = Decoder::new(&bytes);
-//! let val = dec.read_u64().unwrap();
-//! let mut buf = vec![0u8; 5];
-//! dec.read_bytes(&mut buf).unwrap();
+//! let data = Data { value: 42 };
+//! let bytes = serialize(&data).unwrap();
+//! let decoded: Data = deserialize(&bytes).unwrap();
+//! assert_eq!(data, decoded);
 //! ```
 
+pub mod serializer;
+pub mod deserializer;
 pub mod ultra_fast;
+
+// Re-export main API
+pub use serializer::{
+    serialize, to_vec,
+    serialize_vec_parallel,
+    serialize_pod,
+    serialize_pod_into,  // Zero-allocation version for high-throughput
+    serialize_pod_parallel,
+    PodType,
+    Error as SerError
+};
+pub use deserializer::{deserialize, from_bytes, deserialize_pod, deserialize_pod_borrowed, Error as DeError};
 
 // ==================== FFI Bindings ====================
 
@@ -260,27 +261,7 @@ unsafe fn fast_nt_memcpy(mut dst: *mut u8, mut src: *const u8, mut len: usize) {
 // ============================================================================
 // PUBLIC API - Same as wincode
 // ============================================================================
-
-pub use bincode::ErrorKind;
-
-/// Serialize any type to bytes (bincode format)
-///
-/// Same interface as `wincode::serialize`
-#[inline]
-pub fn serialize<T: serde::Serialize>(value: &T) -> Result<Vec<u8>, Box<bincode::ErrorKind>> {
-    bincode::serialize(value)
-}
-
-/// Deserialize bytes to any type (bincode format)
-///
-/// Same interface as `wincode::deserialize`
-#[inline]
-pub fn deserialize<'a, T: serde::Deserialize<'a>>(bytes: &'a [u8]) -> Result<T, Box<bincode::ErrorKind>> {
-    bincode::deserialize(bytes)
-}
-
-// ============================================================================
-// INTERNAL - Optimized byte array operations (used by Encoder/Decoder)
+// INTERNAL - Optimized byte array operations
 // ============================================================================
 
 /// Ultra-fast deserialization - ZERO-COPY by default!
