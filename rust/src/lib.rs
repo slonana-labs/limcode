@@ -152,6 +152,7 @@ unsafe fn prefault_pages(ptr: *mut u8, len: usize) {
 /// - AVX2: 32-byte non-temporal stores
 /// - SSE2: 16-byte non-temporal stores (fallback)
 #[inline(always)]
+#[allow(unused_mut)] // Parameters may not be mutated on all platforms
 unsafe fn fast_nt_memcpy(mut dst: *mut u8, mut src: *const u8, mut len: usize) {
     #[cfg(target_arch = "x86_64")]
     {
