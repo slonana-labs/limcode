@@ -234,7 +234,7 @@ public:
     }
 
 private:
-    void worker_thread(size_t id) {
+    void worker_thread([[maybe_unused]] size_t id) {
         // Worker thread implementation (placeholder for future async work queue)
     }
 

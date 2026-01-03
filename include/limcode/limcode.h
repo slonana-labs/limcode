@@ -2095,7 +2095,7 @@ inline VersionedMessage LimcodeDecoder::read_versioned_message() {
   if (first_byte & VERSION_PREFIX_MASK) {
     // V0 message
     pos_--;    // Put back the first byte
-    read_u8(); // Read it again (version byte)
+    (void)read_u8(); // Read it again (version byte)
     return VersionedMessage(read_v0_message());
   } else {
     // Legacy message - first byte is num_required_signatures
