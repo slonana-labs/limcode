@@ -134,7 +134,7 @@ Comprehensive throughput benchmarks from 64B to 128MB blocks:
 | Size   | C++ Limcode    | Rust Limcode   | Wincode        | Bincode        | C++ vs Rust | Rust vs Wincode | Rust vs Bincode |
 |--------|----------------|----------------|----------------|----------------|-------------|-----------------|------------------|
 
-*📊 Benchmarked: 2026-01-03 17:45 UTC*  
+*📊 Benchmarked: 2026-01-03 18:05 UTC*  
 *💻 CPU: AMD EPYC 7763 64-Core Processor*  
 *🤖 Runner: GitHub Actions (ubuntu-latest)*
 **Key Results:**
