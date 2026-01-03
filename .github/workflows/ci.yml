@@ -9,6 +9,8 @@ on:
 env:
   RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
+  # Ensure build scripts use baseline CPU features to prevent SIGILL on CI
+  CARGO_BUILD_RUSTFLAGS: ""
 
 jobs:
   test:
@@ -39,6 +41,16 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install cmake llvm
+
+      - name: Print build environment
+        run: |
+          echo "=== Build Environment ==="
+          echo "RUSTFLAGS: ${RUSTFLAGS:-<not set>}"
+          echo "CARGO_BUILD_RUSTFLAGS: ${CARGO_BUILD_RUSTFLAGS:-<not set>}"
+          echo "CI: ${CI:-<not set>}"
+          echo "GITHUB_ACTIONS: ${GITHUB_ACTIONS:-<not set>}"
+          rustc --version --verbose
+          echo "======================="
 
       - name: Check formatting
         run: cargo fmt -- --check
@@ -98,8 +110,10 @@ jobs:
       - name: Build with optimizations
         run: |
           mkdir build && cd build
+          # Use x86-64-v2 baseline for CI (SSE4.2, POPCNT, SSSE3)
+          # Don't use -march=native on CI as it may not be available at runtime
           cmake .. -DCMAKE_BUILD_TYPE=Release \
-                   -DCMAKE_CXX_FLAGS="-O3 -march=native"
+                   -DCMAKE_CXX_FLAGS="-O3 -march=x86-64-v2"
           make -j$(nproc)
 
       - name: Check for AVX-512 instructions

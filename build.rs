@@ -4,26 +4,37 @@ fn main() {
     // Compile C++ library
     let mut build = cc::Build::new();
 
-    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
-    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_else(|_| "unknown".to_string());
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| "unknown".to_string());
 
+    // Disable compiler CPU feature auto-detection to prevent SIGILL during compilation
     build
         .cpp(true)
         .file("src/limcode_ffi.cpp")
         .include("include")
         .opt_level(3)
-        .flag_if_supported("-std=c++20");
+        .flag_if_supported("-std=c++20")
+        .flag_if_supported("-fno-builtin"); // Disable compiler builtins that might use CPU features
 
     // Only apply x86_64 SIMD flags on x86_64 architecture
     if target_arch == "x86_64" {
         // In CI, use conservative baseline to avoid SIGILL on different runners
         // In local builds, use -march=native for maximum performance
-        let is_ci = env::var("CI").is_ok() || env::var("GITHUB_ACTIONS").is_ok();
+        let is_ci = env::var("CI").is_ok()
+            || env::var("GITHUB_ACTIONS").is_ok()
+            || env::var("CONTINUOUS_INTEGRATION").is_ok();
 
         if is_ci {
+            println!("cargo:warning=Building in CI mode with conservative CPU features (x86-64-v2)");
             // x86-64-v2: SSE4.2, POPCNT, SSSE3 (available on all modern CI runners)
-            build.flag_if_supported("-march=x86-64-v2");
+            // Explicitly disable advanced features
+            build
+                .flag_if_supported("-march=x86-64-v2")
+                .flag_if_supported("-mno-avx512f")
+                .flag_if_supported("-mno-avx512bw")
+                .flag_if_supported("-mno-avx512dq");
         } else {
+            println!("cargo:warning=Building in local mode with native CPU optimizations");
             // Local builds: optimize for the actual CPU
             build
                 .flag_if_supported("-march=native")

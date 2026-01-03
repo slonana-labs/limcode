@@ -1,0 +1,20 @@
+# Cargo configuration for limcode
+
+# Build scripts should NEVER use target-specific CPU features
+# They run on the build machine (CI runners), not the target machine
+[build]
+rustflags = []
+
+# For build dependencies and build scripts, use baseline x86-64
+# This prevents SIGILL errors on CI runners with limited CPU features
+[target.x86_64-unknown-linux-gnu]
+rustflags = []
+
+[target.x86_64-apple-darwin]
+rustflags = []
+
+[target.aarch64-unknown-linux-gnu]
+rustflags = []
+
+[target.aarch64-apple-darwin]
+rustflags = []
