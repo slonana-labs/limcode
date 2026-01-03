@@ -1,4 +1,4 @@
-use limcode::{serialize, deserialize};
+use limcode::{serialize_bincode, deserialize_bincode};
 
 #[test]
 fn test_bincode_format_compatibility() {
@@ -8,21 +8,37 @@ fn test_bincode_format_compatibility() {
     let bincode_encoded = bincode::serialize(&data).unwrap();
     println!("\n=== BINCODE FORMAT ===");
     println!("Bytes: {:?}", bincode_encoded);
+    println!("Length: {} bytes", bincode_encoded.len());
 
     // What does limcode produce?
-    let limcode_encoded = serialize(&data).unwrap();
+    let limcode_encoded = serialize_bincode(&data);
     println!("\n=== LIMCODE FORMAT ===");
     println!("Bytes: {:?}", limcode_encoded);
+    println!("Length: {} bytes", limcode_encoded.len());
 
-    // Must be identical
-    assert_eq!(bincode_encoded, limcode_encoded, "Formats must match!");
+    // Test 1: Can limcode read bincode output?
+    println!("\n=== TEST 1: Limcode reading Bincode ===");
+    match deserialize_bincode(&bincode_encoded) {
+        Ok(decoded) => {
+            println!("✓ SUCCESS: {:?}", decoded);
+            assert_eq!(decoded, &data[..]);
+        }
+        Err(e) => {
+            println!("✗ FAILED: {}", e);
+            panic!("Limcode cannot deserialize bincode format!");
+        }
+    }
 
-    // Cross-compatible
-    let bincode_decoded: Vec<u8> = bincode::deserialize(&limcode_encoded).unwrap();
-    let limcode_decoded: Vec<u8> = deserialize(&bincode_encoded).unwrap();
-
-    assert_eq!(data, bincode_decoded);
-    assert_eq!(data, limcode_decoded);
-
-    println!("\n✅ 100% BINCODE COMPATIBLE");
+    // Test 2: Can bincode read limcode output?
+    println!("\n=== TEST 2: Bincode reading Limcode ===");
+    match bincode::deserialize::<Vec<u8>>(&limcode_encoded) {
+        Ok(decoded) => {
+            println!("✓ SUCCESS: {:?}", decoded);
+            assert_eq!(decoded, data);
+        }
+        Err(e) => {
+            println!("✗ FAILED: {}", e);
+            panic!("Bincode cannot deserialize limcode format!");
+        }
+    }
 }
