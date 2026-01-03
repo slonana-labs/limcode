@@ -5515,29 +5515,43 @@ __attribute__((always_inline)) inline void fast_nt_memcpy(void* __restrict__ dst
     uint8_t* d = static_cast<uint8_t*>(dst);
     const uint8_t* s = static_cast<const uint8_t*>(src);
 
-    // Align destination to 64-byte boundary (copy one 64-byte chunk if needed)
+    // Align destination to 64-byte boundary
     const uintptr_t misalignment = reinterpret_cast<uintptr_t>(d) & 63;
-    if (misalignment != 0 && len >= 64) {
-        std::memcpy(d, s, 64);
-        s += 64;
-        d += 64;
-        len -= 64;
+    if (misalignment != 0) {
+        const size_t bytes_to_align = 64 - misalignment;
+        if (len >= bytes_to_align) {
+            std::memcpy(d, s, bytes_to_align);
+            s += bytes_to_align;
+            d += bytes_to_align;
+            len -= bytes_to_align;
+        }
     }
 
-    // Now d is 64-byte aligned, use non-temporal stores
-    // Process 128-byte chunks (2x AVX-512 non-temporal stores per iteration)
+    // Now d is 64-byte aligned
+    // Try both non-temporal and regular stores to compare
+    const bool use_nt = (reinterpret_cast<uintptr_t>(d) & 63) == 0;  // Only use NT if aligned
+
+    // Process 128-byte chunks (2x AVX-512 stores per iteration)
     while (len >= 128) {
         __m512i zmm0 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
         __m512i zmm1 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s + 64));
-        _mm512_stream_si512(reinterpret_cast<__m512i*>(d), zmm0);
-        _mm512_stream_si512(reinterpret_cast<__m512i*>(d + 64), zmm1);
+
+        if (use_nt) {
+            _mm512_stream_si512(reinterpret_cast<__m512i*>(d), zmm0);
+            _mm512_stream_si512(reinterpret_cast<__m512i*>(d + 64), zmm1);
+        } else {
+            _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), zmm0);
+            _mm512_storeu_si512(reinterpret_cast<__m512i*>(d + 64), zmm1);
+        }
 
         s += 128;
         d += 128;
         len -= 128;
     }
 
-    _mm_sfence();
+    if (use_nt) {
+        _mm_sfence();
+    }
 
     // Handle remaining bytes
     if (len > 0) {
