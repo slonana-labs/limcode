@@ -289,6 +289,19 @@ ultimate_bench/fast:
 .PHONY : ultimate_bench/fast
 
 #=============================================================================
+# Target rules for targets named table_bench
+
+# Build rule for target.
+table_bench: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 table_bench
+.PHONY : table_bench
+
+# fast build rule for target.
+table_bench/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/table_bench.dir/build.make CMakeFiles/table_bench.dir/build
+.PHONY : table_bench/fast
+
+#=============================================================================
 # Target rules for targets named limcode_tests
 
 # Build rule for target.
@@ -458,6 +471,30 @@ benchmark/pgo_profile.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pgo_profile.dir/build.make CMakeFiles/pgo_profile.dir/benchmark/pgo_profile.cpp.s
 .PHONY : benchmark/pgo_profile.cpp.s
 
+benchmark/table_bench.o: benchmark/table_bench.cpp.o
+.PHONY : benchmark/table_bench.o
+
+# target to build an object file
+benchmark/table_bench.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/table_bench.dir/build.make CMakeFiles/table_bench.dir/benchmark/table_bench.cpp.o
+.PHONY : benchmark/table_bench.cpp.o
+
+benchmark/table_bench.i: benchmark/table_bench.cpp.i
+.PHONY : benchmark/table_bench.i
+
+# target to preprocess a source file
+benchmark/table_bench.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/table_bench.dir/build.make CMakeFiles/table_bench.dir/benchmark/table_bench.cpp.i
+.PHONY : benchmark/table_bench.cpp.i
+
+benchmark/table_bench.s: benchmark/table_bench.cpp.s
+.PHONY : benchmark/table_bench.s
+
+# target to generate assembly for a file
+benchmark/table_bench.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/table_bench.dir/build.make CMakeFiles/table_bench.dir/benchmark/table_bench.cpp.s
+.PHONY : benchmark/table_bench.cpp.s
+
 benchmark/ultimate_bench.o: benchmark/ultimate_bench.cpp.o
 .PHONY : benchmark/ultimate_bench.o
 
@@ -600,6 +637,7 @@ help:
 	@echo "... limcode_tests"
 	@echo "... optimized_bench"
 	@echo "... pgo_profile"
+	@echo "... table_bench"
 	@echo "... ultimate_bench"
 	@echo "... ultra_fast_bench"
 	@echo "... benchmark/cpp_standalone_bench.o"
@@ -620,6 +658,9 @@ help:
 	@echo "... benchmark/pgo_profile.o"
 	@echo "... benchmark/pgo_profile.i"
 	@echo "... benchmark/pgo_profile.s"
+	@echo "... benchmark/table_bench.o"
+	@echo "... benchmark/table_bench.i"
+	@echo "... benchmark/table_bench.s"
 	@echo "... benchmark/ultimate_bench.o"
 	@echo "... benchmark/ultimate_bench.i"
 	@echo "... benchmark/ultimate_bench.s"

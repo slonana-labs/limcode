@@ -1,17 +1,6 @@
 /**
  * @file table_bench.cpp
- * @brief Baseline C++ benchmark for README table generation
- *
- * NOTE: This uses basic std::memcpy for portability across all systems.
- * For maximum performance, use limcode::insane_fast::serialize_pod_into_insane()
- * which achieves 20+ GiB/s with AVX-512 optimizations.
- *
- * This benchmark is designed to:
- * 1. Run reliably on all CI systems (no SIGILL from missing AVX-512)
- * 2. Provide baseline C++ performance comparison
- * 3. Match Rust benchmark format for easy comparison
- *
- * See insane_bench.cpp for optimized C++ performance (21.72 GiB/s).
+ * @brief C++ Limcode benchmark for README table generation
  */
 
 #include <limcode/limcode.h>
@@ -20,30 +9,8 @@
 #include <iomanip>
 #include <vector>
 #include <cstdint>
-#include <cstring>
 
 using namespace std::chrono;
-using namespace limcode;
-
-// Simple POD serialization (bincode compatible)
-template<typename T>
-std::vector<uint8_t> serialize_vec(const std::vector<T>& data) {
-    static_assert(std::is_trivially_copyable_v<T>, "Must be POD type");
-
-    const size_t count = data.size();
-    const size_t data_bytes = count * sizeof(T);
-    const size_t total_size = 8 + data_bytes; // 8 bytes for length prefix
-
-    std::vector<uint8_t> buffer(total_size);
-
-    // Write length prefix (little-endian uint64_t)
-    std::memcpy(buffer.data(), &count, 8);
-
-    // Write data
-    std::memcpy(buffer.data() + 8, data.data(), data_bytes);
-
-    return buffer;
-}
 
 double benchmark_roundtrip(size_t num_elements, size_t iterations) {
     // Create test data
@@ -53,19 +20,17 @@ double benchmark_roundtrip(size_t num_elements, size_t iterations) {
     }
 
     const size_t data_size = num_elements * sizeof(uint64_t);
+    std::vector<uint8_t> buf;
 
     // Warmup
     for (size_t i = 0; i < std::min(iterations / 10, size_t(3)); ++i) {
-        auto buf = serialize_vec(data);
+        limcode::serialize_pod(buf, data);
     }
 
     // Benchmark
     auto start = high_resolution_clock::now();
     for (size_t i = 0; i < iterations; ++i) {
-        auto buf = serialize_vec(data);
-        // Touch the buffer to ensure it's not optimized away
-        volatile uint8_t x = buf[0];
-        (void)x;
+        limcode::serialize_pod(buf, data);
     }
     auto end = high_resolution_clock::now();
 
@@ -86,9 +51,7 @@ std::string format_size(size_t bytes) {
 }
 
 int main() {
-    std::cout << "C++ Limcode Baseline Benchmark\n";
-    std::cout << "===============================\n";
-    std::cout << "(Using portable std::memcpy - see insane_bench for optimized 20+ GiB/s)\n\n";
+    std::cout << "C++ Limcode Benchmark\n\n";
 
     // Match Rust benchmark sizes exactly
     struct SizeConfig {
@@ -133,9 +96,6 @@ int main() {
         std::cout.flush();
     }
 
-    std::cout << "\nBenchmark complete!\n";
-    std::cout << "\nNOTE: This is baseline C++ performance using std::memcpy.\n";
-    std::cout << "For optimized C++ (20+ GiB/s), use limcode::insane_fast::serialize_pod_into_insane().\n";
-    std::cout << "Rust Limcode FFI calls the optimized C++ code, which is why it's faster.\n";
+    std::cout << "\nBenchmark complete.\n";
     return 0;
 }

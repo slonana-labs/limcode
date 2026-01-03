@@ -5501,3 +5501,32 @@ private:
 };
 
 } // namespace limcode
+
+namespace limcode {
+
+/**
+ * @brief Serialize POD vector to bincode format
+ * @tparam T Trivially copyable type
+ */
+template<typename T>
+inline void serialize_pod(std::vector<uint8_t>& buf, const std::vector<T>& data) {
+    static_assert(std::is_trivially_copyable_v<T>);
+
+    const size_t count = data.size();
+    const size_t data_bytes = count * sizeof(T);
+    const size_t total_size = 8 + data_bytes;
+
+    if (buf.capacity() >= total_size) {
+        buf.resize(total_size);
+    } else {
+        buf.clear();
+        buf.reserve(total_size);
+        buf.resize(total_size);
+    }
+
+    uint8_t* ptr = buf.data();
+    *reinterpret_cast<uint64_t*>(ptr) = count;
+    std::memcpy(ptr + 8, data.data(), data_bytes);
+}
+
+} // namespace limcode
