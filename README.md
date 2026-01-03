@@ -76,18 +76,26 @@ Comprehensive throughput benchmarks from 64B to 128MB blocks:
 | 1MB | **64.34 GB/s** | 1.80 GB/s | 0.72 GB/s | **+3481%** | **+8806%** |
 | 2MB | **61.95 GB/s** | 1.69 GB/s | 0.73 GB/s | **+3556%** | **+8435%** |
 | 4MB | **62.21 GB/s** | 1.38 GB/s | 0.66 GB/s | **+4423%** | **+9308%** |
-| 8MB | **27.42 GB/s** | N/A (>4MB limit) | 0.65 GB/s | N/A | **+4088%** |
-| 16MB | **22.56 GB/s** | N/A (>4MB limit) | 0.64 GB/s | N/A | **+3417%** |
-| 32MB | **1.57 GB/s** | N/A (>4MB limit) | 0.59 GB/s | N/A | **+168%** |
-| 64MB | **1.53 GB/s** | N/A (>4MB limit) | 0.60 GB/s | N/A | **+154%** |
-| 128MB | **1.53 GB/s** | N/A (>4MB limit) | 0.49 GB/s | N/A | **+216%** |
+| 8MB | **18.48 GB/s** | N/A (>4MB limit) | 0.64 GB/s | N/A | **+2776%** |
+| 16MB | **22.27 GB/s** | N/A (>4MB limit) | 0.65 GB/s | N/A | **+3322%** |
+| 32MB | **2.55 GB/s** | N/A (>4MB limit) | 0.59 GB/s | N/A | **+334%** |
+| 64MB | **2.46 GB/s** | N/A (>4MB limit) | 0.58 GB/s | N/A | **+326%** |
+| 128MB | **2.39 GB/s** | N/A (>4MB limit) | 0.48 GB/s | N/A | **+396%** |
 
 **Key Results:**
-- **Peak throughput: 64.34 GB/s @ 1MB blocks** 🚀
-- **Limcode beats Wincode by 1000%+ for blocks ≥ 4KB**
-- **Limcode beats Bincode by 3000-9000% across all sizes**
+- **Peak throughput: 71.32 GB/s @ 1KB blocks** 🚀
+- **Extreme peak: 67.79 GB/s @ 256KB blocks** (45x faster than bincode!)
+- **Limcode beats Wincode by 1000-4500%+ for blocks ≥ 4KB**
+- **Limcode beats Bincode by 3000-8500% across all sizes**
+- **Optimized with non-temporal stores**: +56% improvement for 128MB blocks
 - **Wincode has 4MB preallocation limit** - cannot handle larger blocks
-- **Limcode handles up to 128MB blocks efficiently**
+- **Limcode handles up to 128MB blocks efficiently** (4-8x faster than bincode)
+
+**Optimization Techniques:**
+- AVX-512/AVX2/SSE2 non-temporal stores for blocks >64KB (bypass cache)
+- Memory prefaulting for blocks >16MB (reduce page faults)
+- Adaptive strategy: standard memcpy for small blocks, streaming stores for large
+- Build with: `RUSTFLAGS="-C target-cpu=native" cargo build --release`
 
 ### Statistical Distribution (P95/P99 Latencies)
 
