@@ -1,20 +1,31 @@
 # Limcode
 
-**Ultra-fast bincode-compatible serialization that BEATS wincode**
+**Ultra-fast zero-copy byte array serialization**
 
-Limcode is a high-performance serialization library that produces byte-identical bincode-compatible output while being faster than wincode through a zero-copy API design.
+Limcode is a specialized high-performance library for serializing **raw byte arrays** (`Vec<u8>`, `&[u8]`) with a zero-copy deserialization API.
+
+**⚠️ IMPORTANT:** Limcode is **NOT** a general-purpose serialization library. It only handles raw byte arrays, not structs, enums, or other types. For general serialization, use `bincode` or `serde`.
+
+**Use case:** When you need to serialize/deserialize raw byte buffers (e.g., cryptographic signatures, binary blobs, network packets) and want maximum performance through zero-copy deserialization.
+
+**Format:** Limcode uses bincode's format for `Vec<u8>` (8-byte length prefix + raw data), making it interoperable with bincode for this specific type.
 
 ## 🏆 Performance
 
 ### Quick Summary
 
-**Limcode vs Wincode (Average):**
-- **Deserialization**: **1.01-1.06x faster** (zero-copy advantage)
-- **Serialization**: **0.99-1.02x** (competitive parity)
+**What's being measured:** Round-trip serialization of raw `Vec<u8>` byte arrays (64B to 128MB).
 
-**Limcode vs Bincode (Average):**
-- **Deserialization**: **2.6-353x faster** 🚀
-- **Serialization**: **2.4-384x faster** 🚀
+**Limcode vs Wincode/Bincode:**
+- **Limcode deserialization**: Returns `&[u8]` slice (zero-copy, ~17ns constant time)
+- **Wincode/Bincode deserialization**: Allocates `Vec<u8>` + memcpy (scales with size)
+- **Result**: Limcode skips allocation/copy, giving massive speedup for read-heavy workloads
+
+**⚠️ Fairness note:** These benchmarks compare **different operations**:
+- Limcode: Borrowed slice (requires keeping original buffer alive)
+- Wincode/Bincode: Owned Vec (independent of source buffer)
+
+Choose based on your use case: zero-copy performance vs. ownership flexibility.
 
 ### Detailed Benchmark Results (Statistical Analysis)
 
