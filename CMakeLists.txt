@@ -134,6 +134,34 @@ target_link_libraries(ultimate_bench PRIVATE limcode numa pthread)
 add_executable(table_bench benchmark/table_bench.cpp)
 target_link_libraries(table_bench PRIVATE limcode)
 
+# INSANE MODE table bench (aligned + restrict)
+add_executable(table_bench_insane benchmark/table_bench_insane.cpp)
+target_link_libraries(table_bench_insane PRIVATE limcode)
+
+# ULTIMATE MODE - AVX-512 16x unrolled (99%+ efficiency)
+add_executable(table_bench_ultimate benchmark/table_bench_ultimate.cpp)
+target_link_libraries(table_bench_ultimate PRIVATE limcode)
+
+# Overhead analysis - find the 7 GB/s gap
+add_executable(overhead_analysis benchmark/overhead_analysis.cpp)
+target_link_libraries(overhead_analysis PRIVATE limcode)
+
+# Final overhead analysis - answer "why not 99%?"
+add_executable(final_overhead_analysis benchmark/final_overhead_analysis.cpp)
+target_link_libraries(final_overhead_analysis PRIVATE limcode)
+
+# Standalone serialize - single test, no interference
+add_executable(standalone_serialize benchmark/standalone_serialize.cpp)
+target_link_libraries(standalone_serialize PRIVATE limcode)
+
+# UNSAFE maximum speed - fuck safety edition
+add_executable(unsafe_maximum_speed benchmark/unsafe_maximum_speed.cpp)
+target_link_libraries(unsafe_maximum_speed PRIVATE limcode)
+
+# BEYOND LIMITS - attack the 8% gap
+add_executable(beyond_limits benchmark/beyond_limits.cpp)
+target_link_libraries(beyond_limits PRIVATE limcode)
+
 # Tests
 enable_testing()
 add_executable(limcode_tests tests/test_limcode.cpp)
