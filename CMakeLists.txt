@@ -130,6 +130,10 @@ target_link_libraries(insane_bench PRIVATE limcode numa pthread)
 add_executable(ultimate_bench benchmark/ultimate_bench.cpp)
 target_link_libraries(ultimate_bench PRIVATE limcode numa pthread)
 
+# Table format benchmark (for README comparison with Rust)
+add_executable(table_bench benchmark/table_bench.cpp)
+target_link_libraries(table_bench PRIVATE limcode)
+
 # Tests
 enable_testing()
 add_executable(limcode_tests tests/test_limcode.cpp)
