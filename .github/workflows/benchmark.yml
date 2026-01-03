@@ -45,15 +45,13 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-benchmark-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build with native optimizations
-        env:
-          RUSTFLAGS: "-C target-cpu=native"
+      - name: Build benchmarks
+        # Note: GitHub Actions runners have limited CPU features (x86-64-v2 baseline)
+        # Using conservative optimizations to avoid SIGILL errors
         run: cargo build --release --example benchmark_large_blocks
 
       - name: Run comprehensive benchmarks
         id: benchmark
-        env:
-          RUSTFLAGS: "-C target-cpu=native"
         run: |
           echo "Running benchmarks..."
           cargo run --release --example benchmark_large_blocks > /tmp/benchmark_results.txt 2>&1
