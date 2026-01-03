@@ -103,6 +103,31 @@
 #define LIMCODE_HAS_MMAP 0
 #endif
 
+// ==================== SIMD Intrinsics (MUST BE BEFORE NAMESPACE) ====================
+// CRITICAL: These MUST be included at global scope to avoid namespace pollution.
+// Including them inside namespace limcode causes the standard library's <random>
+// and other headers to fail lookup of __m128i, __m128d, __m256i, etc.
+
+#if defined(__SSE2__) && (defined(__x86_64__) || defined(_M_X64))
+#define LIMCODE_HAS_SSE2 1
+#include <emmintrin.h> // SSE2
+#else
+#define LIMCODE_HAS_SSE2 0
+#endif
+
+#if defined(__AVX__) && (defined(__x86_64__) || defined(_M_X64))
+#define LIMCODE_HAS_AVX 1
+#include <immintrin.h> // AVX/AVX2/AVX-512/BMI2
+#else
+#define LIMCODE_HAS_AVX 0
+#endif
+
+#if defined(__AVX512F__) && defined(__AVX512BW__) && (defined(__x86_64__) || defined(_M_X64))
+#define LIMCODE_HAS_AVX512 1
+#else
+#define LIMCODE_HAS_AVX512 0
+#endif
+
 namespace limcode {
 
 // ==================== Constants ====================
@@ -585,27 +610,8 @@ inline bool decode_short_vec(const uint8_t *data, size_t size,
 #define LIMCODE_HAS_BMI2 1
 #endif
 
-// SSE2/AVX support detection (for SIMD copies)
-#if defined(__SSE2__) && LIMCODE_HAS_X86_64_ASM
-#define LIMCODE_HAS_SSE2 1
-#include <emmintrin.h> // SSE2
-#else
-#define LIMCODE_HAS_SSE2 0
-#endif
-
-#if defined(__AVX__) && LIMCODE_HAS_X86_64_ASM
-#define LIMCODE_HAS_AVX 1
-#include <immintrin.h> // AVX/AVX2/AVX-512/BMI2
-#else
-#define LIMCODE_HAS_AVX 0
-#endif
-
-// AVX-512 support detection (512-bit operations)
-#if defined(__AVX512F__) && defined(__AVX512BW__) && LIMCODE_HAS_X86_64_ASM
-#define LIMCODE_HAS_AVX512 1
-#else
-#define LIMCODE_HAS_AVX512 0
-#endif
+// Note: LIMCODE_HAS_SSE2, LIMCODE_HAS_AVX, LIMCODE_HAS_AVX512 are now
+// defined at global scope (before namespace) to prevent namespace pollution
 
 #if !defined(LIMCODE_HAS_BMI2)
 #define LIMCODE_HAS_BMI2 0
