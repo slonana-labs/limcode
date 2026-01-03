@@ -21,3 +21,16 @@ Cargo.lock
 *.swp
 *.swo
 *~
+
+# Benchmark executables
+beyond_limits*
+final_assault
+non_temporal_final
+standalone_serialize
+table_bench_insane
+table_bench_ultimate
+ultimate_push
+unsafe_maximum_speed
+avx512_*
+simd_*
+experimental_*

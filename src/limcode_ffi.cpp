@@ -8,8 +8,7 @@
 #include <cstring>
 #include <new>
 
-// NOTE: DO NOT use "using namespace slonana::limcode" - it creates ambiguity
-// with C typedefs!
+// NOTE: Use explicit limcode:: namespace prefix for clarity with C typedefs
 
 extern "C" {
 

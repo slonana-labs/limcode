@@ -76,13 +76,7 @@ __builtin_prefetch()        // Software prefetching (up to 4MB ahead)
 
 ## Namespace Fixes
 
-**Changed from:**
-```cpp
-namespace slonana {
-namespace limcode {
-```
-
-**To:**
+**Changed to:**
 ```cpp
 namespace limcode {
 ```

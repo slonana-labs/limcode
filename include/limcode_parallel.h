@@ -14,7 +14,6 @@
 #include <thread>
 #include <vector>
 
-namespace slonana {
 namespace limcode {
 
 /**
@@ -328,4 +327,3 @@ inline void copy_solana_block_parallel(uint8_t *dst, const uint8_t *src,
 }
 
 } // namespace limcode
-} // namespace slonana

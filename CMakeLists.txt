@@ -142,25 +142,40 @@ target_link_libraries(table_bench_insane PRIVATE limcode)
 add_executable(table_bench_ultimate benchmark/table_bench_ultimate.cpp)
 target_link_libraries(table_bench_ultimate PRIVATE limcode)
 
-# Overhead analysis - find the 7 GB/s gap
+# Performance analysis benchmarks
 add_executable(overhead_analysis benchmark/overhead_analysis.cpp)
 target_link_libraries(overhead_analysis PRIVATE limcode)
 
-# Final overhead analysis - answer "why not 99%?"
 add_executable(final_overhead_analysis benchmark/final_overhead_analysis.cpp)
 target_link_libraries(final_overhead_analysis PRIVATE limcode)
 
-# Standalone serialize - single test, no interference
+# Standalone serialization benchmark
 add_executable(standalone_serialize benchmark/standalone_serialize.cpp)
 target_link_libraries(standalone_serialize PRIVATE limcode)
 
-# UNSAFE maximum speed - fuck safety edition
-add_executable(unsafe_maximum_speed benchmark/unsafe_maximum_speed.cpp)
-target_link_libraries(unsafe_maximum_speed PRIVATE limcode)
+add_executable(non_temporal_final benchmark/non_temporal_final.cpp)
+target_link_libraries(non_temporal_final PRIVATE limcode)
 
-# BEYOND LIMITS - attack the 8% gap
-add_executable(beyond_limits benchmark/beyond_limits.cpp)
-target_link_libraries(beyond_limits PRIVATE limcode)
+# Experimental optimization benchmarks
+add_executable(experimental_optimizations benchmark/experimental_optimizations.cpp)
+target_link_libraries(experimental_optimizations PRIVATE limcode)
+
+# SIMD optimization experiments
+add_executable(simd_experiments benchmark/simd_experiments.cpp)
+target_link_libraries(simd_experiments PRIVATE limcode)
+
+add_executable(simd_experiments_v2 benchmark/simd_experiments_v2.cpp)
+target_link_libraries(simd_experiments_v2 PRIVATE limcode)
+
+add_executable(simd_benchmarks benchmark/simd_benchmarks.cpp)
+target_link_libraries(simd_benchmarks PRIVATE limcode)
+
+# AVX-512 optimization benchmarks
+add_executable(avx512_optimal benchmark/avx512_optimal.cpp)
+target_link_libraries(avx512_optimal PRIVATE limcode)
+
+add_executable(avx512_32x_unroll benchmark/avx512_32x_unroll.cpp)
+target_link_libraries(avx512_32x_unroll PRIVATE limcode)
 
 # Tests
 enable_testing()
