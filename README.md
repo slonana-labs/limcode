@@ -1,14 +1,44 @@
 # Limcode
 
-**Ultra-fast zero-copy byte array serialization**
+**100% bincode-compatible serialization with zero-copy optimizations**
 
-Limcode is a specialized high-performance library for serializing **raw byte arrays** (`Vec<u8>`, `&[u8]`) with a zero-copy deserialization API.
+Limcode is a **fully bincode-compatible** serialization library that works with ANY Rust type (structs, enums, etc.) while providing **zero-copy optimizations** for byte arrays.
 
-**⚠️ IMPORTANT:** Limcode is **NOT** a general-purpose serialization library. It only handles raw byte arrays, not structs, enums, or other types. For general serialization, use `bincode` or `serde`.
+## Features
 
-**Use case:** When you need to serialize/deserialize raw byte buffers (e.g., cryptographic signatures, binary blobs, network packets) and want maximum performance through zero-copy deserialization.
+✅ **Full bincode compatibility** - Works with all types via `serialize()` and `deserialize()`
+✅ **Zero-copy byte arrays** - Specialized `serialize_bincode()` / `deserialize_bincode()` for `&[u8]`
+✅ **SIMD optimizations** - AVX-512/AVX2/SSE2 non-temporal stores for large buffers
+✅ **Drop-in replacement** - 100% compatible with `bincode::serialize` / `bincode::deserialize`
 
-**Format:** Limcode uses bincode's format for `Vec<u8>` (8-byte length prefix + raw data), making it interoperable with bincode for this specific type.
+## Quick Start
+
+```rust
+use limcode::{serialize, deserialize};
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+struct Transaction {
+    amount: u64,
+    fee: u64,
+}
+
+// Works with ANY type!
+let tx = Transaction { amount: 1000, fee: 10 };
+let encoded = serialize(&tx).unwrap();
+let decoded: Transaction = deserialize(&encoded).unwrap();
+```
+
+## When to Use Limcode
+
+**Use limcode for:**
+- Any use case where you'd use bincode (100% compatible)
+- Extra performance on byte array serialization (zero-copy)
+- Large buffer operations (SIMD-optimized memcpy)
+
+**Performance advantage:**
+- General types: Same as bincode (uses bincode internally)
+- Byte arrays: Up to 100x faster deserialization (zero-copy slice returns)
 
 ## 🏆 Performance
 

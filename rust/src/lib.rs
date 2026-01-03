@@ -257,6 +257,46 @@ unsafe fn fast_nt_memcpy(mut dst: *mut u8, mut src: *const u8, mut len: usize) {
     }
 }
 
+// ============================================================================
+// GENERAL-PURPOSE BINCODE-COMPATIBLE SERIALIZATION
+// ============================================================================
+
+/// Serialize any type using bincode format
+///
+/// Works with ANY type implementing `serde::Serialize` (structs, enums, etc.)
+///
+/// # Example
+/// ```rust,no_run
+/// # use serde::{Serialize, Deserialize};
+/// # use limcode::{serialize, deserialize};
+/// #[derive(Serialize, Deserialize, PartialEq, Debug)]
+/// struct Transaction {
+///     amount: u64,
+///     fee: u64,
+/// }
+///
+/// let tx = Transaction { amount: 1000, fee: 10 };
+/// let encoded = serialize(&tx).unwrap();
+/// let decoded: Transaction = deserialize(&encoded).unwrap();
+/// assert_eq!(tx, decoded);
+/// ```
+#[inline]
+pub fn serialize<T: serde::Serialize>(value: &T) -> Result<Vec<u8>, Box<bincode::ErrorKind>> {
+    bincode::serialize(value)
+}
+
+/// Deserialize any type from bincode format
+///
+/// Works with ANY type implementing `serde::Deserialize`
+#[inline]
+pub fn deserialize<'a, T: serde::Deserialize<'a>>(bytes: &'a [u8]) -> Result<T, Box<bincode::ErrorKind>> {
+    bincode::deserialize(bytes)
+}
+
+// ============================================================================
+// SPECIALIZED BYTE ARRAY SERIALIZATION (ZERO-COPY OPTIMIZED)
+// ============================================================================
+
 /// Ultra-fast deserialization - ZERO-COPY by default!
 ///
 /// **API Design: Zero-copy by default, copy when you need it**
