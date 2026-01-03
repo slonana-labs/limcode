@@ -80,11 +80,20 @@ fn benchmark_throughput(size: usize, name: &str, iterations: usize) {
         } else {
             format!("{:.1}%", vs_wincode)
         };
-        println!("| {} | {:.2} GB/s | {:.2} GB/s | {:.2} GB/s | {} | {} |",
-            name, limcode_throughput, wincode_throughput, bincode_throughput, vs_wincode_str, vs_bincode_str);
+        println!(
+            "| {} | {:.2} GB/s | {:.2} GB/s | {:.2} GB/s | {} | {} |",
+            name,
+            limcode_throughput,
+            wincode_throughput,
+            bincode_throughput,
+            vs_wincode_str,
+            vs_bincode_str
+        );
     } else {
-        println!("| {} | {:.2} GB/s | N/A (>4MB limit) | {:.2} GB/s | N/A | {} |",
-            name, limcode_throughput, bincode_throughput, vs_bincode_str);
+        println!(
+            "| {} | {:.2} GB/s | N/A (>4MB limit) | {:.2} GB/s | N/A | {} |",
+            name, limcode_throughput, bincode_throughput, vs_bincode_str
+        );
     }
 }
 

@@ -73,7 +73,11 @@ extern "C" {
     fn limcode_free_buffer(buffer: *mut u8);
 
     // ==================== Direct Buffer Access ====================
-    fn limcode_encoder_alloc_space(encoder: *mut LimcodeEncoder, bytes: usize, out_offset: *mut usize) -> *mut u8;
+    fn limcode_encoder_alloc_space(
+        encoder: *mut LimcodeEncoder,
+        bytes: usize,
+        out_offset: *mut usize,
+    ) -> *mut u8;
 }
 
 // ==================== End FFI Bindings ====================
