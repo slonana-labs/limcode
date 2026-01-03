@@ -32,13 +32,14 @@ use limcode_sys::*;
 
 pub mod ultra_fast;
 
-/// Ultra-fast bincode-compatible serialization (standalone, fully inlined)
+/// Ultra-fast bincode-compatible serialization with adaptive optimization
 ///
-/// ULTRA-OPTIMIZED to beat wincode:
-/// - Single Vec allocation (no MaybeUninit overhead)
-/// - Direct unaligned write for u64 (no intermediate array)
-/// - Minimal operations: alloc → write length → copy data → return
-/// - #[inline(always)] for complete compiler inlining
+/// STRATEGY (size-based optimization):
+/// - Small (<= 64KB): Standard memcpy (stays in cache)
+/// - Large (> 64KB): Non-temporal stores + prefaulting (bypass cache, reduce page faults)
+///
+/// For very large allocations (>16MB), we prefault memory pages to avoid
+/// page fault overhead during the actual copy operation.
 ///
 /// Format: u64 little-endian length prefix + raw data
 #[inline(always)]
@@ -49,16 +50,160 @@ pub fn serialize_bincode(data: &[u8]) -> Vec<u8> {
     unsafe {
         let ptr: *mut u8 = buf.as_mut_ptr();
 
-        // Direct unaligned u64 write (single instruction)
+        // Write u64 length prefix
         std::ptr::write_unaligned(ptr as *mut u64, (data.len() as u64).to_le());
 
-        // Copy data (compiler optimizes to REP MOVSB or SIMD)
-        std::ptr::copy_nonoverlapping(data.as_ptr(), ptr.add(8), data.len());
+        // Prefault memory for very large allocations (>16MB) to reduce page faults
+        if data.len() > 16_777_216 {
+            prefault_pages(ptr, total_len);
+        }
+
+        // Copy data with size-adaptive strategy
+        if data.len() <= 65536 {
+            // Small/medium: use standard memcpy (fast, stays in cache)
+            std::ptr::copy_nonoverlapping(data.as_ptr(), ptr.add(8), data.len());
+        } else {
+            // Large: use non-temporal stores (bypass cache)
+            fast_nt_memcpy(ptr.add(8), data.as_ptr(), data.len());
+        }
 
         buf.set_len(total_len);
     }
 
     buf
+}
+
+/// Prefault memory pages to reduce page fault overhead during copy
+///
+/// For very large allocations, the OS allocates virtual memory but doesn't
+/// allocate physical pages until they're accessed (lazy allocation). This
+/// causes page faults during the copy, slowing it down. By touching each page
+/// beforehand, we force the OS to allocate physical pages.
+#[inline(always)]
+unsafe fn prefault_pages(ptr: *mut u8, len: usize) {
+    const PAGE_SIZE: usize = 4096; // Standard 4KB page size
+
+    // Touch one byte per page to force allocation
+    let num_pages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
+    for i in 0..num_pages {
+        let offset = i * PAGE_SIZE;
+        if offset < len {
+            // Volatile write to ensure compiler doesn't optimize away
+            std::ptr::write_volatile(ptr.add(offset), 0);
+        }
+    }
+}
+
+/// Non-temporal memory copy for large blocks (>64KB)
+/// Uses streaming stores to bypass cache and maximize memory bandwidth
+///
+/// Uses the best available SIMD:
+/// - AVX-512: 64-byte non-temporal stores (1 instruction per cache line)
+/// - AVX2: 32-byte non-temporal stores
+/// - SSE2: 16-byte non-temporal stores (fallback)
+#[inline(always)]
+unsafe fn fast_nt_memcpy(mut dst: *mut u8, mut src: *const u8, mut len: usize) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        // Try AVX-512 path first (64-byte non-temporal stores)
+        #[cfg(target_feature = "avx512f")]
+        {
+            use core::arch::x86_64::*;
+
+            // Align to 64-byte boundary for AVX-512
+            while (dst as usize) & 63 != 0 && len >= 64 {
+                std::ptr::copy_nonoverlapping(src, dst, 64);
+                src = src.add(64);
+                dst = dst.add(64);
+                len -= 64;
+            }
+
+            // Process 128-byte chunks (2x AVX-512 stores per iteration)
+            while len >= 128 {
+                let zmm0 = _mm512_loadu_si512(src as *const _);
+                let zmm1 = _mm512_loadu_si512(src.add(64) as *const _);
+                _mm512_stream_si512(dst as *mut _, zmm0);
+                _mm512_stream_si512(dst.add(64) as *mut _, zmm1);
+
+                src = src.add(128);
+                dst = dst.add(128);
+                len -= 128;
+            }
+
+            _mm_sfence();
+        }
+
+        // AVX2 path (32-byte non-temporal stores)
+        #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
+        {
+            use core::arch::x86_64::*;
+
+            // Align to 32-byte boundary
+            while (dst as usize) & 31 != 0 && len >= 32 {
+                std::ptr::copy_nonoverlapping(src, dst, 32);
+                src = src.add(32);
+                dst = dst.add(32);
+                len -= 32;
+            }
+
+            // Process 128-byte chunks (4x AVX2 stores)
+            while len >= 128 {
+                let ymm0 = _mm256_loadu_si256(src as *const __m256i);
+                let ymm1 = _mm256_loadu_si256(src.add(32) as *const __m256i);
+                let ymm2 = _mm256_loadu_si256(src.add(64) as *const __m256i);
+                let ymm3 = _mm256_loadu_si256(src.add(96) as *const __m256i);
+
+                _mm256_stream_si256(dst as *mut __m256i, ymm0);
+                _mm256_stream_si256(dst.add(32) as *mut __m256i, ymm1);
+                _mm256_stream_si256(dst.add(64) as *mut __m256i, ymm2);
+                _mm256_stream_si256(dst.add(96) as *mut __m256i, ymm3);
+
+                src = src.add(128);
+                dst = dst.add(128);
+                len -= 128;
+            }
+
+            _mm_sfence();
+        }
+
+        // SSE2 fallback path (16-byte non-temporal stores)
+        #[cfg(all(target_feature = "sse2", not(target_feature = "avx2")))]
+        {
+            use core::arch::x86_64::*;
+
+            // Align to 16-byte boundary
+            while (dst as usize) & 15 != 0 && len >= 16 {
+                std::ptr::copy_nonoverlapping(src, dst, 16);
+                src = src.add(16);
+                dst = dst.add(16);
+                len -= 16;
+            }
+
+            // Process 64-byte chunks (4x SSE2 stores)
+            while len >= 64 {
+                let xmm0 = _mm_loadu_si128(src as *const __m128i);
+                let xmm1 = _mm_loadu_si128(src.add(16) as *const __m128i);
+                let xmm2 = _mm_loadu_si128(src.add(32) as *const __m128i);
+                let xmm3 = _mm_loadu_si128(src.add(48) as *const __m128i);
+
+                _mm_stream_si128(dst as *mut __m128i, xmm0);
+                _mm_stream_si128(dst.add(16) as *mut __m128i, xmm1);
+                _mm_stream_si128(dst.add(32) as *mut __m128i, xmm2);
+                _mm_stream_si128(dst.add(48) as *mut __m128i, xmm3);
+
+                src = src.add(64);
+                dst = dst.add(64);
+                len -= 64;
+            }
+
+            _mm_sfence();
+        }
+    }
+
+    // Handle remaining bytes with standard memcpy
+    if len > 0 {
+        std::ptr::copy_nonoverlapping(src, dst, len);
+    }
 }
 
 /// Ultra-fast deserialization - ZERO-COPY by default!
