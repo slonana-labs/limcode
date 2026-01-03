@@ -5505,6 +5505,50 @@ private:
 namespace limcode {
 
 /**
+ * @brief SIMD-optimized memcpy (matches Rust implementation exactly)
+ * Uses AVX-512 non-temporal stores with alignment handling
+ */
+__attribute__((always_inline)) inline void fast_nt_memcpy(void* __restrict__ dst,
+                                                           const void* __restrict__ src,
+                                                           size_t len) noexcept {
+#if defined(__AVX512F__)
+    uint8_t* d = static_cast<uint8_t*>(dst);
+    const uint8_t* s = static_cast<const uint8_t*>(src);
+
+    // Align destination to 64-byte boundary (copy one 64-byte chunk if needed)
+    const uintptr_t misalignment = reinterpret_cast<uintptr_t>(d) & 63;
+    if (misalignment != 0 && len >= 64) {
+        std::memcpy(d, s, 64);
+        s += 64;
+        d += 64;
+        len -= 64;
+    }
+
+    // Now d is 64-byte aligned, use non-temporal stores
+    // Process 128-byte chunks (2x AVX-512 non-temporal stores per iteration)
+    while (len >= 128) {
+        __m512i zmm0 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
+        __m512i zmm1 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s + 64));
+        _mm512_stream_si512(reinterpret_cast<__m512i*>(d), zmm0);
+        _mm512_stream_si512(reinterpret_cast<__m512i*>(d + 64), zmm1);
+
+        s += 128;
+        d += 128;
+        len -= 128;
+    }
+
+    _mm_sfence();
+
+    // Handle remaining bytes
+    if (len > 0) {
+        std::memcpy(d, s, len);
+    }
+#else
+    std::memcpy(dst, src, len);
+#endif
+}
+
+/**
  * @brief Serialize vector to bincode format
  * @tparam T Trivially copyable type
  */
@@ -5526,7 +5570,15 @@ inline void serialize(std::vector<uint8_t>& buf, const std::vector<T>& data) {
 
     uint8_t* ptr = buf.data();
     *reinterpret_cast<uint64_t*>(ptr) = count;
-    std::memcpy(ptr + 8, data.data(), data_bytes);
+
+    // Size-adaptive copy strategy (matches Rust implementation)
+    if (data_bytes <= 65536) {
+        // Small/medium (≤64KB): standard memcpy (stays in cache)
+        std::memcpy(ptr + 8, data.data(), data_bytes);
+    } else {
+        // Large (>64KB): non-temporal stores (bypass cache)
+        fast_nt_memcpy(ptr + 8, data.data(), data_bytes);
+    }
 }
 
 } // namespace limcode
