@@ -549,17 +549,21 @@ pub fn serialize_vec_parallel<T: Serialize + Sync>(vec: &Vec<T>) -> Result<Vec<u
 /// **Performance:** Up to **10x faster** than serialize_pod() for repeated operations
 /// (eliminates 64MB+ Vec allocation overhead)
 ///
-/// ```rust,no_run
+/// ```
+/// # use limcode::{serialize_pod_into, SerError};
+/// # fn example() -> Result<(), SerError> {
 /// let data: Vec<u64> = vec![1, 2, 3, 4, 5];
 /// let mut buf = Vec::new(); // Reusable buffer
 ///
 /// // First call allocates, subsequent calls reuse
-/// limcode::serialize_pod_into(&data, &mut buf)?;
-/// process(&buf);
+/// serialize_pod_into(&data, &mut buf)?;
+/// // Use buf (e.g., send over network, write to disk)
 ///
+/// let other_data: Vec<u64> = vec![6, 7, 8];
 /// // Reuses buffer - no allocation!
-/// limcode::serialize_pod_into(&other_data, &mut buf)?;
-/// # Ok::<(), limcode::Error>(())
+/// serialize_pod_into(&other_data, &mut buf)?;
+/// # Ok(())
+/// # }
 /// ```
 #[inline]
 pub fn serialize_pod_into<T: PodType>(vec: &[T], buf: &mut Vec<u8>) -> Result<(), Error> {
