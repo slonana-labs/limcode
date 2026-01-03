@@ -26,7 +26,7 @@ echo "[3/4] Testing parallel with 16 cores..."
 RAYON_NUM_THREADS=16 cargo bench --bench massive_scale -- massive_10M/parallel --noplot 2>&1 | tee results_16_cores.txt
 
 echo ""
-echo "[4/4] Testing parallel with ALL cores (240 on svm.run)..."
+echo "[4/4] Testing parallel with ALL cores..."
 RAYON_NUM_THREADS=$(nproc) cargo bench --bench massive_scale -- --noplot 2>&1 | tee results_all_cores.txt
 
 echo ""

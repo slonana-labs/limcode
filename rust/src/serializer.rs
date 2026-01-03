@@ -793,12 +793,12 @@ unsafe fn fast_nt_memcpy(mut dst: *mut u8, mut src: *const u8, mut len: usize) {
     }
 }
 
-/// Parallel POD serialization for massive Vec<POD> (billion+ elements on 240+ cores)
+/// Parallel POD serialization for massive Vec<POD> (billion+ elements on high-core-count systems)
 ///
 /// Strategy: Pre-allocate buffer, each thread writes to non-overlapping region (no data races)
-/// Threshold tuned for svm.run: 1M elements minimum, 100K chunks
+/// Threshold: 1M elements minimum, 100K element chunks
 pub fn serialize_pod_parallel<T: PodType + Sync>(vec: &[T]) -> Result<Vec<u8>, Error> {
-    const PARALLEL_THRESHOLD: usize = 1_000_000; // 1M elements for 240-core machines
+    const PARALLEL_THRESHOLD: usize = 1_000_000; // 1M elements for multi-core systems
     const CHUNK_SIZE: usize = 100_000; // 100K elements per thread
 
     if vec.len() < PARALLEL_THRESHOLD {

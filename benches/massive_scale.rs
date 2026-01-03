@@ -6,12 +6,12 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 
 fn bench_parallel_massive(c: &mut Criterion) {
-    // Test sizes optimized for 240-core machines
+    // Test sizes optimized for high-core-count machines
     let sizes = [
         1_000_000,     // 1M elements - threshold for parallelism
         10_000_000,    // 10M elements - 100 chunks @ 100K each
         100_000_000,   // 100M elements - 1000 chunks
-        1_000_000_000, // 1B elements - 10K chunks (svm.run scale!)
+        1_000_000_000, // 1B elements - 10K chunks
     ];
 
     for size in sizes {
