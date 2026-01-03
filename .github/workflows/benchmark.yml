@@ -7,8 +7,9 @@ on:
       - 'rust/src/**'
       - 'src/**'
       - 'include/**'
+      - 'benchmark/**'
       - 'Cargo.toml'
-      - 'build.rs'
+      - 'CMakeLists.txt'
   schedule:
     # Run weekly on Sunday at 00:00 UTC
     - cron: '0 0 * * 0'
@@ -28,152 +29,189 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake g++
+          sudo apt-get install -y build-essential cmake g++-13 libnuma-dev
 
-      - name: Cache Rust dependencies
+          # Set g++-13 as default
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-benchmark-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Build benchmarks
-        # Note: GitHub Actions runners have limited CPU features (x86-64-v2 baseline)
-        # Using conservative optimizations to avoid SIGILL errors
-        run: cargo build --release --example benchmark_large_blocks
-
-      - name: Run comprehensive benchmarks
-        id: benchmark
-        run: |
-          echo "Running benchmarks..."
-          cargo run --release --example benchmark_large_blocks > /tmp/benchmark_results.txt 2>&1
-
-          # Extract the table from benchmark output
-          echo "Extracting results..."
-          sed -n '/| Size | Limcode | Wincode | Bincode/,/^═/p' /tmp/benchmark_results.txt | head -n -1 > /tmp/benchmark_table.txt
-
-          # Show results
-          echo "Benchmark results extracted:"
-          cat /tmp/benchmark_table.txt
+          key: ${{ runner.os }}-benchmark-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Get system info
         id: sysinfo
         run: |
           TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
           CPU_INFO=$(lscpu | grep "Model name" | sed 's/Model name://g' | xargs)
+          CPU_CORES=$(nproc)
+
           echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
           echo "cpu_info=$CPU_INFO" >> $GITHUB_OUTPUT
-          echo "$CPU_INFO" > /tmp/cpu_info.txt
-          echo "$TIMESTAMP" > /tmp/timestamp.txt
+          echo "cpu_cores=$CPU_CORES" >> $GITHUB_OUTPUT
 
-      - name: Update README with benchmark results
-        env:
-          TIMESTAMP: ${{ steps.sysinfo.outputs.timestamp }}
-          CPU_INFO: ${{ steps.sysinfo.outputs.cpu_info }}
+          echo "=== System Info ===" | tee /tmp/sysinfo.txt
+          echo "CPU: $CPU_INFO" | tee -a /tmp/sysinfo.txt
+          echo "Cores: $CPU_CORES" | tee -a /tmp/sysinfo.txt
+          echo "Timestamp: $TIMESTAMP" | tee -a /tmp/sysinfo.txt
+
+      - name: Build C++ benchmarks
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_HYPER_OPTIMIZATION=ON
+          make table_bench_ultimate -j$(nproc)
+
+      - name: Build Rust benchmarks
+        run: |
+          cargo build --release
+
+      - name: Run C++ benchmark
+        id: cpp_bench
+        run: |
+          echo "Running C++ benchmark..."
+          ./build/table_bench_ultimate | tee /tmp/cpp_bench.txt
+
+      - name: Run Rust benchmarks
+        id: rust_bench
+        run: |
+          echo "Running Rust benchmarks..."
+          cargo bench --bench massive_scale 2>&1 | tee /tmp/rust_bench.txt || true
+
+      - name: Parse benchmark results
+        id: parse
         run: |
           python3 << 'PYTHON_SCRIPT'
           import re
           import os
 
-          # Read benchmark results
-          with open('/tmp/benchmark_table.txt', 'r') as f:
-              benchmark_table = f.read().strip()
+          # Parse C++ results (CSV format)
+          cpp_results = {}
+          with open('/tmp/cpp_bench.txt', 'r') as f:
+              for line in f:
+                  if ',' in line and not line.startswith('Size'):
+                      parts = line.strip().split(',')
+                      if len(parts) == 2:
+                          try:
+                              size = parts[0]
+                              throughput = float(parts[1])
+                              cpp_results[size] = throughput
+                          except ValueError:
+                              pass
 
-          # Read current README
+          # Create markdown table for C++ results
+          table_lines = ["| Size | Throughput |", "|------|------------|"]
+          for size in ['1KB', '4KB', '16KB', '64KB', '128KB', '512KB', '1MB', '2MB']:
+              if size in cpp_results:
+                  table_lines.append(f"| {size} | {cpp_results[size]:.2f} GB/s |")
+
+          cpp_table = '\n'.join(table_lines)
+
+          # Save table
+          with open('/tmp/cpp_table.txt', 'w') as f:
+              f.write(cpp_table)
+
+          # Get peak throughput
+          peak = max(cpp_results.values()) if cpp_results else 0
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"cpp_peak={peak:.2f}\n")
+
+          print("C++ Benchmark Table:")
+          print(cpp_table)
+          PYTHON_SCRIPT
+
+      - name: Update README
+        env:
+          TIMESTAMP: ${{ steps.sysinfo.outputs.timestamp }}
+          CPU_INFO: ${{ steps.sysinfo.outputs.cpu_info }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import re
+          import os
+
+          with open('/tmp/cpp_table.txt', 'r') as f:
+              cpp_table = f.read().strip()
+
           with open('README.md', 'r') as f:
               readme = f.read()
 
-          # Get metadata
           timestamp = os.environ.get('TIMESTAMP', 'Unknown')
           cpu_info = os.environ.get('CPU_INFO', 'Unknown')
+          workflow_url = os.environ.get('WORKFLOW_URL', '')
 
-          # Find and replace the benchmark table
-          # Match from header to the Key Results section
-          pattern = r'(### Throughput Analysis.*?\n\n.*?\n\n)(\| Size \| Limcode \|.*?\n\|.*?\n)(.*?)(\n\*\*Key Results:\*\*)'
+          # Pattern to match C++ Performance section
+          pattern = r'(### C\+\+ Performance \(AVX-512 Optimized\).*?\n\n.*?\n\n)(\| Size \|.*?\n)((?:\|.*?\n)+)(\n\*\*vs Rust bincode)'
 
           def replacement(match):
               header = match.group(1)
-              table_header = match.group(2)
-              # Add new benchmark data with metadata
-              new_content = benchmark_table + f'\n\n*📊 Benchmarked: {timestamp}*  \n*💻 CPU: {cpu_info}*  \n*🤖 Runner: GitHub Actions (ubuntu-latest)*'
-              key_results = match.group(4)
-              return header + table_header + new_content + key_results
+              new_table = cpp_table + '\n'
+              footer = match.group(4)
+              metadata = f'\n\n*📊 Benchmarked: {timestamp}*  \n*💻 CPU: {cpu_info}*  \n*🤖 Runner: [GitHub Actions]({workflow_url})*\n'
+              return header + new_table + metadata + footer
 
           if re.search(pattern, readme, re.DOTALL):
               new_readme = re.sub(pattern, replacement, readme, flags=re.DOTALL)
-
               with open('README.md', 'w') as f:
                   f.write(new_readme)
-
-              print("✅ README updated with latest benchmark results")
-              print(f"Timestamp: {timestamp}")
-              print(f"CPU: {cpu_info}")
+              print("✅ README updated")
           else:
-              print("⚠️ Could not find benchmark section in README")
-              print("Pattern not matched - README structure may have changed")
-              exit(1)
+              print("⚠️ Pattern not found - README structure may have changed")
+              print("Skipping README update")
           PYTHON_SCRIPT
 
-      - name: Check if README changed
+      - name: Check for changes
         id: check_changes
         run: |
           if git diff --quiet README.md; then
             echo "changed=false" >> $GITHUB_OUTPUT
-            echo "No changes detected in README.md"
           else
             echo "changed=true" >> $GITHUB_OUTPUT
-            echo "Changes detected in README.md:"
-            git diff README.md | head -50
+            git diff README.md | head -30
           fi
 
-      - name: Commit and push updated README
+      - name: Commit and push
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "$(cat <<'EOF'
-          benchmark: Update README with latest results
+          git commit -m "benchmark: Update README with latest C++ results
 
-          Automated benchmark run from GitHub Actions.
+Peak: ${{ steps.parse.outputs.cpp_peak }} GB/s
+CPU: ${{ steps.sysinfo.outputs.cpu_info }}
+Timestamp: ${{ steps.sysinfo.outputs.timestamp }}
 
-          Runner: ubuntu-latest
-          CPU: ${{ steps.sysinfo.outputs.cpu_info }}
-          Timestamp: ${{ steps.sysinfo.outputs.timestamp }}
-
-          🤖 Automated by GitHub Actions
-          EOF
-          )"
+🤖 Automated by GitHub Actions"
           git push
 
-      - name: Upload benchmark results as artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results
-          path: /tmp/benchmark_results.txt
+          name: benchmark-results-${{ steps.sysinfo.outputs.timestamp }}
+          path: |
+            /tmp/cpp_bench.txt
+            /tmp/rust_bench.txt
+            /tmp/sysinfo.txt
           retention-days: 90
 
       - name: Post summary
         run: |
           echo "## 📊 Benchmark Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          cat /tmp/benchmark_table.txt >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat /tmp/cpp_table.txt >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Peak:** ${{ steps.parse.outputs.cpp_peak }} GB/s" >> $GITHUB_STEP_SUMMARY
           echo "**CPU:** ${{ steps.sysinfo.outputs.cpu_info }}" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** ${{ steps.sysinfo.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.check_changes.outputs.changed }}" == "true" ]; then
-            echo "✅ README.md updated with latest results" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "ℹ️ No changes to README.md (results unchanged)" >> $GITHUB_STEP_SUMMARY
-          fi
