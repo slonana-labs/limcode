@@ -34,3 +34,6 @@ unsafe_maximum_speed
 avx512_*
 simd_*
 experimental_*
+
+# Internal documentation
+CLAUDE.md
