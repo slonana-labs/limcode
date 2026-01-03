@@ -5505,8 +5505,54 @@ private:
 namespace limcode {
 
 /**
- * @brief SIMD-optimized memcpy (matches Rust implementation exactly)
- * Uses AVX-512 non-temporal stores with alignment handling
+ * @brief SIMD-optimized memcpy with regular stores (cache-friendly)
+ * Uses AVX-512 with 4x unrolling (256 bytes per iteration)
+ */
+__attribute__((always_inline)) inline void fast_simd_memcpy(void* __restrict__ dst,
+                                                             const void* __restrict__ src,
+                                                             size_t len) noexcept {
+#if defined(__AVX512F__)
+    uint8_t* d = static_cast<uint8_t*>(dst);
+    const uint8_t* s = static_cast<const uint8_t*>(src);
+
+    // Process 256-byte chunks (4x AVX-512 stores per iteration)
+    while (len >= 256) {
+        __m512i zmm0 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
+        __m512i zmm1 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s + 64));
+        __m512i zmm2 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s + 128));
+        __m512i zmm3 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s + 192));
+
+        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), zmm0);
+        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d + 64), zmm1);
+        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d + 128), zmm2);
+        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d + 192), zmm3);
+
+        d += 256;
+        s += 256;
+        len -= 256;
+    }
+
+    // Handle remaining bytes with smaller chunks
+    while (len >= 64) {
+        __m512i zmm = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
+        _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), zmm);
+        d += 64;
+        s += 64;
+        len -= 64;
+    }
+
+    // Handle final bytes
+    if (len > 0) {
+        std::memcpy(d, s, len);
+    }
+#else
+    std::memcpy(dst, src, len);
+#endif
+}
+
+/**
+ * @brief SIMD-optimized memcpy with non-temporal stores (cache bypass)
+ * Uses 2x unrolling (128 bytes per iteration) - matches Rust exactly
  */
 __attribute__((always_inline)) inline void fast_nt_memcpy(void* __restrict__ dst,
                                                            const void* __restrict__ src,
@@ -5515,7 +5561,7 @@ __attribute__((always_inline)) inline void fast_nt_memcpy(void* __restrict__ dst
     uint8_t* d = static_cast<uint8_t*>(dst);
     const uint8_t* s = static_cast<const uint8_t*>(src);
 
-    // Align destination to 64-byte boundary
+    // Align destination to 64-byte boundary (copy exact bytes needed)
     const uintptr_t misalignment = reinterpret_cast<uintptr_t>(d) & 63;
     if (misalignment != 0) {
         const size_t bytes_to_align = 64 - misalignment;
@@ -5527,31 +5573,20 @@ __attribute__((always_inline)) inline void fast_nt_memcpy(void* __restrict__ dst
         }
     }
 
-    // Now d is 64-byte aligned
-    // Try both non-temporal and regular stores to compare
-    const bool use_nt = (reinterpret_cast<uintptr_t>(d) & 63) == 0;  // Only use NT if aligned
-
-    // Process 128-byte chunks (2x AVX-512 stores per iteration)
+    // Now d is 64-byte aligned - use 2x non-temporal stores (matches Rust)
     while (len >= 128) {
         __m512i zmm0 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s));
         __m512i zmm1 = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(s + 64));
 
-        if (use_nt) {
-            _mm512_stream_si512(reinterpret_cast<__m512i*>(d), zmm0);
-            _mm512_stream_si512(reinterpret_cast<__m512i*>(d + 64), zmm1);
-        } else {
-            _mm512_storeu_si512(reinterpret_cast<__m512i*>(d), zmm0);
-            _mm512_storeu_si512(reinterpret_cast<__m512i*>(d + 64), zmm1);
-        }
+        _mm512_stream_si512(reinterpret_cast<__m512i*>(d), zmm0);
+        _mm512_stream_si512(reinterpret_cast<__m512i*>(d + 64), zmm1);
 
         s += 128;
         d += 128;
         len -= 128;
     }
 
-    if (use_nt) {
-        _mm_sfence();
-    }
+    _mm_sfence();
 
     // Handle remaining bytes
     if (len > 0) {
@@ -5574,24 +5609,29 @@ inline void serialize(std::vector<uint8_t>& buf, const std::vector<T>& data) {
     const size_t data_bytes = count * sizeof(T);
     const size_t total_size = 8 + data_bytes;
 
-    if (buf.capacity() >= total_size) {
-        buf.resize(total_size);
-    } else {
-        buf.clear();
+    // Ensure capacity without initialization
+    if (buf.capacity() < total_size) {
         buf.reserve(total_size);
+    }
+
+    // Fast path: if size is already correct, skip resize
+    if (buf.size() != total_size) {
         buf.resize(total_size);
     }
 
-    uint8_t* ptr = buf.data();
+    uint8_t* __restrict__ ptr = buf.data();
     *reinterpret_cast<uint64_t*>(ptr) = count;
 
-    // Size-adaptive copy strategy (matches Rust implementation)
-    if (data_bytes <= 65536) {
-        // Small/medium (≤64KB): standard memcpy (stays in cache)
-        std::memcpy(ptr + 8, data.data(), data_bytes);
+    const void* __restrict__ src = data.data();
+    void* __restrict__ dst = ptr + 8;
+
+    // Hybrid approach: builtin for small, custom SIMD for large
+    if (data_bytes <= 8192) {
+        // Small (≤8KB): compiler builtin is well-optimized
+        __builtin_memcpy(dst, src, data_bytes);
     } else {
-        // Large (>64KB): non-temporal stores (bypass cache)
-        fast_nt_memcpy(ptr + 8, data.data(), data_bytes);
+        // Large (>8KB): custom SIMD implementation
+        fast_simd_memcpy(dst, src, data_bytes);
     }
 }
 
