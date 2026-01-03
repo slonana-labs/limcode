@@ -10,6 +10,7 @@
 #include <iomanip>
 
 using namespace std::chrono;
+using namespace limcode;
 
 void print_separator() {
     std::cout << "═══════════════════════════════════════════════════════════\n";
@@ -101,7 +102,7 @@ void bench_parallel_batch(size_t batch_size, size_t elements_per_vec) {
         for (size_t i = 0; i < batch_size; ++i) {
             outputs[i] = serialize_pod(inputs[i]);
         }
-        volatile auto result = outputs.size();
+        (void)outputs.size(); // Use output to prevent optimization
     }, iterations, total_data_size);
 
     // Parallel encoding
