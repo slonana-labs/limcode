@@ -9,7 +9,6 @@
 #include <vector>
 #include <iomanip>
 
-using namespace limcode::ultra_fast;
 using namespace std::chrono;
 
 void print_separator() {

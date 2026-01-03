@@ -8,7 +8,6 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace limcode::ultra_fast;
 using namespace std::chrono;
 
 void test_size(size_t num_elements, const char* label) {

@@ -119,16 +119,10 @@ add_executable(investigate_64mb benchmark/investigate_64mb.cpp)
 target_link_libraries(investigate_64mb PRIVATE limcode)
 
 # EXTREME mode benchmark (multi-threaded parallel copy - 120+ GiB/s target)
-add_executable(extreme_bench benchmark/extreme_bench.cpp)
-target_link_libraries(extreme_bench PRIVATE limcode numa pthread)
 
 # INSANE mode benchmark (inline assembly, 16x unrolling, 32 ZMM registers - 20+ GiB/s target)
-add_executable(insane_bench benchmark/insane_bench.cpp)
-target_link_libraries(insane_bench PRIVATE limcode numa pthread)
 
 # ULTIMATE mode benchmark (32x unrolling, 2048 bytes/iter - 22.39 GiB/s target = 100% HW max)
-add_executable(ultimate_bench benchmark/ultimate_bench.cpp)
-target_link_libraries(ultimate_bench PRIVATE limcode numa pthread)
 
 # Table format benchmark (for README comparison with Rust)
 add_executable(table_bench benchmark/table_bench.cpp)
