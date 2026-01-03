@@ -263,17 +263,9 @@ dependencies = [
  "bincode",
  "cc",
  "criterion",
- "limcode-sys",
  "serde",
  "serde_json",
  "wincode",
-]
-
-[[package]]
-name = "limcode-sys"
-version = "0.1.2"
-dependencies = [
- "cc",
 ]
 
 [[package]]

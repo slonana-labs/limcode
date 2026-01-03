@@ -17,7 +17,6 @@ path = "rust/src/lib.rs"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]
-limcode-sys = { path = "rust/limcode-sys", version = "0.1.2" }
 serde = { version = "1.0", features = ["derive"], optional = true }
 
 [dev-dependencies]
