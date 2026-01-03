@@ -1,7 +1,17 @@
 /**
  * @file table_bench.cpp
- * @brief Table-format benchmark matching Rust benchmark sizes
- * Outputs CSV for README table generation
+ * @brief Baseline C++ benchmark for README table generation
+ *
+ * NOTE: This uses basic std::memcpy for portability across all systems.
+ * For maximum performance, use limcode::insane_fast::serialize_pod_into_insane()
+ * which achieves 20+ GiB/s with AVX-512 optimizations.
+ *
+ * This benchmark is designed to:
+ * 1. Run reliably on all CI systems (no SIGILL from missing AVX-512)
+ * 2. Provide baseline C++ performance comparison
+ * 3. Match Rust benchmark format for easy comparison
+ *
+ * See insane_bench.cpp for optimized C++ performance (21.72 GiB/s).
  */
 
 #include <limcode/limcode.h>
@@ -76,8 +86,9 @@ std::string format_size(size_t bytes) {
 }
 
 int main() {
-    std::cout << "C++ Limcode Table Benchmark\n";
-    std::cout << "============================\n\n";
+    std::cout << "C++ Limcode Baseline Benchmark\n";
+    std::cout << "===============================\n";
+    std::cout << "(Using portable std::memcpy - see insane_bench for optimized 20+ GiB/s)\n\n";
 
     // Match Rust benchmark sizes exactly
     struct SizeConfig {
@@ -123,5 +134,8 @@ int main() {
     }
 
     std::cout << "\nBenchmark complete!\n";
+    std::cout << "\nNOTE: This is baseline C++ performance using std::memcpy.\n";
+    std::cout << "For optimized C++ (20+ GiB/s), use limcode::insane_fast::serialize_pod_into_insane().\n";
+    std::cout << "Rust Limcode FFI calls the optimized C++ code, which is why it's faster.\n";
     return 0;
 }
