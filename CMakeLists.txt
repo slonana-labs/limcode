@@ -98,78 +98,9 @@ target_include_directories(limcode_ffi PUBLIC
 )
 target_link_libraries(limcode_ffi PUBLIC limcode)
 
-# PGO Profiling Benchmark
-add_executable(pgo_profile benchmark/pgo_profile.cpp)
-target_link_libraries(pgo_profile PRIVATE limcode)
-
-# Optimized API Benchmark
-add_executable(optimized_bench benchmark/optimized_bench.cpp)
-target_link_libraries(optimized_bench PRIVATE limcode)
-
-# Standalone C++ Performance Benchmark (no Rust dependency)
-add_executable(cpp_standalone_bench benchmark/cpp_standalone_bench.cpp)
-target_link_libraries(cpp_standalone_bench PRIVATE limcode)
-
-# Ultra-Fast C++ Benchmark (SIMD, zero-copy, lock-free, multithreaded)
-add_executable(ultra_fast_bench benchmark/ultra_fast_bench.cpp)
-target_link_libraries(ultra_fast_bench PRIVATE limcode)
-
-# Investigation: 64MB performance
-add_executable(investigate_64mb benchmark/investigate_64mb.cpp)
-target_link_libraries(investigate_64mb PRIVATE limcode)
-
-# EXTREME mode benchmark (multi-threaded parallel copy - 120+ GiB/s target)
-
-# INSANE mode benchmark (inline assembly, 16x unrolling, 32 ZMM registers - 20+ GiB/s target)
-
-# ULTIMATE mode benchmark (32x unrolling, 2048 bytes/iter - 22.39 GiB/s target = 100% HW max)
-
-# Table format benchmark (for README comparison with Rust)
-add_executable(table_bench benchmark/table_bench.cpp)
-target_link_libraries(table_bench PRIVATE limcode)
-
-# INSANE MODE table bench (aligned + restrict)
-add_executable(table_bench_insane benchmark/table_bench_insane.cpp)
-target_link_libraries(table_bench_insane PRIVATE limcode)
-
-# ULTIMATE MODE - AVX-512 16x unrolled (99%+ efficiency)
-add_executable(table_bench_ultimate benchmark/table_bench_ultimate.cpp)
-target_link_libraries(table_bench_ultimate PRIVATE limcode)
-
-# Performance analysis benchmarks
-add_executable(overhead_analysis benchmark/overhead_analysis.cpp)
-target_link_libraries(overhead_analysis PRIVATE limcode)
-
-add_executable(final_overhead_analysis benchmark/final_overhead_analysis.cpp)
-target_link_libraries(final_overhead_analysis PRIVATE limcode)
-
-# Standalone serialization benchmark
-add_executable(standalone_serialize benchmark/standalone_serialize.cpp)
-target_link_libraries(standalone_serialize PRIVATE limcode)
-
-add_executable(non_temporal_final benchmark/non_temporal_final.cpp)
-target_link_libraries(non_temporal_final PRIVATE limcode)
-
-# Experimental optimization benchmarks
-add_executable(experimental_optimizations benchmark/experimental_optimizations.cpp)
-target_link_libraries(experimental_optimizations PRIVATE limcode)
-
-# SIMD optimization experiments
-add_executable(simd_experiments benchmark/simd_experiments.cpp)
-target_link_libraries(simd_experiments PRIVATE limcode)
-
-add_executable(simd_experiments_v2 benchmark/simd_experiments_v2.cpp)
-target_link_libraries(simd_experiments_v2 PRIVATE limcode)
-
-add_executable(simd_benchmarks benchmark/simd_benchmarks.cpp)
-target_link_libraries(simd_benchmarks PRIVATE limcode)
-
-# AVX-512 optimization benchmarks
-add_executable(avx512_optimal benchmark/avx512_optimal.cpp)
-target_link_libraries(avx512_optimal PRIVATE limcode)
-
-add_executable(avx512_32x_unroll benchmark/avx512_32x_unroll.cpp)
-target_link_libraries(avx512_32x_unroll PRIVATE limcode)
+# Performance benchmark
+add_executable(bench benchmark/bench.cpp)
+target_link_libraries(bench PRIVATE limcode)
 
 # Tests
 enable_testing()

@@ -5694,16 +5694,16 @@ inline std::vector<uint8_t> serialize_pod(const std::vector<T>& data) {
 }
 
 // ============================================================================
-// ADVANCED OPTIMIZATIONS - Extracted from consolidated headers
+// Internal implementation details
 // ============================================================================
+namespace internal {
 
 /**
- * @brief Allocate memory with 2MB huge pages for maximum performance
+ * @brief Allocate memory with 2MB huge pages
  *
- * Reduces TLB misses by 512x compared to 4KB pages.
- * Use for buffers >2MB in size.
+ * Reduces TLB misses for large allocations (>2MB).
  */
-inline void* alloc_huge_pages(size_t size) {
+inline void* allocate_huge_pages(size_t size) {
 #ifdef __linux__
     constexpr size_t HUGE_PAGE_SIZE = 2 * 1024 * 1024; // 2MB
     size_t aligned_size = ((size + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE) * HUGE_PAGE_SIZE;
@@ -5717,20 +5717,20 @@ inline void* alloc_huge_pages(size_t size) {
 }
 
 /**
- * @brief Free huge page allocation
+ * @brief Deallocate huge page memory
  */
-inline void free_huge_pages(void* ptr) {
+inline void deallocate_huge_pages(void* ptr) {
     free(ptr);
 }
 
 /**
- * @brief Ultra-fast memcpy with 32x SIMD unrolling (2048 bytes/iteration)
+ * @brief High-performance memcpy with 32x SIMD loop unrolling
  *
- * Achieves ~22 GB/s (99% of hardware maximum).
- * Best for very large transfers (>1MB).
+ * Optimized for very large transfers (>1MB).
+ * Processes 2048 bytes per iteration with aggressive prefetching.
  */
 __attribute__((flatten, hot))
-inline void ultimate_memcpy(void* __restrict__ dst, const void* __restrict__ src, size_t len) noexcept {
+inline void memcpy_simd_large(void* __restrict__ dst, const void* __restrict__ src, size_t len) noexcept {
 #if defined(__AVX512F__)
     uint8_t* d = static_cast<uint8_t*>(dst);
     const uint8_t* s = static_cast<const uint8_t*>(src);
@@ -5771,13 +5771,13 @@ inline void ultimate_memcpy(void* __restrict__ dst, const void* __restrict__ src
 }
 
 /**
- * @brief High-performance memcpy with 16x SIMD unrolling (1024 bytes/iteration)
+ * @brief High-performance memcpy with 16x SIMD loop unrolling
  *
- * Achieves ~21 GB/s with aggressive prefetching.
- * Best for large transfers (256KB-1MB).
+ * Optimized for large transfers (256KB-1MB).
+ * Processes 1024 bytes per iteration with dual prefetching.
  */
 __attribute__((hot))
-inline void insane_memcpy(void* __restrict__ dst, const void* __restrict__ src, size_t len) noexcept {
+inline void memcpy_simd_medium(void* __restrict__ dst, const void* __restrict__ src, size_t len) noexcept {
 #if defined(__AVX512F__)
     uint8_t* d = static_cast<uint8_t*>(dst);
     const uint8_t* s = static_cast<const uint8_t*>(src);
@@ -5806,16 +5806,16 @@ inline void insane_memcpy(void* __restrict__ dst, const void* __restrict__ src, 
 }
 
 /**
- * @brief Multi-threaded parallel memcpy for massive transfers (>256KB)
+ * @brief Multi-threaded memcpy for very large transfers (>256KB)
  *
- * Achieves 120+ GB/s on 16+ core systems by parallelizing memory bandwidth.
- * Automatically falls back to single-threaded for small data.
+ * Distributes work across CPU cores to saturate memory bandwidth.
+ * Automatically falls back to single-threaded for smaller data.
  */
-inline void parallel_memcpy(void* dst, const void* src, size_t len) noexcept {
+inline void memcpy_parallel(void* dst, const void* src, size_t len) noexcept {
     constexpr size_t PARALLEL_THRESHOLD = 256 * 1024; // 256KB
 
     if (len < PARALLEL_THRESHOLD) {
-        ultimate_memcpy(dst, src, len);
+        memcpy_simd_large(dst, src, len);
         return;
     }
 
@@ -5835,7 +5835,7 @@ inline void parallel_memcpy(void* dst, const void* src, size_t len) noexcept {
         threads.emplace_back([dst, src, start, thread_len]() {
             uint8_t* d = static_cast<uint8_t*>(dst) + start;
             const uint8_t* s = static_cast<const uint8_t*>(src) + start;
-            ultimate_memcpy(d, s, thread_len);
+            memcpy_simd_large(d, s, thread_len);
         });
     }
 
@@ -5845,13 +5845,13 @@ inline void parallel_memcpy(void* dst, const void* src, size_t len) noexcept {
 }
 
 /**
- * @brief Parallel batch encoding for multiple vectors
+ * @brief Batch encoding with parallel processing
  *
- * Encodes vectors in parallel across CPU cores.
- * Best for batch processing 100+ vectors.
+ * Distributes encoding work across CPU cores for large batches.
+ * Automatically uses sequential processing for small batches (<8 vectors).
  */
 template<typename T>
-inline std::vector<std::vector<uint8_t>> parallel_encode_batch(const std::vector<std::vector<T>>& inputs) {
+inline std::vector<std::vector<uint8_t>> encode_batch_parallel(const std::vector<std::vector<T>>& inputs) {
     const size_t batch_size = inputs.size();
     std::vector<std::vector<uint8_t>> outputs(batch_size);
 
@@ -5891,10 +5891,10 @@ inline std::vector<std::vector<uint8_t>> parallel_encode_batch(const std::vector
 }
 
 /**
- * @brief Benchmark throughput for a given data size
+ * @brief Measure serialization throughput
  */
 template<typename T>
-inline double benchmark_throughput(const std::vector<T>& data, size_t iterations) {
+inline double measure_throughput(const std::vector<T>& data, size_t iterations) {
     std::vector<uint8_t> buf;
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -5909,5 +5909,7 @@ inline double benchmark_throughput(const std::vector<T>& data, size_t iterations
 
     return gbps;
 }
+
+} // namespace internal
 
 } // namespace limcode
