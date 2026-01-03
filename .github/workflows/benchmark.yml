@@ -1,68 +1,178 @@
-name: Benchmark
+name: Benchmark & Update README
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+    branches: [master]
+    paths:
+      - 'rust/src/**'
+      - 'src/**'
+      - 'include/**'
+      - 'Cargo.toml'
+      - 'build.rs'
+  schedule:
+    # Run weekly on Sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Allow manual triggering
 
 jobs:
   benchmark:
+    name: Run Benchmarks and Update README
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++-13 ninja-build
+          sudo apt-get install -y build-essential cmake g++
 
-      - name: Configure
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-benchmark-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build with native optimizations
+        env:
+          RUSTFLAGS: "-C target-cpu=native"
+        run: cargo build --release --example benchmark_large_blocks
+
+      - name: Run comprehensive benchmarks
+        id: benchmark
+        env:
+          RUSTFLAGS: "-C target-cpu=native"
         run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=g++-13
+          echo "Running benchmarks..."
+          cargo run --release --example benchmark_large_blocks > /tmp/benchmark_results.txt 2>&1
 
-      - name: Build
-        run: cmake --build build --parallel
+          # Extract the table from benchmark output
+          echo "Extracting results..."
+          sed -n '/| Size | Limcode | Wincode | Bincode/,/^═/p' /tmp/benchmark_results.txt | head -n -1 > /tmp/benchmark_table.txt
 
-      - name: Run tests
-        run: ctest --test-dir build --output-on-failure
+          # Show results
+          echo "Benchmark results extracted:"
+          cat /tmp/benchmark_table.txt
 
-      - name: Run benchmark
-        run: ./build/limcode_benchmark
-
-      - name: Generate benchmark summary
+      - name: Get system info
+        id: sysinfo
         run: |
-          echo "## Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+          CPU_INFO=$(lscpu | grep "Model name" | sed 's/Model name://g' | xargs)
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "cpu_info=$CPU_INFO" >> $GITHUB_OUTPUT
+          echo "$CPU_INFO" > /tmp/cpu_info.txt
+          echo "$TIMESTAMP" > /tmp/timestamp.txt
+
+      - name: Update README with benchmark results
+        env:
+          TIMESTAMP: ${{ steps.sysinfo.outputs.timestamp }}
+          CPU_INFO: ${{ steps.sysinfo.outputs.cpu_info }}
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import re
+          import os
+
+          # Read benchmark results
+          with open('/tmp/benchmark_table.txt', 'r') as f:
+              benchmark_table = f.read().strip()
+
+          # Read current README
+          with open('README.md', 'r') as f:
+              readme = f.read()
+
+          # Get metadata
+          timestamp = os.environ.get('TIMESTAMP', 'Unknown')
+          cpu_info = os.environ.get('CPU_INFO', 'Unknown')
+
+          # Find and replace the benchmark table
+          # Match from header to the Key Results section
+          pattern = r'(### Throughput Analysis.*?\n\n.*?\n\n)(\| Size \| Limcode \|.*?\n\|.*?\n)(.*?)(\n\*\*Key Results:\*\*)'
+
+          def replacement(match):
+              header = match.group(1)
+              table_header = match.group(2)
+              # Add new benchmark data with metadata
+              new_content = benchmark_table + f'\n\n*📊 Benchmarked: {timestamp}*  \n*💻 CPU: {cpu_info}*  \n*🤖 Runner: GitHub Actions (ubuntu-latest)*'
+              key_results = match.group(4)
+              return header + table_header + new_content + key_results
+
+          if re.search(pattern, readme, re.DOTALL):
+              new_readme = re.sub(pattern, replacement, readme, flags=re.DOTALL)
+
+              with open('README.md', 'w') as f:
+                  f.write(new_readme)
+
+              print("✅ README updated with latest benchmark results")
+              print(f"Timestamp: {timestamp}")
+              print(f"CPU: {cpu_info}")
+          else:
+              print("⚠️ Could not find benchmark section in README")
+              print("Pattern not matched - README structure may have changed")
+              exit(1)
+          PYTHON_SCRIPT
+
+      - name: Check if README changed
+        id: check_changes
+        run: |
+          if git diff --quiet README.md; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected in README.md"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in README.md:"
+            git diff README.md | head -50
+          fi
+
+      - name: Commit and push updated README
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "benchmark: Update README with latest results
+
+Automated benchmark run from GitHub Actions.
+
+Runner: ubuntu-latest
+CPU: ${{ steps.sysinfo.outputs.cpu_info }}
+Timestamp: ${{ steps.sysinfo.outputs.timestamp }}
+
+🤖 Automated by GitHub Actions"
+          git push
+
+      - name: Upload benchmark results as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: /tmp/benchmark_results.txt
+          retention-days: 90
+
+      - name: Post summary
+        run: |
+          echo "## 📊 Benchmark Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          ./build/limcode_benchmark >> $GITHUB_STEP_SUMMARY
+          cat /tmp/benchmark_table.txt >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-  benchmark-avx512:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake g++-13 ninja-build
-
-      - name: Configure with AVX-512
-        run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=g++-13 \
-            -DCMAKE_CXX_FLAGS="-mavx512f -mavx512bw"
-
-      - name: Build
-        run: cmake --build build --parallel
-
-      - name: Run benchmark (AVX-512)
-        run: ./build/limcode_benchmark || echo "AVX-512 not supported on this runner"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**CPU:** ${{ steps.sysinfo.outputs.cpu_info }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** ${{ steps.sysinfo.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check_changes.outputs.changed }}" == "true" ]; then
+            echo "✅ README.md updated with latest results" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ No changes to README.md (results unchanged)" >> $GITHUB_STEP_SUMMARY
+          fi
