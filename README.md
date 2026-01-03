@@ -71,9 +71,9 @@ Fresh benchmark results (128KB payload):
 |------|------------|
 
 
-*📊 Benchmarked: 2026-01-03 21:02 UTC*  
+*📊 Benchmarked: 2026-01-03 21:07 UTC*  
 *💻 CPU: AMD EPYC 7763 64-Core Processor*  
-*🤖 Runner: [GitHub Actions](https://github.com/slonana-labs/limcode/actions/runs/20682867900)*
+*🤖 Runner: [GitHub Actions](https://github.com/slonana-labs/limcode/actions/runs/20682935274)*
 
 **vs Rust bincode (51 GB/s at 128KB): 20% faster**
 
