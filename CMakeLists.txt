@@ -11,10 +11,18 @@ option(ENABLE_PGO_GENERATE "Generate PGO profile data" OFF)
 option(ENABLE_PGO_USE "Use PGO profile data for optimization" OFF)
 
 if(ENABLE_HYPER_OPTIMIZATION AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  message(STATUS "Hyper-optimization enabled: -O3 -march=native -flto -ffast-math")
+  # In CI, use conservative baseline to avoid SIGILL on different runners
+  # In local builds, use -march=native for maximum performance
+  if(DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS})
+    set(MARCH_FLAG "-march=x86-64-v2")
+    message(STATUS "CI detected: Using -march=x86-64-v2 for compatibility")
+  else()
+    set(MARCH_FLAG "-march=native -mtune=native")
+    message(STATUS "Hyper-optimization enabled: -O3 -march=native -flto -ffast-math")
+  endif()
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -mtune=native -flto -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${MARCH_FLAG} -flto -DNDEBUG")
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
   # ULTRA-AGGRESSIVE optimizations for maximum speed

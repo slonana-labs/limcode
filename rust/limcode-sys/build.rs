@@ -16,15 +16,25 @@ fn main() {
 
     // Only apply x86_64 SIMD flags on x86_64 architecture
     if target_arch == "x86_64" {
-        build
-            .flag_if_supported("-march=native")
-            .flag_if_supported("-mavx512f")
-            .flag_if_supported("-mavx512bw")
-            .flag_if_supported("-mavx512dq")
-            .flag_if_supported("-mavx512vl")
-            .flag_if_supported("-mavx2")
-            .flag_if_supported("-msse4.2")
-            .flag_if_supported("-mbmi2");
+        // In CI, use conservative baseline to avoid SIGILL on different runners
+        // In local builds, use -march=native for maximum performance
+        let is_ci = env::var("CI").is_ok() || env::var("GITHUB_ACTIONS").is_ok();
+
+        if is_ci {
+            // x86-64-v2: SSE4.2, POPCNT, SSSE3 (available on all modern CI runners)
+            build.flag_if_supported("-march=x86-64-v2");
+        } else {
+            // Local builds: optimize for the actual CPU
+            build
+                .flag_if_supported("-march=native")
+                .flag_if_supported("-mavx512f")
+                .flag_if_supported("-mavx512bw")
+                .flag_if_supported("-mavx512dq")
+                .flag_if_supported("-mavx512vl")
+                .flag_if_supported("-mavx2")
+                .flag_if_supported("-msse4.2")
+                .flag_if_supported("-mbmi2");
+        }
     }
 
     // On macOS, disable parallel algorithms if not supported
