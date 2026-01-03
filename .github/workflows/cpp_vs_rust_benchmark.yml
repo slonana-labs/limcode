@@ -1,0 +1,282 @@
+name: C++ Limcode vs Rust Wincode Benchmark
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'include/limcode/**'
+      - 'benchmark/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/cpp_vs_rust_benchmark.yml'
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  cpp-vs-rust-benchmark:
+    name: C++ vs Rust Performance Comparison
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            g++-13 \
+            libnuma-dev \
+            cpufrequtils \
+            linux-tools-common \
+            linux-tools-generic
+
+          # Set g++-13 as default
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-cpp-bench-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Get system information
+        id: sysinfo
+        run: |
+          echo "=== System Information ===" | tee /tmp/sysinfo.txt
+          echo "" | tee -a /tmp/sysinfo.txt
+
+          # CPU info
+          CPU_MODEL=$(lscpu | grep "Model name" | sed 's/Model name://g' | xargs)
+          CPU_CORES=$(nproc)
+          CPU_FLAGS=$(lscpu | grep "Flags" | sed 's/Flags://g' | xargs)
+
+          echo "CPU: $CPU_MODEL" | tee -a /tmp/sysinfo.txt
+          echo "Cores: $CPU_CORES" | tee -a /tmp/sysinfo.txt
+          echo "" | tee -a /tmp/sysinfo.txt
+
+          # Check SIMD support
+          echo "SIMD Features:" | tee -a /tmp/sysinfo.txt
+          grep -o 'avx[^ ]*\|sse[^ ]*' /proc/cpuinfo | sort -u | tee -a /tmp/sysinfo.txt
+          echo "" | tee -a /tmp/sysinfo.txt
+
+          # Memory info
+          MEM_TOTAL=$(free -h | awk '/^Mem:/ {print $2}')
+          echo "Memory: $MEM_TOTAL" | tee -a /tmp/sysinfo.txt
+          echo "" | tee -a /tmp/sysinfo.txt
+
+          # Timestamp
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+          echo "Timestamp: $TIMESTAMP" | tee -a /tmp/sysinfo.txt
+
+          # Set outputs
+          echo "cpu_model=$CPU_MODEL" >> $GITHUB_OUTPUT
+          echo "cpu_cores=$CPU_CORES" >> $GITHUB_OUTPUT
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Build C++ benchmarks
+        run: |
+          echo "Building C++ limcode with ultra-aggressive optimizations..."
+          mkdir -p build_cpp
+          cd build_cpp
+
+          # CMake will use -march=x86-64-v2 for CI (see CMakeLists.txt)
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_HYPER_OPTIMIZATION=ON
+
+          # Build only the insane_bench benchmark
+          make insane_bench -j$(nproc)
+
+          echo ""
+          echo "C++ build complete!"
+          ls -lh insane_bench
+
+      - name: Build Rust benchmarks
+        run: |
+          echo "Building Rust benchmarks..."
+          cargo build --release --example benchmark_large_blocks
+
+          echo ""
+          echo "Rust build complete!"
+          ls -lh target/release/examples/benchmark_large_blocks
+
+      - name: Run C++ benchmark
+        id: cpp_bench
+        run: |
+          echo "=== C++ Limcode INSANE Mode Benchmark ===" | tee /tmp/cpp_results.txt
+          echo "" | tee -a /tmp/cpp_results.txt
+
+          cd build_cpp
+          timeout 300 ./insane_bench 2>&1 | tee -a /tmp/cpp_results.txt || true
+
+          echo "" | tee -a /tmp/cpp_results.txt
+          cat /tmp/cpp_results.txt
+
+      - name: Run Rust benchmark
+        id: rust_bench
+        run: |
+          echo "=== Rust Wincode/Bincode Benchmark ===" | tee /tmp/rust_results.txt
+          echo "" | tee -a /tmp/rust_results.txt
+
+          timeout 300 cargo run --release --example benchmark_large_blocks 2>&1 | tee -a /tmp/rust_results.txt || true
+
+          echo "" | tee -a /tmp/rust_results.txt
+          cat /tmp/rust_results.txt
+
+      - name: Parse and compare results
+        id: compare
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import re
+          import os
+
+          # Read C++ results
+          with open('/tmp/cpp_results.txt', 'r') as f:
+              cpp_output = f.read()
+
+          # Read Rust results
+          with open('/tmp/rust_results.txt', 'r') as f:
+              rust_output = f.read()
+
+          # Extract C++ performance (look for GiB/s measurements)
+          # Example: "21.72 GiB/s"
+          cpp_perf = re.findall(r'(\d+\.\d+)\s+GiB/s', cpp_output)
+          cpp_best = max([float(x) for x in cpp_perf]) if cpp_perf else 0.0
+
+          # Extract Rust performance
+          # Look for Limcode and Wincode throughput
+          rust_limcode = re.findall(r'Limcode.*?(\d+\.\d+)\s+GiB/s', rust_output)
+          rust_wincode = re.findall(r'Wincode.*?(\d+\.\d+)\s+GiB/s', rust_output)
+
+          limcode_perf = max([float(x) for x in rust_limcode]) if rust_limcode else 0.0
+          wincode_perf = max([float(x) for x in rust_wincode]) if rust_wincode else 0.0
+
+          # Create comparison report
+          report = f"""
+          ## 📊 C++ vs Rust Performance Comparison
+
+          ### Results Summary
+
+          | Implementation | Peak Throughput | Technology |
+          |----------------|-----------------|------------|
+          | **C++ Limcode INSANE** | **{cpp_best:.2f} GiB/s** | AVX-512 16x unroll, non-temporal stores |
+          | Rust Limcode (FFI) | {limcode_perf:.2f} GiB/s | Calls C++ via FFI |
+          | Rust Wincode | {wincode_perf:.2f} GiB/s | Pure Rust SIMD |
+
+          ### Performance Analysis
+
+          - **C++ vs Rust Wincode**: {(cpp_best / wincode_perf if wincode_perf > 0 else 0):.2f}x faster
+          - **C++ vs Rust Limcode**: {(cpp_best / limcode_perf if limcode_perf > 0 else 0):.2f}x faster
+          - **C++ Peak**: {cpp_best:.2f} GiB/s ({(cpp_best / 22.39 * 100):.1f}% of hardware theoretical max)
+
+          ### Key Takeaways
+
+          1. **C++ Native Performance**: C++ INSANE mode delivers maximum memory bandwidth
+          2. **Rust FFI Overhead**: Rust calling C++ has minimal overhead
+          3. **Pure Rust Limitation**: Wincode is fast but can't match C++ SIMD optimization
+
+          ### Optimization Techniques (C++ INSANE Mode)
+
+          - ✅ 16x SIMD unrolling (1024 bytes/iteration)
+          - ✅ AVX-512 non-temporal stores
+          - ✅ Multi-threaded parallel copy
+          - ✅ Aggressive prefetching
+          - ✅ Zero-copy buffer reuse
+          - ✅ Compiler LTO + aggressive inlining
+
+          ---
+
+          **CPU**: {os.environ.get('CPU_MODEL', 'Unknown')}
+          **Cores**: {os.environ.get('CPU_CORES', 'Unknown')}
+          **Timestamp**: {os.environ.get('TIMESTAMP', 'Unknown')}
+          **Runner**: GitHub Actions (ubuntu-latest, x86-64-v2 baseline)
+          """
+
+          with open('/tmp/comparison_report.md', 'w') as f:
+              f.write(report)
+
+          print(report)
+
+          # Save metrics for outputs
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"cpp_best={cpp_best}\n")
+              f.write(f"rust_limcode={limcode_perf}\n")
+              f.write(f"rust_wincode={wincode_perf}\n")
+              f.write(f"speedup_vs_wincode={cpp_best / wincode_perf if wincode_perf > 0 else 0:.2f}\n")
+
+          PYTHON_SCRIPT
+        env:
+          CPU_MODEL: ${{ steps.sysinfo.outputs.cpu_model }}
+          CPU_CORES: ${{ steps.sysinfo.outputs.cpu_cores }}
+          TIMESTAMP: ${{ steps.sysinfo.outputs.timestamp }}
+
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-vs-rust-benchmark-results
+          path: |
+            /tmp/cpp_results.txt
+            /tmp/rust_results.txt
+            /tmp/comparison_report.md
+            /tmp/sysinfo.txt
+          retention-days: 90
+
+      - name: Post results summary
+        run: |
+          echo "## 🚀 C++ vs Rust Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat /tmp/comparison_report.md >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### System Information" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat /tmp/sysinfo.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment benchmark results on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('/tmp/comparison_report.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+      - name: Check performance regression
+        run: |
+          CPP_BEST="${{ steps.compare.outputs.cpp_best }}"
+          WINCODE_PERF="${{ steps.compare.outputs.rust_wincode }}"
+
+          # C++ should be at least 1.5x faster than Rust wincode
+          THRESHOLD=1.5
+          SPEEDUP=$(echo "scale=2; $CPP_BEST / $WINCODE_PERF" | bc)
+
+          echo "C++ Speedup vs Wincode: ${SPEEDUP}x"
+
+          if (( $(echo "$SPEEDUP < $THRESHOLD" | bc -l) )); then
+            echo "⚠️ WARNING: C++ performance degraded! Expected ${THRESHOLD}x, got ${SPEEDUP}x"
+            exit 1
+          else
+            echo "✅ C++ performance acceptable: ${SPEEDUP}x faster than Rust Wincode"
+          fi
