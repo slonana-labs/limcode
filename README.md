@@ -69,13 +69,11 @@ Fresh benchmark results (128KB payload):
 
 | Size | Throughput |
 |------|------------|
-| 1KB  | 153.00 GB/s |
-| 4KB  | 109.55 GB/s |
-| 16KB | 107.73 GB/s |
-| 64KB | 74.93 GB/s |
-| 128KB | 61.36 GB/s |
-| 512KB | 64.13 GB/s |
-| 1MB  | 60.24 GB/s |
+
+
+*📊 Benchmarked: 2026-01-03 21:02 UTC*  
+*💻 CPU: AMD EPYC 7763 64-Core Processor*  
+*🤖 Runner: [GitHub Actions](https://github.com/slonana-labs/limcode/actions/runs/20682867900)*
 
 **vs Rust bincode (51 GB/s at 128KB): 20% faster**
 
