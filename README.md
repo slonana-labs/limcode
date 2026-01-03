@@ -63,14 +63,21 @@ for transaction in transactions {
 
 **Key insight:** Eliminating Vec allocation overhead provides 6-10x speedup for hot paths.
 
-### C++ Performance (128KB payload)
+### C++ Performance (AVX-512 Optimized)
 
-| Implementation | Throughput | Efficiency vs memcpy |
-|----------------|------------|---------------------|
-| C++ Limcode serialize | 71.85 GB/s | 96.85% |
-| Rust bincode | 51 GB/s | ~92% |
+Fresh benchmark results (128KB payload):
 
-**Improvement: 33% faster deserialization than Rust bincode**
+| Size | Throughput |
+|------|------------|
+| 1KB  | 153.00 GB/s |
+| 4KB  | 109.55 GB/s |
+| 16KB | 107.73 GB/s |
+| 64KB | 74.93 GB/s |
+| 128KB | 61.36 GB/s |
+| 512KB | 64.13 GB/s |
+| 1MB  | 60.24 GB/s |
+
+**vs Rust bincode (51 GB/s at 128KB): 20% faster**
 
 Performance achieved through:
 - AVX-512 16x loop unrolling (optimal ILP)
