@@ -5625,14 +5625,72 @@ inline void serialize(std::vector<uint8_t>& buf, const std::vector<T>& data) {
     const void* __restrict__ src = data.data();
     void* __restrict__ dst = ptr + 8;
 
-    // Hybrid approach: builtin for small, custom SIMD for large
-    if (data_bytes <= 8192) {
-        // Small (≤8KB): compiler builtin is well-optimized
-        __builtin_memcpy(dst, src, data_bytes);
+    // Optimized SIMD memcpy - inlined for zero overhead
+#if defined(__AVX512F__)
+    if (data_bytes >= 256 * 1024) {
+        // Very large: parallel multi-threaded
+        internal::memcpy_parallel(dst, src, data_bytes);
     } else {
-        // Large (>8KB): custom SIMD implementation
-        fast_simd_memcpy(dst, src, data_bytes);
+        // Direct AVX-512 with 16x unrolling (inlined for performance)
+        uint8_t* d = static_cast<uint8_t*>(dst);
+        const uint8_t* s = static_cast<const uint8_t*>(src);
+        size_t remaining = data_bytes;
+
+        // 16x explicitly unrolled loop (1024 bytes per iteration)
+        const __m512i* src_simd = reinterpret_cast<const __m512i*>(s);
+        __m512i* dst_simd = reinterpret_cast<__m512i*>(d);
+
+        for (size_t j = 0; j < data_bytes / 64; j += 16) {
+            __builtin_prefetch(src_simd + j + 32, 0, 3);
+
+            __m512i v0 = _mm512_loadu_si512(src_simd + j);
+            __m512i v1 = _mm512_loadu_si512(src_simd + j + 1);
+            __m512i v2 = _mm512_loadu_si512(src_simd + j + 2);
+            __m512i v3 = _mm512_loadu_si512(src_simd + j + 3);
+            __m512i v4 = _mm512_loadu_si512(src_simd + j + 4);
+            __m512i v5 = _mm512_loadu_si512(src_simd + j + 5);
+            __m512i v6 = _mm512_loadu_si512(src_simd + j + 6);
+            __m512i v7 = _mm512_loadu_si512(src_simd + j + 7);
+            __m512i v8 = _mm512_loadu_si512(src_simd + j + 8);
+            __m512i v9 = _mm512_loadu_si512(src_simd + j + 9);
+            __m512i v10 = _mm512_loadu_si512(src_simd + j + 10);
+            __m512i v11 = _mm512_loadu_si512(src_simd + j + 11);
+            __m512i v12 = _mm512_loadu_si512(src_simd + j + 12);
+            __m512i v13 = _mm512_loadu_si512(src_simd + j + 13);
+            __m512i v14 = _mm512_loadu_si512(src_simd + j + 14);
+            __m512i v15 = _mm512_loadu_si512(src_simd + j + 15);
+
+            _mm512_storeu_si512(dst_simd + j, v0);
+            _mm512_storeu_si512(dst_simd + j + 1, v1);
+            _mm512_storeu_si512(dst_simd + j + 2, v2);
+            _mm512_storeu_si512(dst_simd + j + 3, v3);
+            _mm512_storeu_si512(dst_simd + j + 4, v4);
+            _mm512_storeu_si512(dst_simd + j + 5, v5);
+            _mm512_storeu_si512(dst_simd + j + 6, v6);
+            _mm512_storeu_si512(dst_simd + j + 7, v7);
+            _mm512_storeu_si512(dst_simd + j + 8, v8);
+            _mm512_storeu_si512(dst_simd + j + 9, v9);
+            _mm512_storeu_si512(dst_simd + j + 10, v10);
+            _mm512_storeu_si512(dst_simd + j + 11, v11);
+            _mm512_storeu_si512(dst_simd + j + 12, v12);
+            _mm512_storeu_si512(dst_simd + j + 13, v13);
+            _mm512_storeu_si512(dst_simd + j + 14, v14);
+            _mm512_storeu_si512(dst_simd + j + 15, v15);
+        }
+
+        // Handle remainder
+        size_t main_processed = (data_bytes / 1024) * 1024;
+        remaining = data_bytes % 1024;
+
+        if (remaining > 0) {
+            d = static_cast<uint8_t*>(dst) + main_processed;
+            s = static_cast<const uint8_t*>(src) + main_processed;
+            std::memcpy(d, s, remaining);
+        }
     }
+#else
+    std::memcpy(dst, src, data_bytes);
+#endif
 }
 
 /**
