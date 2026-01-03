@@ -25,7 +25,9 @@ fn main() {
             || env::var("CONTINUOUS_INTEGRATION").is_ok();
 
         if is_ci {
-            println!("cargo:warning=Building in CI mode with conservative CPU features (x86-64-v2)");
+            println!(
+                "cargo:warning=Building in CI mode with conservative CPU features (x86-64-v2)"
+            );
             // x86-64-v2: SSE4.2, POPCNT, SSSE3 (available on all modern CI runners)
             // Explicitly disable advanced features
             build
