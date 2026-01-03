@@ -3,7 +3,7 @@
  * @brief Investigate why 64MB is 8.32 GiB/s instead of 12+ GiB/s
  */
 
-#include <limcode/ultra_fast.h>
+#include <limcode/limcode.h>
 #include <chrono>
 #include <iostream>
 #include <iomanip>

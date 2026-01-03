@@ -3,7 +3,7 @@
  * @brief EXTREME C++ performance benchmark - Target: 120+ GiB/s (10x Rust)
  */
 
-#include <limcode/ultra_fast.h>
+#include <limcode/limcode.h>
 #include <limcode/extreme_fast.h>
 #include <chrono>
 #include <iostream>
@@ -127,7 +127,7 @@ void bench_comparison() {
     std::vector<uint8_t> buf1;
     auto start1 = high_resolution_clock::now();
     for (size_t i = 0; i < iterations; ++i) {
-        limcode::ultra_fast::serialize_pod_into(buf1, data);
+        limcode::limcode::serialize_pod_into(buf1, data);
     }
     auto end1 = high_resolution_clock::now();
     double ns1 = duration_cast<nanoseconds>(end1 - start1).count() / static_cast<double>(iterations);

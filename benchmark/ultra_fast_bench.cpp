@@ -3,7 +3,7 @@
  * @brief Benchmark for ultra_fast.h zero-copy buffer reuse and parallel encoding
  */
 
-#include <limcode/ultra_fast.h>
+#include <limcode/limcode.h>
 #include <chrono>
 #include <iostream>
 #include <vector>
