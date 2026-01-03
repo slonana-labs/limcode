@@ -183,15 +183,19 @@ jobs:
 
       - name: Commit and push
         if: steps.check_changes.outputs.changed == 'true'
+        env:
+          PEAK: ${{ steps.parse.outputs.cpp_peak }}
+          CPU: ${{ steps.sysinfo.outputs.cpu_info }}
+          TIMESTAMP: ${{ steps.sysinfo.outputs.timestamp }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
           git commit -m "benchmark: Update README with latest C++ results
 
-Peak: ${{ steps.parse.outputs.cpp_peak }} GB/s
-CPU: ${{ steps.sysinfo.outputs.cpu_info }}
-Timestamp: ${{ steps.sysinfo.outputs.timestamp }}
+Peak: ${PEAK} GB/s
+CPU: ${CPU}
+Timestamp: ${TIMESTAMP}
 
 🤖 Automated by GitHub Actions"
           git push
