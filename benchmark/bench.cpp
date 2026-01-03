@@ -11,55 +11,76 @@
 
 using namespace std::chrono;
 
-void benchmark_size(const char* label, size_t num_elements) {
+double benchmark_size(size_t num_elements, size_t iterations) {
+    const size_t data_bytes = num_elements * sizeof(uint64_t);
+
     std::vector<uint64_t> data(num_elements);
     for (size_t i = 0; i < num_elements; ++i) {
-        data[i] = i;
+        data[i] = 0xABCDEF0123456789ULL;  // Realistic pattern
     }
 
-    const size_t data_bytes = num_elements * sizeof(uint64_t);
-    const size_t iterations = std::max(size_t(10), 100'000'000 / (data_bytes + 1));
-
     std::vector<uint8_t> buf;
-    
+
     // Warmup
-    for (size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < 3; ++i) {
         limcode::serialize(buf, data);
     }
 
+    // Benchmark
     auto start = high_resolution_clock::now();
     for (size_t i = 0; i < iterations; ++i) {
         limcode::serialize(buf, data);
     }
     auto end = high_resolution_clock::now();
 
-    double ns = duration_cast<nanoseconds>(end - start).count();
-    double ns_per_op = ns / iterations;
-    double gbps = (data_bytes / ns_per_op);
+    double ns_per_op = duration_cast<nanoseconds>(end - start).count() / static_cast<double>(iterations);
 
-    std::cout << std::left << std::setw(15) << label
-              << std::right << std::setw(12) << std::fixed << std::setprecision(2) 
-              << (data_bytes / 1024.0) << " KB,"
-              << std::setw(10) << gbps << " GB/s\n";
+    // Prevent optimization - use the buffer
+    volatile uint8_t sink = buf[0];
+    (void)sink;
+
+    return data_bytes / ns_per_op;
+}
+
+std::string format_size(size_t bytes) {
+    if (bytes >= 1024 * 1024) {
+        return std::to_string(bytes / (1024 * 1024)) + "MB";
+    } else if (bytes >= 1024) {
+        return std::to_string(bytes / 1024) + "KB";
+    } else {
+        return std::to_string(bytes) + "B";
+    }
 }
 
 int main() {
-    std::cout << "Limcode Serialization Benchmark\n";
-    std::cout << "================================\n\n";
-    std::cout << std::left << std::setw(15) << "Size" 
-              << std::right << std::setw(20) << "Throughput\n";
-    std::cout << std::string(45, '-') << "\n";
+    std::cout << "Limcode Serialization Benchmark\n\n";
+    std::cout << "Size,Throughput_GBps\n";
 
-    benchmark_size("1KB", 128);
-    benchmark_size("4KB", 512);
-    benchmark_size("16KB", 2048);
-    benchmark_size("64KB", 8192);
-    benchmark_size("128KB", 16384);
-    benchmark_size("256KB", 32768);
-    benchmark_size("1MB", 131072);
-    benchmark_size("4MB", 524288);
-    benchmark_size("16MB", 2097152);
+    struct SizeConfig {
+        size_t num_elements;
+        size_t iterations;
+    };
 
-    std::cout << "\n";
+    std::vector<SizeConfig> sizes = {
+        {128, 1000},         // 1KB
+        {256, 500},          // 2KB
+        {512, 250},          // 4KB
+        {1024, 100},         // 8KB
+        {2048, 50},          // 16KB
+        {4096, 25},          // 32KB
+        {8192, 10},          // 64KB
+        {16384, 5},          // 128KB
+        {32768, 3},          // 256KB
+        {65536, 2},          // 512KB
+        {131072, 2},         // 1MB
+        {262144, 1},         // 2MB
+    };
+
+    for (const auto& cfg : sizes) {
+        size_t size_bytes = cfg.num_elements * sizeof(uint64_t);
+        double gbps = benchmark_size(cfg.num_elements, cfg.iterations);
+        std::cout << format_size(size_bytes) << "," << std::fixed << std::setprecision(2) << gbps << "\n";
+    }
+
     return 0;
 }
