@@ -280,7 +280,14 @@ See detailed documentation:
 
 ## Version History
 
-### v0.1.2 (Current)
+### v0.1.3 (Current)
+- ✅ **Automated benchmark workflow** - GitHub Actions updates README with latest results
+- ✅ **YAML workflow fixes** - Benchmark automation fully operational
+- ✅ **Single crate architecture** - Removed limcode-sys path dependency (crates.io ready)
+- ✅ **Non-temporal stores** - +56% throughput for 128MB blocks
+- ✅ **Memory prefaulting** - Optimized large allocations (>16MB)
+
+### v0.1.2
 - ✅ **Full CI/CD pipeline** - All tests pass across platforms
 - ✅ **Cross-platform support** - macOS ARM, Linux x86-64, all Rust toolchains
 - ✅ **Comprehensive benchmarks in README** - Full statistical analysis, hot paths, throughput
