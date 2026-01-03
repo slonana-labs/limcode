@@ -215,9 +215,9 @@ jobs:
                   table_rows.append(row)
 
           # Create combined table
-          combined_table = """| Size   | C++ Limcode    | Rust Limcode   | Wincode        | Bincode        | C++ vs Rust | Rust vs Wincode | Rust vs Bincode |
-|--------|----------------|----------------|----------------|----------------|-------------|-----------------|-----------------|
-""" + '\n'.join(table_rows)
+          header = "| Size   | C++ Limcode    | Rust Limcode   | Wincode        | Bincode        | C++ vs Rust | Rust vs Wincode | Rust vs Bincode |\n"
+          separator = "|--------|----------------|----------------|----------------|----------------|-------------|-----------------|------------------|\n"
+          combined_table = header + separator + '\n'.join(table_rows)
 
           # Save combined table
           with open('/tmp/combined_table.txt', 'w') as f:
