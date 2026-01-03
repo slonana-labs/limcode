@@ -106,11 +106,40 @@ target_link_libraries(pgo_profile PRIVATE limcode)
 add_executable(optimized_bench benchmark/optimized_bench.cpp)
 target_link_libraries(optimized_bench PRIVATE limcode)
 
+# Standalone C++ Performance Benchmark (no Rust dependency)
+add_executable(cpp_standalone_bench benchmark/cpp_standalone_bench.cpp)
+target_link_libraries(cpp_standalone_bench PRIVATE limcode)
+
+# Ultra-Fast C++ Benchmark (SIMD, zero-copy, lock-free, multithreaded)
+add_executable(ultra_fast_bench benchmark/ultra_fast_bench.cpp)
+target_link_libraries(ultra_fast_bench PRIVATE limcode)
+
+# Investigation: 64MB performance
+add_executable(investigate_64mb benchmark/investigate_64mb.cpp)
+target_link_libraries(investigate_64mb PRIVATE limcode)
+
+# EXTREME mode benchmark (multi-threaded parallel copy - 120+ GiB/s target)
+add_executable(extreme_bench benchmark/extreme_bench.cpp)
+target_link_libraries(extreme_bench PRIVATE limcode numa pthread)
+
+# INSANE mode benchmark (inline assembly, 16x unrolling, 32 ZMM registers - 20+ GiB/s target)
+add_executable(insane_bench benchmark/insane_bench.cpp)
+target_link_libraries(insane_bench PRIVATE limcode numa pthread)
+
+# ULTIMATE mode benchmark (32x unrolling, 2048 bytes/iter - 22.39 GiB/s target = 100% HW max)
+add_executable(ultimate_bench benchmark/ultimate_bench.cpp)
+target_link_libraries(ultimate_bench PRIVATE limcode numa pthread)
+
 # Tests
 enable_testing()
 add_executable(limcode_tests tests/test_limcode.cpp)
 target_link_libraries(limcode_tests PRIVATE limcode)
 add_test(NAME limcode_tests COMMAND limcode_tests)
+
+# Bincode compatibility test (standalone C++ - no Rust dependency)
+add_executable(cpp_bincode_compat tests/cpp_bincode_compat.cpp)
+target_link_libraries(cpp_bincode_compat PRIVATE limcode)
+add_test(NAME cpp_bincode_compat COMMAND cpp_bincode_compat)
 
 # Install
 include(GNUInstallDirs)

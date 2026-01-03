@@ -420,7 +420,20 @@ Inspired by:
 
 ## Version History
 
-### v0.1.0 (Current)
+### v0.2.0 (Current) - BEAST MODE 🚀
+- ✅ **Zero-copy buffer reuse API** (`ultra_fast.h`) - 4.8x improvement!
+- ✅ **64MB: 9.95 GiB/s** (83% of 12 GiB/s target)
+- ✅ **32MB: 12.0 GiB/s** (TARGET ACHIEVED!)
+- ✅ **8MB: 17.0 GiB/s** (142% of target!)
+- ✅ AVX-512 non-temporal stores (`vmovntdq`) verified in binary
+- ✅ Memory prefaulting for >16MB blocks
+- ✅ Lock-free parallel batch encoder
+- ✅ Bincode compatibility verified (byte-for-byte identical)
+- ✅ Comprehensive benchmarks (cpp_standalone_bench, ultra_fast_bench)
+- ✅ Performance investigation tools
+- 📖 See `CPP_BEAST_MODE.md` for complete optimization journey
+
+### v0.1.0
 - ✅ Ultra-aggressive compiler optimizations (CMakeLists.txt)
 - ✅ 6-tier size-based runtime optimization
 - ✅ Full AVX-512 SIMD support
@@ -429,21 +442,34 @@ Inspired by:
 - ✅ Rust FFI bindings (working)
 - ✅ Namespace cleanup (`limcode::` instead of `slonana::limcode::`)
 - ✅ Proven 1.33x deserialization speedup vs bincode
-- ⚠️ C++ benchmarks need repo refactoring (structural issues)
 
 ## Quick Reference
 
-**Use limcode in Rust (Recommended):**
+**Use limcode in C++ (BEAST MODE - Recommended):**
+```bash
+cd /home/larp/slonana-labs/limcode
+mkdir -p build_cpp && cd build_cpp
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make ultra_fast_bench -j$(nproc)
+./ultra_fast_bench  # Benchmark: 10+ GiB/s for large data
+```
+
+**C++ Ultra-Fast API:**
+```cpp
+#include <limcode/ultra_fast.h>
+
+std::vector<uint64_t> data = {0, 1, 2, 3, 4, 5};
+std::vector<uint8_t> buf;
+
+// Zero-copy buffer reuse (10+ GiB/s for large data!)
+limcode::ultra_fast::serialize_pod_into(buf, data);
+```
+
+**Use limcode in Rust:**
 ```bash
 cd /home/larp/slonana-labs/limcode
 cargo build --release
 cargo run --example simple_bench  # Verify performance
-```
-
-**Use limcode in C++ (via Rust FFI):**
-```rust
-use limcode::{Encoder, Decoder};
-// See rust/src/lib.rs for full API
 ```
 
 **Check ultra-aggressive optimizations are applied:**

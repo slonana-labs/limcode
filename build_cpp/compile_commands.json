@@ -1,0 +1,68 @@
+[
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/limcode_ffi.dir/src/limcode_ffi.cpp.o -c /home/larp/slonana-labs/limcode/src/limcode_ffi.cpp",
+  "file": "/home/larp/slonana-labs/limcode/src/limcode_ffi.cpp",
+  "output": "CMakeFiles/limcode_ffi.dir/src/limcode_ffi.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/pgo_profile.dir/benchmark/pgo_profile.cpp.o -c /home/larp/slonana-labs/limcode/benchmark/pgo_profile.cpp",
+  "file": "/home/larp/slonana-labs/limcode/benchmark/pgo_profile.cpp",
+  "output": "CMakeFiles/pgo_profile.dir/benchmark/pgo_profile.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/optimized_bench.dir/benchmark/optimized_bench.cpp.o -c /home/larp/slonana-labs/limcode/benchmark/optimized_bench.cpp",
+  "file": "/home/larp/slonana-labs/limcode/benchmark/optimized_bench.cpp",
+  "output": "CMakeFiles/optimized_bench.dir/benchmark/optimized_bench.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/cpp_standalone_bench.dir/benchmark/cpp_standalone_bench.cpp.o -c /home/larp/slonana-labs/limcode/benchmark/cpp_standalone_bench.cpp",
+  "file": "/home/larp/slonana-labs/limcode/benchmark/cpp_standalone_bench.cpp",
+  "output": "CMakeFiles/cpp_standalone_bench.dir/benchmark/cpp_standalone_bench.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/ultra_fast_bench.dir/benchmark/ultra_fast_bench.cpp.o -c /home/larp/slonana-labs/limcode/benchmark/ultra_fast_bench.cpp",
+  "file": "/home/larp/slonana-labs/limcode/benchmark/ultra_fast_bench.cpp",
+  "output": "CMakeFiles/ultra_fast_bench.dir/benchmark/ultra_fast_bench.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/investigate_64mb.dir/benchmark/investigate_64mb.cpp.o -c /home/larp/slonana-labs/limcode/benchmark/investigate_64mb.cpp",
+  "file": "/home/larp/slonana-labs/limcode/benchmark/investigate_64mb.cpp",
+  "output": "CMakeFiles/investigate_64mb.dir/benchmark/investigate_64mb.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/extreme_bench.dir/benchmark/extreme_bench.cpp.o -c /home/larp/slonana-labs/limcode/benchmark/extreme_bench.cpp",
+  "file": "/home/larp/slonana-labs/limcode/benchmark/extreme_bench.cpp",
+  "output": "CMakeFiles/extreme_bench.dir/benchmark/extreme_bench.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/insane_bench.dir/benchmark/insane_bench.cpp.o -c /home/larp/slonana-labs/limcode/benchmark/insane_bench.cpp",
+  "file": "/home/larp/slonana-labs/limcode/benchmark/insane_bench.cpp",
+  "output": "CMakeFiles/insane_bench.dir/benchmark/insane_bench.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/ultimate_bench.dir/benchmark/ultimate_bench.cpp.o -c /home/larp/slonana-labs/limcode/benchmark/ultimate_bench.cpp",
+  "file": "/home/larp/slonana-labs/limcode/benchmark/ultimate_bench.cpp",
+  "output": "CMakeFiles/ultimate_bench.dir/benchmark/ultimate_bench.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/limcode_tests.dir/tests/test_limcode.cpp.o -c /home/larp/slonana-labs/limcode/tests/test_limcode.cpp",
+  "file": "/home/larp/slonana-labs/limcode/tests/test_limcode.cpp",
+  "output": "CMakeFiles/limcode_tests.dir/tests/test_limcode.cpp.o"
+},
+{
+  "directory": "/home/larp/slonana-labs/limcode/build_cpp",
+  "command": "/usr/bin/c++  -I/home/larp/slonana-labs/limcode/include  -Wall -Wextra -O3 -march=native -mtune=native -flto -DNDEBUG -std=gnu++20 -flto=auto -fno-fat-lto-objects -ffast-math -fno-math-errno -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fassociative-math -funroll-loops -funroll-all-loops -fvariable-expansion-in-unroller -fpeel-loops -funswitch-loops -finline-functions -finline-limit=1000 -fno-omit-frame-pointer -fno-plt -fno-stack-protector -fstrict-aliasing -fno-semantic-interposition -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx2 -msse4.2 -mbmi2 -mprefer-vector-width=512 -fbranch-probabilities -o CMakeFiles/cpp_bincode_compat.dir/tests/cpp_bincode_compat.cpp.o -c /home/larp/slonana-labs/limcode/tests/cpp_bincode_compat.cpp",
+  "file": "/home/larp/slonana-labs/limcode/tests/cpp_bincode_compat.cpp",
+  "output": "CMakeFiles/cpp_bincode_compat.dir/tests/cpp_bincode_compat.cpp.o"
+}
+]
