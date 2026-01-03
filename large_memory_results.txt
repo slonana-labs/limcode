@@ -1,0 +1,219 @@
+   Compiling limcode v0.1.3 (/home/larp/slonana-labs/limcode)
+    Finished `bench` profile [optimized] target(s) in 2.53s
+     Running benches/large_memory.rs (target/release/deps/large_memory-4d2cbabbe10f83c3)
+
+=== Testing 1 MB (131072 elements) ===
+Benchmarking memory_1MB/limcode_pod_ser
+Benchmarking memory_1MB/limcode_pod_ser: Warming up for 3.0000 s
+Benchmarking memory_1MB/limcode_pod_ser: Collecting 10 samples in estimated 5.0004 s (247k iterations)
+Benchmarking memory_1MB/limcode_pod_ser: Analyzing
+memory_1MB/limcode_pod_ser
+                        time:   [19.593 µs 19.858 µs 20.140 µs]
+                        thrpt:  [48.488 GiB/s 49.178 GiB/s 49.843 GiB/s]
+                 change:
+                        time:   [+1.8218% +3.8999% +5.7056%] (p = 0.00 < 0.05)
+                        thrpt:  [-5.3976% -3.7535% -1.7892%]
+                        Performance has regressed.
+Benchmarking memory_1MB/limcode_pod_de
+Benchmarking memory_1MB/limcode_pod_de: Warming up for 3.0000 s
+Benchmarking memory_1MB/limcode_pod_de: Collecting 10 samples in estimated 5.0010 s (246k iterations)
+Benchmarking memory_1MB/limcode_pod_de: Analyzing
+memory_1MB/limcode_pod_de
+                        time:   [20.719 µs 20.990 µs 21.335 µs]
+                        thrpt:  [45.773 GiB/s 46.525 GiB/s 47.133 GiB/s]
+                 change:
+                        time:   [+11.180% +15.125% +18.846%] (p = 0.00 < 0.05)
+                        thrpt:  [-15.858% -13.138% -10.056%]
+                        Performance has regressed.
+Benchmarking memory_1MB/wincode_ser
+Benchmarking memory_1MB/wincode_ser: Warming up for 3.0000 s
+Benchmarking memory_1MB/wincode_ser: Collecting 10 samples in estimated 5.0009 s (246k iterations)
+Benchmarking memory_1MB/wincode_ser: Analyzing
+memory_1MB/wincode_ser  time:   [19.665 µs 19.748 µs 19.910 µs]
+                        thrpt:  [49.049 GiB/s 49.451 GiB/s 49.660 GiB/s]
+                 change:
+                        time:   [+2.2709% +4.8631% +8.1810%] (p = 0.00 < 0.05)
+                        thrpt:  [-7.5624% -4.6376% -2.2205%]
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking memory_1MB/wincode_de
+Benchmarking memory_1MB/wincode_de: Warming up for 3.0000 s
+Benchmarking memory_1MB/wincode_de: Collecting 10 samples in estimated 5.0005 s (248k iterations)
+Benchmarking memory_1MB/wincode_de: Analyzing
+memory_1MB/wincode_de   time:   [19.716 µs 19.881 µs 20.092 µs]
+                        thrpt:  [48.606 GiB/s 49.122 GiB/s 49.532 GiB/s]
+                 change:
+                        time:   [+1.3863% +3.2665% +5.2286%] (p = 0.01 < 0.05)
+                        thrpt:  [-4.9688% -3.1632% -1.3674%]
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking memory_1MB/bincode_ser
+Benchmarking memory_1MB/bincode_ser: Warming up for 3.0000 s
+Benchmarking memory_1MB/bincode_ser: Collecting 10 samples in estimated 5.0010 s (77k iterations)
+Benchmarking memory_1MB/bincode_ser: Analyzing
+memory_1MB/bincode_ser  time:   [63.434 µs 64.524 µs 65.431 µs]
+                        thrpt:  [14.925 GiB/s 15.135 GiB/s 15.395 GiB/s]
+                 change:
+                        time:   [+1.4981% +3.6810% +5.6666%] (p = 0.00 < 0.05)
+                        thrpt:  [-5.3627% -3.5503% -1.4759%]
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking memory_1MB/bincode_de
+Benchmarking memory_1MB/bincode_de: Warming up for 3.0000 s
+Benchmarking memory_1MB/bincode_de: Collecting 10 samples in estimated 5.0007 s (75k iterations)
+Benchmarking memory_1MB/bincode_de: Analyzing
+memory_1MB/bincode_de   time:   [67.194 µs 67.670 µs 68.353 µs]
+                        thrpt:  [14.287 GiB/s 14.431 GiB/s 14.533 GiB/s]
+                 change:
+                        time:   [+0.4018% +2.4952% +4.4251%] (p = 0.04 < 0.05)
+                        thrpt:  [-4.2376% -2.4344% -0.4002%]
+                        Change within noise threshold.
+
+
+=== Testing 8 MB (1048576 elements) ===
+Benchmarking memory_8MB/limcode_pod_ser
+Benchmarking memory_8MB/limcode_pod_ser: Warming up for 3.0000 s
+Benchmarking memory_8MB/limcode_pod_ser: Collecting 10 samples in estimated 5.0103 s (12k iterations)
+Benchmarking memory_8MB/limcode_pod_ser: Analyzing
+memory_8MB/limcode_pod_ser
+                        time:   [398.26 µs 403.20 µs 410.57 µs]
+                        thrpt:  [19.028 GiB/s 19.376 GiB/s 19.617 GiB/s]
+                 change:
+                        time:   [+3.7420% +9.3145% +14.316%] (p = 0.00 < 0.05)
+                        thrpt:  [-12.523% -8.5209% -3.6070%]
+                        Performance has regressed.
+Found 3 outliers among 10 measurements (30.00%)
+  2 (20.00%) low mild
+  1 (10.00%) high mild
+Benchmarking memory_8MB/limcode_pod_de
+Benchmarking memory_8MB/limcode_pod_de: Warming up for 3.0000 s
+Benchmarking memory_8MB/limcode_pod_de: Collecting 10 samples in estimated 5.0051 s (11k iterations)
+Benchmarking memory_8MB/limcode_pod_de: Analyzing
+memory_8MB/limcode_pod_de
+                        time:   [415.34 µs 431.84 µs 457.38 µs]
+                        thrpt:  [17.081 GiB/s 18.091 GiB/s 18.810 GiB/s]
+                 change:
+                        time:   [+7.0595% +14.024% +21.764%] (p = 0.00 < 0.05)
+                        thrpt:  [-17.874% -12.300% -6.5940%]
+                        Performance has regressed.
+Benchmarking memory_8MB/bincode_ser
+Benchmarking memory_8MB/bincode_ser: Warming up for 3.0000 s
+Benchmarking memory_8MB/bincode_ser: Collecting 10 samples in estimated 5.0127 s (9185 iterations)
+Benchmarking memory_8MB/bincode_ser: Analyzing
+memory_8MB/bincode_ser  time:   [560.03 µs 599.98 µs 620.97 µs]
+                        thrpt:  [12.581 GiB/s 13.021 GiB/s 13.950 GiB/s]
+Benchmarking memory_8MB/bincode_de
+Benchmarking memory_8MB/bincode_de: Warming up for 3.0000 s
+Benchmarking memory_8MB/bincode_de: Collecting 10 samples in estimated 5.0001 s (7535 iterations)
+Benchmarking memory_8MB/bincode_de: Analyzing
+memory_8MB/bincode_de   time:   [631.90 µs 658.25 µs 680.84 µs]
+                        thrpt:  [11.475 GiB/s 11.869 GiB/s 12.364 GiB/s]
+
+
+=== Testing 64 MB (8388608 elements) ===
+Benchmarking memory_64MB/limcode_pod_ser
+Benchmarking memory_64MB/limcode_pod_ser: Warming up for 3.0000 s
+Benchmarking memory_64MB/limcode_pod_ser: Collecting 10 samples in estimated 5.2620 s (110 iterations)
+Benchmarking memory_64MB/limcode_pod_ser: Analyzing
+memory_64MB/limcode_pod_ser
+                        time:   [47.272 ms 48.677 ms 49.610 ms]
+                        thrpt:  [1.2598 GiB/s 1.2840 GiB/s 1.3221 GiB/s]
+Benchmarking memory_64MB/limcode_pod_de
+Benchmarking memory_64MB/limcode_pod_de: Warming up for 3.0000 s
+Benchmarking memory_64MB/limcode_pod_de: Collecting 10 samples in estimated 5.6856 s (165 iterations)
+Benchmarking memory_64MB/limcode_pod_de: Analyzing
+memory_64MB/limcode_pod_de
+                        time:   [35.759 ms 36.142 ms 36.515 ms]
+                        thrpt:  [1.7116 GiB/s 1.7293 GiB/s 1.7478 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking memory_64MB/bincode_ser
+Benchmarking memory_64MB/bincode_ser: Warming up for 3.0000 s
+Benchmarking memory_64MB/bincode_ser: Collecting 10 samples in estimated 6.0441 s (165 iterations)
+Benchmarking memory_64MB/bincode_ser: Analyzing
+memory_64MB/bincode_ser time:   [37.388 ms 38.142 ms 38.866 ms]
+                        thrpt:  [1.6081 GiB/s 1.6386 GiB/s 1.6717 GiB/s]
+Benchmarking memory_64MB/bincode_de
+Benchmarking memory_64MB/bincode_de: Warming up for 3.0000 s
+Benchmarking memory_64MB/bincode_de: Collecting 10 samples in estimated 6.1780 s (165 iterations)
+Benchmarking memory_64MB/bincode_de: Analyzing
+memory_64MB/bincode_de  time:   [35.114 ms 35.699 ms 36.620 ms]
+                        thrpt:  [1.7067 GiB/s 1.7507 GiB/s 1.7799 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+
+=== Testing 128 MB (16777216 elements) ===
+Benchmarking memory_128MB/limcode_pod_ser
+Benchmarking memory_128MB/limcode_pod_ser: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 5.5s or enable flat sampling.
+Benchmarking memory_128MB/limcode_pod_ser: Collecting 10 samples in estimated 5.4748 s (55 iterations)
+Benchmarking memory_128MB/limcode_pod_ser: Analyzing
+memory_128MB/limcode_pod_ser
+                        time:   [97.438 ms 98.837 ms 99.860 ms]
+                        thrpt:  [1.2518 GiB/s 1.2647 GiB/s 1.2829 GiB/s]
+Benchmarking memory_128MB/limcode_pod_de
+Benchmarking memory_128MB/limcode_pod_de: Warming up for 3.0000 s
+Benchmarking memory_128MB/limcode_pod_de: Collecting 10 samples in estimated 7.7563 s (110 iterations)
+Benchmarking memory_128MB/limcode_pod_de: Analyzing
+memory_128MB/limcode_pod_de
+                        time:   [68.049 ms 69.405 ms 70.386 ms]
+                        thrpt:  [1.7759 GiB/s 1.8010 GiB/s 1.8369 GiB/s]
+Benchmarking memory_128MB/bincode_ser
+Benchmarking memory_128MB/bincode_ser: Warming up for 3.0000 s
+Benchmarking memory_128MB/bincode_ser: Collecting 10 samples in estimated 8.8321 s (110 iterations)
+Benchmarking memory_128MB/bincode_ser: Analyzing
+memory_128MB/bincode_ser
+                        time:   [78.160 ms 78.893 ms 79.505 ms]
+                        thrpt:  [1.5722 GiB/s 1.5844 GiB/s 1.5993 GiB/s]
+Benchmarking memory_128MB/bincode_de
+Benchmarking memory_128MB/bincode_de: Warming up for 3.0000 s
+Benchmarking memory_128MB/bincode_de: Collecting 10 samples in estimated 7.6977 s (110 iterations)
+Benchmarking memory_128MB/bincode_de: Analyzing
+memory_128MB/bincode_de time:   [65.118 ms 66.602 ms 68.255 ms]
+                        thrpt:  [1.8314 GiB/s 1.8768 GiB/s 1.9196 GiB/s]
+
+
+=== Testing 256 MB (33554432 elements) ===
+Benchmarking memory_256MB/limcode_pod_ser
+Benchmarking memory_256MB/limcode_pod_ser: Warming up for 3.0000 s
+Benchmarking memory_256MB/limcode_pod_ser: Collecting 10 samples in estimated 5.9045 s (30 iterations)
+Benchmarking memory_256MB/limcode_pod_ser: Analyzing
+memory_256MB/limcode_pod_ser
+                        time:   [194.18 ms 197.92 ms 203.05 ms]
+                        thrpt:  [1.2312 GiB/s 1.2632 GiB/s 1.2874 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking memory_256MB/limcode_pod_de
+Benchmarking memory_256MB/limcode_pod_de: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 8.5s or enable flat sampling.
+Benchmarking memory_256MB/limcode_pod_de: Collecting 10 samples in estimated 8.4551 s (55 iterations)
+Benchmarking memory_256MB/limcode_pod_de: Analyzing
+memory_256MB/limcode_pod_de
+                        time:   [138.06 ms 139.82 ms 142.31 ms]
+                        thrpt:  [1.7567 GiB/s 1.7880 GiB/s 1.8108 GiB/s]
+Benchmarking memory_256MB/bincode_ser
+Benchmarking memory_256MB/bincode_ser: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 7.4s or enable flat sampling.
+Benchmarking memory_256MB/bincode_ser: Collecting 10 samples in estimated 7.3511 s (55 iterations)
+Benchmarking memory_256MB/bincode_ser: Analyzing
+memory_256MB/bincode_ser
+                        time:   [132.31 ms 135.76 ms 139.01 ms]
+                        thrpt:  [1.7985 GiB/s 1.8415 GiB/s 1.8895 GiB/s]
+Benchmarking memory_256MB/bincode_de
+Benchmarking memory_256MB/bincode_de: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 5.0s. You may wish to increase target time to 7.7s or enable flat sampling.
+Benchmarking memory_256MB/bincode_de: Collecting 10 samples in estimated 7.7063 s (55 iterations)
+Benchmarking memory_256MB/bincode_de: Analyzing
+memory_256MB/bincode_de time:   [136.72 ms 139.02 ms 142.72 ms]
+                        thrpt:  [1.7517 GiB/s 1.7983 GiB/s 1.8285 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
