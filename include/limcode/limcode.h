@@ -5625,22 +5625,14 @@ inline void serialize(std::vector<uint8_t>& buf, const std::vector<T>& data) {
     const void* __restrict__ src = data.data();
     void* __restrict__ dst = ptr + 8;
 
-    // Optimized SIMD memcpy - inlined for zero overhead
+    // Optimized SIMD memcpy - fully inlined for zero overhead
 #if defined(__AVX512F__)
-    if (data_bytes >= 256 * 1024) {
-        // Very large: parallel multi-threaded
-        internal::memcpy_parallel(dst, src, data_bytes);
-    } else {
-        // Direct AVX-512 with 16x unrolling (inlined for performance)
-        uint8_t* d = static_cast<uint8_t*>(dst);
-        const uint8_t* s = static_cast<const uint8_t*>(src);
-        size_t remaining = data_bytes;
+    // Direct AVX-512 with 16x unrolling - NO function calls
+    const __m512i* src_simd = reinterpret_cast<const __m512i*>(src);
+    __m512i* dst_simd = reinterpret_cast<__m512i*>(dst);
 
-        // 16x explicitly unrolled loop (1024 bytes per iteration)
-        const __m512i* src_simd = reinterpret_cast<const __m512i*>(s);
-        __m512i* dst_simd = reinterpret_cast<__m512i*>(d);
-
-        for (size_t j = 0; j < data_bytes / 64; j += 16) {
+    // 16x explicitly unrolled loop (1024 bytes per iteration)
+    for (size_t j = 0; j < data_bytes / 64; j += 16) {
             __builtin_prefetch(src_simd + j + 32, 0, 3);
 
             __m512i v0 = _mm512_loadu_si512(src_simd + j);
@@ -5678,15 +5670,14 @@ inline void serialize(std::vector<uint8_t>& buf, const std::vector<T>& data) {
             _mm512_storeu_si512(dst_simd + j + 15, v15);
         }
 
-        // Handle remainder
-        size_t main_processed = (data_bytes / 1024) * 1024;
-        remaining = data_bytes % 1024;
+    // Handle remainder
+    size_t main_processed = (data_bytes / 1024) * 1024;
+    size_t remaining = data_bytes % 1024;
 
-        if (remaining > 0) {
-            d = static_cast<uint8_t*>(dst) + main_processed;
-            s = static_cast<const uint8_t*>(src) + main_processed;
-            std::memcpy(d, s, remaining);
-        }
+    if (remaining > 0) {
+        uint8_t* d = static_cast<uint8_t*>(dst) + main_processed;
+        const uint8_t* s = static_cast<const uint8_t*>(src) + main_processed;
+        std::memcpy(d, s, remaining);
     }
 #else
     std::memcpy(dst, src, data_bytes);
