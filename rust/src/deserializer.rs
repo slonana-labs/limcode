@@ -89,8 +89,7 @@ impl<'de> Deserializer<'de> {
     fn read_u64(&mut self) -> Result<u64, Error> {
         let bytes = self.read_bytes(8)?;
         Ok(u64::from_le_bytes([
-            bytes[0], bytes[1], bytes[2], bytes[3],
-            bytes[4], bytes[5], bytes[6], bytes[7],
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
         ]))
     }
 
@@ -125,7 +124,7 @@ impl<'de> Deserializer<'de> {
     }
 }
 
-impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
+impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     type Error = Error;
 
     #[inline]
@@ -263,12 +262,18 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     #[inline]
     fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Error> {
         let len = self.read_u64()? as usize;
-        visitor.visit_seq(SeqDeserializer { de: self, remaining: len })
+        visitor.visit_seq(SeqDeserializer {
+            de: self,
+            remaining: len,
+        })
     }
 
     #[inline]
     fn deserialize_tuple<V: Visitor<'de>>(self, len: usize, visitor: V) -> Result<V::Value, Error> {
-        visitor.visit_seq(SeqDeserializer { de: self, remaining: len })
+        visitor.visit_seq(SeqDeserializer {
+            de: self,
+            remaining: len,
+        })
     }
 
     #[inline]
@@ -278,13 +283,19 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         len: usize,
         visitor: V,
     ) -> Result<V::Value, Error> {
-        visitor.visit_seq(SeqDeserializer { de: self, remaining: len })
+        visitor.visit_seq(SeqDeserializer {
+            de: self,
+            remaining: len,
+        })
     }
 
     #[inline]
     fn deserialize_map<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Error> {
         let len = self.read_u64()? as usize;
-        visitor.visit_map(MapDeserializer { de: self, remaining: len })
+        visitor.visit_map(MapDeserializer {
+            de: self,
+            remaining: len,
+        })
     }
 
     #[inline]
@@ -294,7 +305,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Error> {
-        visitor.visit_seq(SeqDeserializer { de: self, remaining: fields.len() })
+        visitor.visit_seq(SeqDeserializer {
+            de: self,
+            remaining: fields.len(),
+        })
     }
 
     #[inline]
@@ -327,7 +341,10 @@ impl<'de, 'a> SeqAccess<'de> for SeqDeserializer<'a, 'de> {
     type Error = Error;
 
     #[inline]
-    fn next_element_seed<T: DeserializeSeed<'de>>(&mut self, seed: T) -> Result<Option<T::Value>, Error> {
+    fn next_element_seed<T: DeserializeSeed<'de>>(
+        &mut self,
+        seed: T,
+    ) -> Result<Option<T::Value>, Error> {
         if self.remaining == 0 {
             return Ok(None);
         }
@@ -350,7 +367,10 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
     type Error = Error;
 
     #[inline]
-    fn next_key_seed<K: DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>, Error> {
+    fn next_key_seed<K: DeserializeSeed<'de>>(
+        &mut self,
+        seed: K,
+    ) -> Result<Option<K::Value>, Error> {
         if self.remaining == 0 {
             return Ok(None);
         }
@@ -378,7 +398,10 @@ impl<'de, 'a> de::EnumAccess<'de> for EnumDeserializer<'a, 'de> {
     type Variant = Self;
 
     #[inline]
-    fn variant_seed<V: DeserializeSeed<'de>>(self, seed: V) -> Result<(V::Value, Self::Variant), Error> {
+    fn variant_seed<V: DeserializeSeed<'de>>(
+        self,
+        seed: V,
+    ) -> Result<(V::Value, Self::Variant), Error> {
         let variant_index = self.de.read_u32()?;
         let v = seed.deserialize(de::value::U32Deserializer::<Error>::new(variant_index))?;
         Ok((v, self))
@@ -429,9 +452,9 @@ pub fn deserialize<'de, T: Deserialize<'de>>(bytes: &'de [u8]) -> Result<T, Erro
 /// ACTUAL zero-copy POD deserialization - returns slice view (no allocation!)
 /// For borrowed data where you don't need owned Vec
 #[inline]
-pub fn deserialize_pod_borrowed<'de, T: crate::serializer::PodType>(
-    bytes: &'de [u8]
-) -> Result<&'de [T], Error> {
+pub fn deserialize_pod_borrowed<T: crate::serializer::PodType>(
+    bytes: &[u8],
+) -> Result<&[T], Error> {
     let mut de = Deserializer::new(bytes);
 
     // Read length prefix
@@ -445,9 +468,7 @@ pub fn deserialize_pod_borrowed<'de, T: crate::serializer::PodType>(
     let raw_bytes = de.read_bytes(byte_len)?;
 
     // Reinterpret &[u8] as &[T] (safe on little-endian for POD types)
-    let result = unsafe {
-        std::slice::from_raw_parts(raw_bytes.as_ptr() as *const T, len)
-    };
+    let result = unsafe { std::slice::from_raw_parts(raw_bytes.as_ptr() as *const T, len) };
 
     Ok(result)
 }
@@ -457,7 +478,7 @@ pub fn deserialize_pod_borrowed<'de, T: crate::serializer::PodType>(
 #[inline]
 pub fn deserialize_pod<T: crate::serializer::PodType>(bytes: &[u8]) -> Result<Vec<T>, Error> {
     let slice = deserialize_pod_borrowed::<T>(bytes)?;
-    Ok(slice.to_vec())  // Single allocation, optimized by LLVM
+    Ok(slice.to_vec()) // Single allocation, optimized by LLVM
 }
 
 #[cfg(test)]
@@ -473,7 +494,10 @@ mod tests {
 
     #[test]
     fn test_deserialize_struct() {
-        let data = TestStruct { a: 42, b: "hello".into() };
+        let data = TestStruct {
+            a: 42,
+            b: "hello".into(),
+        };
         let bytes = bincode::serialize(&data).unwrap();
         let decoded: TestStruct = from_bytes(&bytes).unwrap();
         assert_eq!(data, decoded);

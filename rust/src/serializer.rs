@@ -109,10 +109,8 @@ impl FastWriter {
         self.write_u64(slice.len() as u64);
 
         // Bulk memcpy the raw bytes
-        let byte_len = slice.len() * std::mem::size_of::<T>();
-        let bytes = unsafe {
-            std::slice::from_raw_parts(slice.as_ptr() as *const u8, byte_len)
-        };
+        let byte_len = std::mem::size_of_val(slice);
+        let bytes = unsafe { std::slice::from_raw_parts(slice.as_ptr() as *const u8, byte_len) };
         self.buf.extend_from_slice(bytes);
     }
 }
@@ -149,7 +147,7 @@ impl Serializer {
     }
 }
 
-impl<'a> ser::Serializer for &'a mut Serializer {
+impl ser::Serializer for &mut Serializer {
     type Ok = ();
     type Error = Error;
     type SerializeSeq = Self;
@@ -363,7 +361,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeSeq for &'a mut Serializer {
+impl ser::SerializeSeq for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -378,7 +376,7 @@ impl<'a> ser::SerializeSeq for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeTuple for &'a mut Serializer {
+impl ser::SerializeTuple for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -393,7 +391,7 @@ impl<'a> ser::SerializeTuple for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
+impl ser::SerializeTupleStruct for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -408,7 +406,7 @@ impl<'a> ser::SerializeTupleStruct for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
+impl ser::SerializeTupleVariant for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -423,7 +421,7 @@ impl<'a> ser::SerializeTupleVariant for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeMap for &'a mut Serializer {
+impl ser::SerializeMap for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -443,7 +441,7 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeStruct for &'a mut Serializer {
+impl ser::SerializeStruct for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -462,7 +460,7 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
     }
 }
 
-impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
+impl ser::SerializeStructVariant for &mut Serializer {
     type Ok = ();
     type Error = Error;
 
@@ -502,8 +500,8 @@ pub fn serialize<T: Serialize>(value: &T) -> Result<Vec<u8>, Error> {
 /// - Chunk size: 100,000 elements per thread (reduce concatenation overhead)
 /// - Serialize chunks in parallel, then concatenate
 pub fn serialize_vec_parallel<T: Serialize + Sync>(vec: &Vec<T>) -> Result<Vec<u8>, Error> {
-    const PARALLEL_THRESHOLD: usize = 1_000_000;  // 1M elements - massive scale only
-    const CHUNK_SIZE: usize = 100_000;  // 100K per chunk - reduce overhead
+    const PARALLEL_THRESHOLD: usize = 1_000_000; // 1M elements - massive scale only
+    const CHUNK_SIZE: usize = 100_000; // 100K per chunk - reduce overhead
 
     if vec.len() < PARALLEL_THRESHOLD {
         // Small vec: use standard serialization (parallel overhead not worth it)
@@ -564,9 +562,8 @@ pub fn serialize_vec_parallel<T: Serialize + Sync>(vec: &Vec<T>) -> Result<Vec<u
 /// # Ok::<(), limcode::Error>(())
 /// ```
 #[inline]
-pub fn serialize_pod_into<T: PodType>(vec: &Vec<T>, buf: &mut Vec<u8>) -> Result<(), Error> {
-    let elem_size = std::mem::size_of::<T>();
-    let byte_len = vec.len() * elem_size;
+pub fn serialize_pod_into<T: PodType>(vec: &[T], buf: &mut Vec<u8>) -> Result<(), Error> {
+    let byte_len = std::mem::size_of_val(vec);
     let total_len = 8 + byte_len;
 
     // Ensure capacity (may reuse existing allocation)
@@ -615,7 +612,7 @@ pub fn serialize_pod_into<T: PodType>(vec: &Vec<T>, buf: &mut Vec<u8>) -> Result
 /// **Note:** For repeated operations, use `serialize_pod_into()` with a reusable
 /// buffer for up to **10x better performance** (avoids allocation overhead).
 #[inline]
-pub fn serialize_pod<T: PodType>(vec: &Vec<T>) -> Result<Vec<u8>, Error> {
+pub fn serialize_pod<T: PodType>(vec: &[T]) -> Result<Vec<u8>, Error> {
     let mut result = Vec::new();
     serialize_pod_into(vec, &mut result)?;
     Ok(result)
@@ -623,9 +620,8 @@ pub fn serialize_pod<T: PodType>(vec: &Vec<T>) -> Result<Vec<u8>, Error> {
 
 /// Legacy implementation (kept for reference, use serialize_pod instead)
 #[allow(dead_code)]
-fn serialize_pod_old<T: PodType>(vec: &Vec<T>) -> Result<Vec<u8>, Error> {
-    let elem_size = std::mem::size_of::<T>();
-    let byte_len = vec.len() * elem_size;
+fn serialize_pod_old<T: PodType>(vec: &[T]) -> Result<Vec<u8>, Error> {
+    let byte_len = std::mem::size_of_val(vec);
     let total_len = 8 + byte_len;
 
     let mut result = Vec::with_capacity(total_len);
@@ -797,16 +793,16 @@ unsafe fn fast_nt_memcpy(mut dst: *mut u8, mut src: *const u8, mut len: usize) {
 ///
 /// Strategy: Pre-allocate buffer, each thread writes to non-overlapping region (no data races)
 /// Threshold tuned for svm.run: 1M elements minimum, 100K chunks
-pub fn serialize_pod_parallel<T: PodType + Sync>(vec: &Vec<T>) -> Result<Vec<u8>, Error> {
-    const PARALLEL_THRESHOLD: usize = 1_000_000;  // 1M elements for 240-core machines
-    const CHUNK_SIZE: usize = 100_000;  // 100K elements per thread
+pub fn serialize_pod_parallel<T: PodType + Sync>(vec: &[T]) -> Result<Vec<u8>, Error> {
+    const PARALLEL_THRESHOLD: usize = 1_000_000; // 1M elements for 240-core machines
+    const CHUNK_SIZE: usize = 100_000; // 100K elements per thread
 
     if vec.len() < PARALLEL_THRESHOLD {
-        return serialize_pod(vec);  // Small data: single-threaded is faster
+        return serialize_pod(vec); // Small data: single-threaded is faster
     }
 
     let elem_size = std::mem::size_of::<T>();
-    let total_bytes = vec.len() * elem_size;
+    let total_bytes = std::mem::size_of_val(vec);
 
     // Pre-allocate final buffer (initialized to zero)
     let mut result = vec![0u8; 8 + total_bytes];
@@ -816,8 +812,8 @@ pub fn serialize_pod_parallel<T: PodType + Sync>(vec: &Vec<T>) -> Result<Vec<u8>
 
     // Use crossbeam scoped threads for safe parallel mutable access
     crossbeam::scope(|s| {
-        let num_chunks = (vec.len() + CHUNK_SIZE - 1) / CHUNK_SIZE;
-        let data_slice = &mut result[8..];  // Mutable slice to data region
+        let num_chunks = vec.len().div_ceil(CHUNK_SIZE);
+        let data_slice = &mut result[8..]; // Mutable slice to data region
 
         for chunk_idx in 0..num_chunks {
             let chunk_start = chunk_idx * CHUNK_SIZE;
@@ -825,26 +821,23 @@ pub fn serialize_pod_parallel<T: PodType + Sync>(vec: &Vec<T>) -> Result<Vec<u8>
             let chunk = &vec[chunk_start..chunk_end];
 
             let byte_offset = chunk_idx * CHUNK_SIZE * elem_size;
-            let byte_len = chunk.len() * elem_size;
+            let byte_len = std::mem::size_of_val(chunk);
 
             // Split off this chunk's region from the data slice
             // SAFETY: We know byte_offset + byte_len <= data_slice.len()
             let chunk_dest = unsafe {
-                std::slice::from_raw_parts_mut(
-                    data_slice.as_mut_ptr().add(byte_offset),
-                    byte_len
-                )
+                std::slice::from_raw_parts_mut(data_slice.as_mut_ptr().add(byte_offset), byte_len)
             };
 
             s.spawn(move |_| {
                 // Reinterpret Vec<T> chunk as &[u8]
-                let chunk_bytes = unsafe {
-                    std::slice::from_raw_parts(chunk.as_ptr() as *const u8, byte_len)
-                };
+                let chunk_bytes =
+                    unsafe { std::slice::from_raw_parts(chunk.as_ptr() as *const u8, byte_len) };
                 chunk_dest.copy_from_slice(chunk_bytes);
             });
         }
-    }).unwrap();
+    })
+    .unwrap();
 
     Ok(result)
 }
@@ -862,7 +855,10 @@ mod tests {
 
     #[test]
     fn test_serialize_struct() {
-        let data = TestStruct { a: 42, b: "hello".into() };
+        let data = TestStruct {
+            a: 42,
+            b: "hello".into(),
+        };
         let our_bytes = to_vec(&data).unwrap();
         let bincode_bytes = bincode::serialize(&data).unwrap();
         assert_eq!(our_bytes, bincode_bytes, "Must match bincode format!");

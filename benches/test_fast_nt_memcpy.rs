@@ -16,11 +16,7 @@ fn bench_memcpy_direct(c: &mut Criterion) {
     group.bench_function("std_copy", |b| {
         b.iter(|| {
             unsafe {
-                std::ptr::copy_nonoverlapping(
-                    src.as_ptr(),
-                    dst.as_mut_ptr(),
-                    num_bytes
-                );
+                std::ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), num_bytes);
             }
             black_box(&dst);
         })

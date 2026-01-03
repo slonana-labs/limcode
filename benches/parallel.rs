@@ -2,7 +2,7 @@
 //!
 //! Demonstrates the speedup from multithreaded serialization for large Vec<T>
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -26,37 +26,27 @@ fn bench_parallel_serialization(c: &mut Criterion) {
     let mut group = c.benchmark_group("parallel_serialize");
 
     for size in sizes {
-        let transactions: Vec<Transaction> = (0..size)
-            .map(|_| create_test_transaction())
-            .collect();
+        let transactions: Vec<Transaction> = (0..size).map(|_| create_test_transaction()).collect();
 
         let serialized = limcode::serialize(&transactions).unwrap();
 
         group.throughput(Throughput::Bytes(serialized.len() as u64));
-        group.throughput(Throughput::Elements(size as u64));
+        group.throughput(Throughput::Elements(size));
 
-        group.bench_with_input(
-            BenchmarkId::new("serial", size),
-            &transactions,
-            |b, txs| {
-                b.iter(|| limcode::serialize(black_box(txs)).unwrap())
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("serial", size), &transactions, |b, txs| {
+            b.iter(|| limcode::serialize(black_box(txs)).unwrap())
+        });
 
         group.bench_with_input(
             BenchmarkId::new("parallel", size),
             &transactions,
-            |b, txs| {
-                b.iter(|| limcode::serialize_vec_parallel(black_box(txs)).unwrap())
-            },
+            |b, txs| b.iter(|| limcode::serialize_vec_parallel(black_box(txs)).unwrap()),
         );
 
         group.bench_with_input(
             BenchmarkId::new("bincode", size),
             &transactions,
-            |b, txs| {
-                b.iter(|| bincode::serialize(black_box(txs)).unwrap())
-            },
+            |b, txs| b.iter(|| bincode::serialize(black_box(txs)).unwrap()),
         );
     }
 
@@ -71,39 +61,23 @@ fn bench_vec_u64(c: &mut Criterion) {
     for size in sizes {
         let data: Vec<u64> = (0..size).collect();
 
-        group.throughput(Throughput::Elements(size as u64));
+        group.throughput(Throughput::Elements(size));
 
-        group.bench_with_input(
-            BenchmarkId::new("serial", size),
-            &data,
-            |b, d| {
-                b.iter(|| limcode::serialize(black_box(d)).unwrap())
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("serial", size), &data, |b, d| {
+            b.iter(|| limcode::serialize(black_box(d)).unwrap())
+        });
 
-        group.bench_with_input(
-            BenchmarkId::new("parallel", size),
-            &data,
-            |b, d| {
-                b.iter(|| limcode::serialize_vec_parallel(black_box(d)).unwrap())
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("parallel", size), &data, |b, d| {
+            b.iter(|| limcode::serialize_vec_parallel(black_box(d)).unwrap())
+        });
 
-        group.bench_with_input(
-            BenchmarkId::new("pod_serial", size),
-            &data,
-            |b, d| {
-                b.iter(|| limcode::serialize_pod(black_box(d)).unwrap())
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("pod_serial", size), &data, |b, d| {
+            b.iter(|| limcode::serialize_pod(black_box(d)).unwrap())
+        });
 
-        group.bench_with_input(
-            BenchmarkId::new("bincode", size),
-            &data,
-            |b, d| {
-                b.iter(|| bincode::serialize(black_box(d)).unwrap())
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("bincode", size), &data, |b, d| {
+            b.iter(|| bincode::serialize(black_box(d)).unwrap())
+        });
     }
 
     group.finish();

@@ -48,7 +48,7 @@ fn bench_pod_vec_u64(c: &mut Criterion) {
         let data: Vec<u64> = (0..size).collect();
 
         let mut group = c.benchmark_group(format!("pod_u64_{}", size));
-        group.throughput(Throughput::Elements(size as u64));
+        group.throughput(Throughput::Elements(size));
 
         // Serialize benchmarks
         group.bench_function("limcode_pod_ser", |b| {

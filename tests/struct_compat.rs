@@ -1,5 +1,5 @@
-use limcode::{serialize, deserialize};
-use serde::{Serialize, Deserialize};
+use limcode::{deserialize, serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Transaction {
@@ -9,17 +9,28 @@ struct Transaction {
 
 #[test]
 fn test_struct_serialization() {
-    let tx = Transaction { amount: 1000, fee: 10 };
+    let tx = Transaction {
+        amount: 1000,
+        fee: 10,
+    };
 
     println!("\n=== TESTING STRUCT SERIALIZATION ===");
 
     // Serialize with limcode
     let limcode_encoded = serialize(&tx).unwrap();
-    println!("Limcode encoded: {:?} ({} bytes)", limcode_encoded, limcode_encoded.len());
+    println!(
+        "Limcode encoded: {:?} ({} bytes)",
+        limcode_encoded,
+        limcode_encoded.len()
+    );
 
     // Serialize with bincode
     let bincode_encoded = bincode::serialize(&tx).unwrap();
-    println!("Bincode encoded: {:?} ({} bytes)", bincode_encoded, bincode_encoded.len());
+    println!(
+        "Bincode encoded: {:?} ({} bytes)",
+        bincode_encoded,
+        bincode_encoded.len()
+    );
 
     // Formats should be identical
     assert_eq!(limcode_encoded, bincode_encoded, "Formats must match!");

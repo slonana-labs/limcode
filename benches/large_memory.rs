@@ -13,10 +13,13 @@ fn bench_large_memory(c: &mut Criterion) {
         let data: Vec<u64> = (0..num_elements).collect();
 
         let mut group = c.benchmark_group(format!("memory_{}MB", size_mb));
-        group.throughput(Throughput::Bytes((num_elements * 8) as u64));
+        group.throughput(Throughput::Bytes(num_elements * 8));
         group.sample_size(10); // Fewer samples for large data
 
-        println!("\n=== Testing {} MB ({} elements) ===", size_mb, num_elements);
+        println!(
+            "\n=== Testing {} MB ({} elements) ===",
+            size_mb, num_elements
+        );
 
         // Limcode POD
         group.bench_function("limcode_pod_ser", |b| {

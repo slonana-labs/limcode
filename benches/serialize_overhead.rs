@@ -26,8 +26,8 @@ fn bench_serialize_components(c: &mut Criterion) {
         b.iter(|| {
             let mut result = Vec::with_capacity(total_len);
             unsafe {
-                let ptr = result.as_mut_ptr();
-                std::ptr::write_unaligned(ptr as *mut u64, (num_elements as u64).to_le());
+                let ptr: *mut u8 = result.as_mut_ptr();
+                std::ptr::write_unaligned(ptr.cast::<u64>(), (num_elements as u64).to_le());
                 result.set_len(8);
             }
             black_box(result);
@@ -62,7 +62,7 @@ fn bench_serialize_components(c: &mut Criterion) {
                 let ptr: *mut u8 = result.as_mut_ptr();
 
                 // Write length prefix
-                std::ptr::write_unaligned(ptr as *mut u64, (num_elements as u64).to_le());
+                std::ptr::write_unaligned(ptr.cast::<u64>(), (num_elements as u64).to_le());
 
                 // Copy data
                 let src = data.as_ptr() as *const u8;

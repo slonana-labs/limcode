@@ -15,21 +15,24 @@
 //! assert_eq!(data, decoded);
 //! ```
 
-pub mod serializer;
 pub mod deserializer;
+pub mod serializer;
 pub mod ultra_fast;
 
 // Re-export main API
-pub use serializer::{
-    serialize, to_vec,
-    serialize_vec_parallel,
-    serialize_pod,
-    serialize_pod_into,  // Zero-allocation version for high-throughput
-    serialize_pod_parallel,
-    PodType,
-    Error as SerError
+pub use deserializer::{
+    deserialize, deserialize_pod, deserialize_pod_borrowed, from_bytes, Error as DeError,
 };
-pub use deserializer::{deserialize, from_bytes, deserialize_pod, deserialize_pod_borrowed, Error as DeError};
+pub use serializer::{
+    serialize,
+    serialize_pod,
+    serialize_pod_into, // Zero-allocation version for high-throughput
+    serialize_pod_parallel,
+    serialize_vec_parallel,
+    to_vec,
+    Error as SerError,
+    PodType,
+};
 
 // ==================== FFI Bindings ====================
 

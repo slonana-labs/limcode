@@ -19,11 +19,7 @@ fn bench_raw_memcpy(c: &mut Criterion) {
         group.bench_function("memcpy", |b| {
             b.iter(|| {
                 unsafe {
-                    std::ptr::copy_nonoverlapping(
-                        src.as_ptr(),
-                        dst.as_mut_ptr(),
-                        num_bytes
-                    );
+                    std::ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), num_bytes);
                 }
                 black_box(&dst);
             })
@@ -45,6 +41,7 @@ fn bench_raw_memcpy(c: &mut Criterion) {
 
 /// Non-temporal memory copy using AVX-512
 #[inline(always)]
+#[allow(unused_mut)] // Parameters may not be mutated on all platforms
 #[cfg(target_arch = "x86_64")]
 unsafe fn fast_nt_memcpy(mut dst: *mut u8, mut src: *const u8, mut len: usize) {
     #[cfg(target_feature = "avx512f")]

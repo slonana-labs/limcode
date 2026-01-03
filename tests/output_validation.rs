@@ -22,10 +22,16 @@ fn test_pod_u64_matches_wincode_bincode() {
         let bincode_bytes = bincode::serialize(&data).unwrap();
 
         // Verify byte-for-byte identical output
-        assert_eq!(limcode_bytes, bincode_bytes,
-            "Limcode POD output doesn't match bincode for {} elements", size);
-        assert_eq!(limcode_bytes, wincode_bytes,
-            "Limcode POD output doesn't match wincode for {} elements", size);
+        assert_eq!(
+            limcode_bytes, bincode_bytes,
+            "Limcode POD output doesn't match bincode for {} elements",
+            size
+        );
+        assert_eq!(
+            limcode_bytes, wincode_bytes,
+            "Limcode POD output doesn't match wincode for {} elements",
+            size
+        );
 
         // Verify round-trip works
         let limcode_decoded: Vec<u64> = limcode::deserialize_pod(&limcode_bytes).unwrap();
@@ -36,8 +42,11 @@ fn test_pod_u64_matches_wincode_bincode() {
         assert_eq!(data, wincode_decoded);
         assert_eq!(data, bincode_decoded);
 
-        println!("✅ {} elements: limcode = wincode = bincode ({} bytes)",
-            size, limcode_bytes.len());
+        println!(
+            "✅ {} elements: limcode = wincode = bincode ({} bytes)",
+            size,
+            limcode_bytes.len()
+        );
     }
 }
 
@@ -63,8 +72,10 @@ fn test_struct_matches_bincode() {
     assert_eq!(test_data, limcode_decoded);
     assert_eq!(test_data, bincode_decoded);
 
-    println!("✅ Struct serialization: limcode = bincode ({} bytes)",
-        limcode_bytes.len());
+    println!(
+        "✅ Struct serialization: limcode = bincode ({} bytes)",
+        limcode_bytes.len()
+    );
 }
 
 #[test]
@@ -78,14 +89,25 @@ fn test_vec_u8_matches() {
         let wincode_bytes = wincode::serialize(&data).unwrap();
         let bincode_bytes = bincode::serialize(&data).unwrap();
 
-        assert_eq!(limcode_bytes, bincode_bytes, "Vec<u8>[{}]: limcode != bincode", size);
-        assert_eq!(limcode_bytes, wincode_bytes, "Vec<u8>[{}]: limcode != wincode", size);
+        assert_eq!(
+            limcode_bytes, bincode_bytes,
+            "Vec<u8>[{}]: limcode != bincode",
+            size
+        );
+        assert_eq!(
+            limcode_bytes, wincode_bytes,
+            "Vec<u8>[{}]: limcode != wincode",
+            size
+        );
 
         let limcode_decoded: Vec<u8> = limcode::deserialize_pod(&limcode_bytes).unwrap();
         assert_eq!(data, limcode_decoded);
 
-        println!("✅ Vec<u8>[{}]: limcode = wincode = bincode ({} bytes)",
-            size, limcode_bytes.len());
+        println!(
+            "✅ Vec<u8>[{}]: limcode = wincode = bincode ({} bytes)",
+            size,
+            limcode_bytes.len()
+        );
     }
 }
 

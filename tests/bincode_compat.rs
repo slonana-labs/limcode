@@ -1,4 +1,4 @@
-use limcode::{serialize_bincode, deserialize_bincode};
+use limcode::{deserialize_bincode, serialize_bincode};
 
 #[test]
 fn test_bincode_format_compatibility() {

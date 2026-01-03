@@ -31,7 +31,10 @@ fn test_complex_struct_compatibility() {
         id: 12345678901234,
         name: "Hello World".to_string(),
         data: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        nested: Some(NestedStruct { value: -42, flag: true }),
+        nested: Some(NestedStruct {
+            value: -42,
+            flag: true,
+        }),
     };
 
     // Serialize with bincode
@@ -41,7 +44,10 @@ fn test_complex_struct_compatibility() {
     let limcode_bytes = limcode::serialize(&data).unwrap();
 
     // Must be identical
-    assert_eq!(bincode_bytes, limcode_bytes, "Serialized bytes must match bincode exactly");
+    assert_eq!(
+        bincode_bytes, limcode_bytes,
+        "Serialized bytes must match bincode exactly"
+    );
 
     // Deserialize with limcode
     let decoded: ComplexStruct = limcode::deserialize(&limcode_bytes).unwrap();
@@ -83,7 +89,11 @@ fn test_enum_variants() {
         let bincode_bytes = bincode::serialize(&variant).unwrap();
         let limcode_bytes = limcode::serialize(&variant).unwrap();
 
-        assert_eq!(bincode_bytes, limcode_bytes, "Enum {:?} must match bincode", variant);
+        assert_eq!(
+            bincode_bytes, limcode_bytes,
+            "Enum {:?} must match bincode",
+            variant
+        );
 
         let decoded: TestEnum = limcode::deserialize(&limcode_bytes).unwrap();
         assert_eq!(variant, decoded);
@@ -98,7 +108,12 @@ fn test_primitives() {
             let val: $ty = $val;
             let bincode_bytes = bincode::serialize(&val).unwrap();
             let limcode_bytes = limcode::serialize(&val).unwrap();
-            assert_eq!(bincode_bytes, limcode_bytes, "Primitive {} must match", stringify!($ty));
+            assert_eq!(
+                bincode_bytes,
+                limcode_bytes,
+                "Primitive {} must match",
+                stringify!($ty)
+            );
             let decoded: $ty = limcode::deserialize(&limcode_bytes).unwrap();
             assert_eq!(val, decoded);
         };
@@ -115,8 +130,8 @@ fn test_primitives() {
     test_primitive!(4294967295u32, u32);
     test_primitive!(9223372036854775807i64, i64);
     test_primitive!(18446744073709551615u64, u64);
-    test_primitive!(3.14159f32, f32);
-    test_primitive!(2.718281828459045f64, f64);
+    test_primitive!(std::f32::consts::PI, f32);
+    test_primitive!(std::f64::consts::E, f64);
 }
 
 #[test]
@@ -143,7 +158,10 @@ fn test_large_data() {
     let bincode_bytes = bincode::serialize(&large_vec).unwrap();
     let limcode_bytes = limcode::serialize(&large_vec).unwrap();
 
-    assert_eq!(bincode_bytes, limcode_bytes, "Large data must match bincode");
+    assert_eq!(
+        bincode_bytes, limcode_bytes,
+        "Large data must match bincode"
+    );
 
     let decoded: Vec<u8> = limcode::deserialize(&limcode_bytes).unwrap();
     assert_eq!(large_vec, decoded);
