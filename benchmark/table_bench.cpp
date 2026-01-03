@@ -24,13 +24,13 @@ double benchmark_roundtrip(size_t num_elements, size_t iterations) {
 
     // Warmup
     for (size_t i = 0; i < std::min(iterations / 10, size_t(3)); ++i) {
-        limcode::serialize_pod(buf, data);
+        limcode::serialize(buf, data);
     }
 
     // Benchmark
     auto start = high_resolution_clock::now();
     for (size_t i = 0; i < iterations; ++i) {
-        limcode::serialize_pod(buf, data);
+        limcode::serialize(buf, data);
     }
     auto end = high_resolution_clock::now();
 

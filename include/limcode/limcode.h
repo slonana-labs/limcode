@@ -5505,11 +5505,11 @@ private:
 namespace limcode {
 
 /**
- * @brief Serialize POD vector to bincode format
+ * @brief Serialize vector to bincode format
  * @tparam T Trivially copyable type
  */
 template<typename T>
-inline void serialize_pod(std::vector<uint8_t>& buf, const std::vector<T>& data) {
+inline void serialize(std::vector<uint8_t>& buf, const std::vector<T>& data) {
     static_assert(std::is_trivially_copyable_v<T>);
 
     const size_t count = data.size();
