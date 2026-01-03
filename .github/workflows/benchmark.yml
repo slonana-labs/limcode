@@ -142,15 +142,18 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "benchmark: Update README with latest results
+          git commit -m "$(cat <<'EOF'
+          benchmark: Update README with latest results
 
-Automated benchmark run from GitHub Actions.
+          Automated benchmark run from GitHub Actions.
 
-Runner: ubuntu-latest
-CPU: ${{ steps.sysinfo.outputs.cpu_info }}
-Timestamp: ${{ steps.sysinfo.outputs.timestamp }}
+          Runner: ubuntu-latest
+          CPU: ${{ steps.sysinfo.outputs.cpu_info }}
+          Timestamp: ${{ steps.sysinfo.outputs.timestamp }}
 
-🤖 Automated by GitHub Actions"
+          🤖 Automated by GitHub Actions
+          EOF
+          )"
           git push
 
       - name: Upload benchmark results as artifact
