@@ -1,7 +1,5 @@
 //! Validate limcode output is byte-identical to wincode
 
-use limcode;
-use wincode;
 
 #[test]
 fn test_u64_vec_1kb() {

@@ -47,14 +47,14 @@ fn main() -> std::io::Result<()> {
                             println!("  Hash: {}", hex(&account.hash));
                             println!("  Data size: {} bytes", account.data.len());
                             println!("  Write version: {}", account.write_version);
-                            if account.data.len() > 0 && account.data.len() <= 32 {
+                            if !account.data.is_empty() && account.data.len() <= 32 {
                                 println!("  Data: {}", hex(&account.data));
                             }
                             println!();
                         }
 
                         // Progress every 10k accounts
-                        if count % 10000 == 0 {
+                        if count.is_multiple_of(10000) {
                             println!(
                                 "Processed {} accounts... ({:.2}s)",
                                 count,

@@ -7,7 +7,7 @@
 //! Run with: cargo run --release --features solana --example snapshot_demo
 
 #[cfg(feature = "solana")]
-use limcode::snapshot::{extract_snapshot, parse_snapshot, stream_snapshot, SnapshotAccount};
+use limcode::snapshot::{extract_snapshot, stream_snapshot, SnapshotAccount};
 
 #[cfg(feature = "solana")]
 fn main() -> std::io::Result<()> {

@@ -1,5 +1,5 @@
 use limcode::{deserialize_bincode, serialize_bincode};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 extern "C" {
     fn limcode_cpp_serialize_u8_vec(
