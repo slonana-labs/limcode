@@ -21,27 +21,30 @@ pub struct SnapshotAccount {
     pub rent_epoch: u64,
     pub owner: [u8; 32],
     pub executable: bool,
+    pub hash: [u8; 32],         // Account state hash
     pub data: Vec<u8>,          // Variable length
 }
 
-/// AppendVec account header (97 bytes) - kept for documentation
+/// AppendVec account header (136 bytes) - kept for documentation
 #[allow(dead_code)]
 #[repr(C, packed)]
 struct AccountHeader {
-    write_version: u64,          // 8 bytes - offset 0
-    data_len: u64,              // 8 bytes - offset 8
-    pubkey: [u8; 32],           // 32 bytes - offset 16
-    lamports: u64,              // 8 bytes - offset 48
-    rent_epoch: u64,            // 8 bytes - offset 56
-    owner: [u8; 32],            // 32 bytes - offset 64
-    executable: u8,             // 1 byte - offset 96
-    // Total: 97 bytes
+    write_version: u64,          // 8 bytes - offset 0x00
+    data_len: u64,              // 8 bytes - offset 0x08
+    pubkey: [u8; 32],           // 32 bytes - offset 0x10
+    lamports: u64,              // 8 bytes - offset 0x30
+    rent_epoch: u64,            // 8 bytes - offset 0x38
+    owner: [u8; 32],            // 32 bytes - offset 0x40
+    executable: u8,             // 1 byte - offset 0x60
+    padding: [u8; 7],           // 7 bytes - offset 0x61
+    hash: [u8; 32],             // 32 bytes - offset 0x68
+    // Total: 136 bytes (0x88)
 }
 
 /// Parse accounts from AppendVec file data
 ///
 /// AppendVec files contain sequential account records:
-/// - 97-byte header (write_version, data_len, pubkey, lamports, rent_epoch, owner, executable)
+/// - 136-byte header (write_version, data_len, pubkey, lamports, rent_epoch, owner, executable, padding, hash)
 /// - Variable-length data section
 /// - 8-byte alignment padding
 ///
@@ -52,23 +55,29 @@ pub fn parse_appendvec(data: &[u8]) -> io::Result<Vec<SnapshotAccount>> {
     let mut accounts = Vec::new();
     let mut offset = 0;
 
-    while offset + 97 <= data.len() {
-        // Read 97-byte header
-        let write_version = u64::from_le_bytes(data[offset..offset+8].try_into().unwrap());
-        let data_len = u64::from_le_bytes(data[offset+8..offset+16].try_into().unwrap()) as usize;
+    const HEADER_SIZE: usize = 136;
+
+    while offset + HEADER_SIZE <= data.len() {
+        // Read 136-byte header
+        let write_version = u64::from_le_bytes(data[offset+0x00..offset+0x08].try_into().unwrap());
+        let data_len = u64::from_le_bytes(data[offset+0x08..offset+0x10].try_into().unwrap()) as usize;
 
         let mut pubkey = [0u8; 32];
-        pubkey.copy_from_slice(&data[offset+16..offset+48]);
+        pubkey.copy_from_slice(&data[offset+0x10..offset+0x30]);
 
-        let lamports = u64::from_le_bytes(data[offset+48..offset+56].try_into().unwrap());
-        let rent_epoch = u64::from_le_bytes(data[offset+56..offset+64].try_into().unwrap());
+        let lamports = u64::from_le_bytes(data[offset+0x30..offset+0x38].try_into().unwrap());
+        let rent_epoch = u64::from_le_bytes(data[offset+0x38..offset+0x40].try_into().unwrap());
 
         let mut owner = [0u8; 32];
-        owner.copy_from_slice(&data[offset+64..offset+96]);
+        owner.copy_from_slice(&data[offset+0x40..offset+0x60]);
 
-        let executable = data[offset+96] != 0;
+        let executable = data[offset+0x60] != 0;
+        // Skip 7 bytes padding at offset+0x61
 
-        offset += 97;
+        let mut hash = [0u8; 32];
+        hash.copy_from_slice(&data[offset+0x68..offset+0x88]);
+
+        offset += HEADER_SIZE;
 
         // Read variable-length account data
         if offset + data_len > data.len() {
@@ -89,6 +98,7 @@ pub fn parse_appendvec(data: &[u8]) -> io::Result<Vec<SnapshotAccount>> {
             rent_epoch,
             owner,
             executable,
+            hash,
             data: account_data,
         });
     }
@@ -114,28 +124,34 @@ impl<R: Read + 'static> Iterator for SnapshotAccountIterator<R> {
     type Item = io::Result<SnapshotAccount>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        const HEADER_SIZE: usize = 136;
+
         loop {
             // Try to parse next account from current AppendVec buffer
-            if self.current_offset + 97 <= self.current_appendvec.len() {
+            if self.current_offset + HEADER_SIZE <= self.current_appendvec.len() {
                 let data = &self.current_appendvec;
                 let offset = self.current_offset;
 
-                // Read 97-byte header
-                let write_version = u64::from_le_bytes(data[offset..offset+8].try_into().unwrap());
-                let data_len = u64::from_le_bytes(data[offset+8..offset+16].try_into().unwrap()) as usize;
+                // Read 136-byte header
+                let write_version = u64::from_le_bytes(data[offset+0x00..offset+0x08].try_into().unwrap());
+                let data_len = u64::from_le_bytes(data[offset+0x08..offset+0x10].try_into().unwrap()) as usize;
 
                 let mut pubkey = [0u8; 32];
-                pubkey.copy_from_slice(&data[offset+16..offset+48]);
+                pubkey.copy_from_slice(&data[offset+0x10..offset+0x30]);
 
-                let lamports = u64::from_le_bytes(data[offset+48..offset+56].try_into().unwrap());
-                let rent_epoch = u64::from_le_bytes(data[offset+56..offset+64].try_into().unwrap());
+                let lamports = u64::from_le_bytes(data[offset+0x30..offset+0x38].try_into().unwrap());
+                let rent_epoch = u64::from_le_bytes(data[offset+0x38..offset+0x40].try_into().unwrap());
 
                 let mut owner = [0u8; 32];
-                owner.copy_from_slice(&data[offset+64..offset+96]);
+                owner.copy_from_slice(&data[offset+0x40..offset+0x60]);
 
-                let executable = data[offset+96] != 0;
+                let executable = data[offset+0x60] != 0;
+                // Skip 7 bytes padding at offset+0x61
 
-                self.current_offset += 97;
+                let mut hash = [0u8; 32];
+                hash.copy_from_slice(&data[offset+0x68..offset+0x88]);
+
+                self.current_offset += HEADER_SIZE;
 
                 // Read variable-length account data
                 if self.current_offset + data_len > data.len() {
@@ -159,6 +175,7 @@ impl<R: Read + 'static> Iterator for SnapshotAccountIterator<R> {
                     rent_epoch,
                     owner,
                     executable,
+                    hash,
                     data: account_data,
                 }));
             }
