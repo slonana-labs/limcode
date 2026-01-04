@@ -206,7 +206,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results-${{ steps.sysinfo.outputs.timestamp }}
+          name: benchmark-results-${{ github.run_id }}
           path: |
             /tmp/cpp_bench.txt
             /tmp/rust_bench.txt
