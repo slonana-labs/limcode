@@ -59,8 +59,7 @@ pub fn parse_appendvec(data: &[u8]) -> io::Result<Vec<SnapshotAccount>> {
 
     while offset + HEADER_SIZE <= data.len() {
         // Read 136-byte header
-        let write_version =
-            u64::from_le_bytes(data[offset..offset + 0x08].try_into().unwrap());
+        let write_version = u64::from_le_bytes(data[offset..offset + 0x08].try_into().unwrap());
         let data_len =
             u64::from_le_bytes(data[offset + 0x08..offset + 0x10].try_into().unwrap()) as usize;
 
