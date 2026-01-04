@@ -17,6 +17,7 @@ extern "C" {
     fn limcode_cpp_free(ptr: *mut u8);
 }
 
+#[allow(dead_code)]
 struct BenchResult {
     min_ns: u128,
     max_ns: u128,
@@ -57,6 +58,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 fn format_size(bytes: usize) -> String {
     if bytes < 1024 {
         format!("{}B", bytes)
@@ -269,7 +271,7 @@ fn main() {
     println!("| Size | C++ Limcode | Rust Limcode | Wincode | Bincode | vs Rust | vs Wincode | vs Bincode |");
     println!("|------|-------------|--------------|---------|---------|---------|------------|------------|");
 
-    for (name, size, cpp_tp, rust_tp, win_tp, bin_tp) in &throughput_results {
+    for (name, _size, cpp_tp, rust_tp, win_tp, bin_tp) in &throughput_results {
         let vs_rust = ((cpp_tp - rust_tp) / rust_tp) * 100.0;
         let vs_bincode = ((cpp_tp - bin_tp) / bin_tp) * 100.0;
 
@@ -300,7 +302,7 @@ fn main() {
         .iter()
         .position(|(_, _, tp, _, _, _)| *tp == max_cpp_tp)
         .unwrap();
-    let (max_name, max_size, _, _, _, _) = throughput_results[max_cpp_idx];
+    let (max_name, _max_size, _, _, _, _) = throughput_results[max_cpp_idx];
 
     println!(
         "✅ **C++ Limcode Peak Throughput**: {:.2} GB/s @ {} blocks",

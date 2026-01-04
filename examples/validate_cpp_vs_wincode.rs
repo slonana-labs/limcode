@@ -4,7 +4,7 @@ use std::fs;
 
 fn validate_file(filename: &str, data: &[u64]) {
     // Read C++ limcode output
-    let cpp_bytes = fs::read(filename).expect(&format!("Failed to read {}", filename));
+    let cpp_bytes = fs::read(filename).unwrap_or_else(|_| panic!("Failed to read {}", filename));
 
     // Generate Rust wincode output
     let wincode_bytes = wincode::serialize(data).unwrap();
@@ -52,10 +52,10 @@ fn main() {
     validate_file("/tmp/limcode_8kb.bin", &vec![0xABCDEF0123456789u64; 1024]);
 
     // Test 3: Empty
-    validate_file("/tmp/limcode_empty.bin", &vec![]);
+    validate_file("/tmp/limcode_empty.bin", &[]);
 
     // Test 4: Single element
-    validate_file("/tmp/limcode_single.bin", &vec![42u64]);
+    validate_file("/tmp/limcode_single.bin", &[42u64]);
 
     // Test 5: Sequential
     let sequential: Vec<u64> = (0..1000).collect();

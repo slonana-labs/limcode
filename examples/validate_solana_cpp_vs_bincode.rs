@@ -40,7 +40,7 @@ fn main() {
     }
 
     // Verify data portion matches original tx
-    if &expected[8..] == &tx_bincode[..] {
+    if expected[8..] == tx_bincode[..] {
         println!("✓ Data portion matches original transaction");
     } else {
         println!("✗ Data mismatch!");
