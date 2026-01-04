@@ -12,110 +12,234 @@ use tar::Archive;
 #[cfg(feature = "solana")]
 use zstd::stream::read::Decoder as ZstdDecoder;
 
-/// Solana account data from snapshot
+/// Solana account data from snapshot AppendVec format
 #[derive(Debug, Clone)]
 pub struct SnapshotAccount {
+    pub write_version: u64,      // Obsolete but present in format
     pub pubkey: [u8; 32],
     pub lamports: u64,
-    pub data: Vec<u8>,
+    pub rent_epoch: u64,
     pub owner: [u8; 32],
     pub executable: bool,
-    pub rent_epoch: u64,
+    pub data: Vec<u8>,          // Variable length
 }
 
-/// Parse Solana snapshot archive and return all accounts
+/// AppendVec account header (97 bytes) - kept for documentation
+#[allow(dead_code)]
+#[repr(C, packed)]
+struct AccountHeader {
+    write_version: u64,          // 8 bytes - offset 0
+    data_len: u64,              // 8 bytes - offset 8
+    pubkey: [u8; 32],           // 32 bytes - offset 16
+    lamports: u64,              // 8 bytes - offset 48
+    rent_epoch: u64,            // 8 bytes - offset 56
+    owner: [u8; 32],            // 32 bytes - offset 64
+    executable: u8,             // 1 byte - offset 96
+    // Total: 97 bytes
+}
+
+/// Parse accounts from AppendVec file data
 ///
-/// Decompresses and parses the snapshot into memory
+/// AppendVec files contain sequential account records:
+/// - 97-byte header (write_version, data_len, pubkey, lamports, rent_epoch, owner, executable)
+/// - Variable-length data section
+/// - 8-byte alignment padding
 ///
-/// ```ignore
-/// use limcode::snapshot::parse_snapshot;
-///
-/// let accounts = parse_snapshot("snapshot-123-aBcD.tar.zst")?;
-/// for acc in accounts {
-///     println!("Pubkey: {:?}, Lamports: {}", acc.pubkey, acc.lamports);
-/// }
-/// ```
+/// Note: Real snapshot parsing requires the manifest file to know file sizes.
+/// This function assumes the data is already extracted from the AppendVec file.
 #[cfg(feature = "solana")]
-pub fn parse_snapshot<P: AsRef<Path>>(path: P) -> io::Result<Vec<SnapshotAccount>> {
-    let file = File::open(path)?;
-    let buf_reader = BufReader::with_capacity(1024 * 1024, file); // 1MB buffer
-    let decoder = ZstdDecoder::new(buf_reader)?;
-    let mut archive = Archive::new(decoder);
-
+pub fn parse_appendvec(data: &[u8]) -> io::Result<Vec<SnapshotAccount>> {
     let mut accounts = Vec::new();
+    let mut offset = 0;
 
-    for entry_result in archive.entries()? {
-        let mut entry = match entry_result {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
-
-        let path = match entry.path() {
-            Ok(p) => p,
-            Err(_) => continue,
-        };
-
-        let filename = match path.file_name().and_then(|f| f.to_str()) {
-            Some(f) => f,
-            None => continue,
-        };
-
-        // Skip metadata files
-        if !filename.ends_with(".account") {
-            continue;
-        }
-
-        // Read account data
-        let mut data = Vec::new();
-        if entry.read_to_end(&mut data).is_err() {
-            continue;
-        }
-
-        // Parse account (simplified - real format has more fields)
-        if data.len() < 96 {
-            continue; // Invalid account
-        }
+    while offset + 97 <= data.len() {
+        // Read 97-byte header
+        let write_version = u64::from_le_bytes(data[offset..offset+8].try_into().unwrap());
+        let data_len = u64::from_le_bytes(data[offset+8..offset+16].try_into().unwrap()) as usize;
 
         let mut pubkey = [0u8; 32];
-        pubkey.copy_from_slice(&data[0..32]);
+        pubkey.copy_from_slice(&data[offset+16..offset+48]);
 
-        let lamports = match data[32..40].try_into().ok().map(u64::from_le_bytes) {
-            Some(l) => l,
-            None => continue,
-        };
-
-        let data_len = match data[40..48].try_into().ok().map(u64::from_le_bytes) {
-            Some(l) => l as usize,
-            None => continue,
-        };
-
-        let account_data = if data_len > 0 && data.len() >= 96 + data_len {
-            data[96..96 + data_len].to_vec()
-        } else {
-            Vec::new()
-        };
+        let lamports = u64::from_le_bytes(data[offset+48..offset+56].try_into().unwrap());
+        let rent_epoch = u64::from_le_bytes(data[offset+56..offset+64].try_into().unwrap());
 
         let mut owner = [0u8; 32];
-        owner.copy_from_slice(&data[48..80]);
+        owner.copy_from_slice(&data[offset+64..offset+96]);
 
-        let executable = data[80] != 0;
+        let executable = data[offset+96] != 0;
 
-        let rent_epoch = match data[88..96].try_into().ok().map(u64::from_le_bytes) {
-            Some(r) => r,
-            None => continue,
-        };
+        offset += 97;
+
+        // Read variable-length account data
+        if offset + data_len > data.len() {
+            break; // Incomplete account
+        }
+
+        let account_data = data[offset..offset + data_len].to_vec();
+        offset += data_len;
+
+        // 8-byte alignment padding
+        let padding = (8 - (offset % 8)) % 8;
+        offset += padding;
 
         accounts.push(SnapshotAccount {
+            write_version,
             pubkey,
             lamports,
-            data: account_data,
+            rent_epoch,
             owner,
             executable,
-            rent_epoch,
+            data: account_data,
         });
     }
 
     Ok(accounts)
+}
+
+/// Streaming iterator for Solana snapshot accounts
+///
+/// Memory-efficient: processes accounts one at a time, perfect for 1.5B+ accounts
+pub struct SnapshotAccountIterator<R: Read + 'static> {
+    tar_entries: tar::Entries<'static, R>,
+    current_appendvec: Vec<u8>,
+    current_offset: usize,
+    _archive: Box<Archive<R>>,
+}
+
+#[cfg(feature = "solana")]
+unsafe impl<R: Read + 'static> Send for SnapshotAccountIterator<R> {}
+
+#[cfg(feature = "solana")]
+impl<R: Read + 'static> Iterator for SnapshotAccountIterator<R> {
+    type Item = io::Result<SnapshotAccount>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            // Try to parse next account from current AppendVec buffer
+            if self.current_offset + 97 <= self.current_appendvec.len() {
+                let data = &self.current_appendvec;
+                let offset = self.current_offset;
+
+                // Read 97-byte header
+                let write_version = u64::from_le_bytes(data[offset..offset+8].try_into().unwrap());
+                let data_len = u64::from_le_bytes(data[offset+8..offset+16].try_into().unwrap()) as usize;
+
+                let mut pubkey = [0u8; 32];
+                pubkey.copy_from_slice(&data[offset+16..offset+48]);
+
+                let lamports = u64::from_le_bytes(data[offset+48..offset+56].try_into().unwrap());
+                let rent_epoch = u64::from_le_bytes(data[offset+56..offset+64].try_into().unwrap());
+
+                let mut owner = [0u8; 32];
+                owner.copy_from_slice(&data[offset+64..offset+96]);
+
+                let executable = data[offset+96] != 0;
+
+                self.current_offset += 97;
+
+                // Read variable-length account data
+                if self.current_offset + data_len > data.len() {
+                    // Incomplete account, move to next file
+                    self.current_appendvec.clear();
+                    self.current_offset = 0;
+                    continue;
+                }
+
+                let account_data = data[self.current_offset..self.current_offset + data_len].to_vec();
+                self.current_offset += data_len;
+
+                // 8-byte alignment padding
+                let padding = (8 - (self.current_offset % 8)) % 8;
+                self.current_offset += padding;
+
+                return Some(Ok(SnapshotAccount {
+                    write_version,
+                    pubkey,
+                    lamports,
+                    rent_epoch,
+                    owner,
+                    executable,
+                    data: account_data,
+                }));
+            }
+
+            // Need to load next AppendVec file
+            loop {
+                let mut entry = match self.tar_entries.next()? {
+                    Ok(e) => e,
+                    Err(e) => return Some(Err(e)),
+                };
+
+                let path = match entry.path() {
+                    Ok(p) => p,
+                    Err(_) => continue,
+                };
+
+                // Look for AppendVec files in accounts/ directory
+                let path_str = path.to_string_lossy();
+                if !path_str.starts_with("accounts/") {
+                    continue;
+                }
+
+                // Read AppendVec file into buffer
+                self.current_appendvec.clear();
+                if entry.read_to_end(&mut self.current_appendvec).is_err() {
+                    continue;
+                }
+
+                self.current_offset = 0;
+                break; // Start parsing this file
+            }
+        }
+    }
+}
+
+/// Stream accounts from Solana snapshot archive (memory-efficient for 1.5B+ accounts)
+///
+/// WARNING: Simplified parser - extracts AppendVec files only.
+/// Full snapshot parsing requires reading manifest (snapshots/SLOT/SLOT).
+///
+/// Real Solana snapshot structure:
+/// - version (contains "1.2.0")
+/// - status_cache
+/// - snapshots/SLOT/SLOT (manifest file - bincode serialized)
+/// - accounts/SLOT.ID (AppendVec files - 97-byte headers + data)
+///
+/// ```ignore
+/// use limcode::snapshot::stream_snapshot;
+///
+/// for account_result in stream_snapshot("snapshot-123-aBcD.tar.zst")? {
+///     let acc = account_result?;
+///     db.insert(acc.pubkey, acc)?; // Process directly to database
+/// }
+/// ```
+#[cfg(feature = "solana")]
+pub fn stream_snapshot<P: AsRef<Path>>(
+    path: P,
+) -> io::Result<impl Iterator<Item = io::Result<SnapshotAccount>>> {
+    let file = File::open(path)?;
+    let buf_reader = BufReader::with_capacity(4 * 1024 * 1024, file); // 4MB buffer for streaming
+    let decoder = ZstdDecoder::new(buf_reader)?;
+    let archive = Box::new(Archive::new(decoder));
+
+    // SAFETY: Create self-referential struct - archive owns the data, entries borrow from it
+    // We convert to raw pointer, call entries(), then reconstruct the Box
+    let archive_ptr = Box::into_raw(archive);
+    let entries = unsafe { (*archive_ptr).entries()? };
+    let archive = unsafe { Box::from_raw(archive_ptr) };
+
+    Ok(SnapshotAccountIterator {
+        tar_entries: unsafe { std::mem::transmute(entries) },
+        current_appendvec: Vec::with_capacity(64 * 1024 * 1024), // 64MB buffer per file
+        current_offset: 0,
+        _archive: archive,
+    })
+}
+
+/// Parse entire snapshot into memory (use stream_snapshot for large datasets)
+#[cfg(feature = "solana")]
+pub fn parse_snapshot<P: AsRef<Path>>(path: P) -> io::Result<Vec<SnapshotAccount>> {
+    stream_snapshot(path)?.collect()
 }
 
 /// Fast snapshot extraction to directory
