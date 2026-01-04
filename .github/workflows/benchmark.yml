@@ -71,7 +71,7 @@ jobs:
           mkdir -p build
           cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_HYPER_OPTIMIZATION=ON
-          make table_bench_ultimate -j$(nproc)
+          make bench_true_maximum -j$(nproc)
 
       - name: Build Rust benchmarks
         run: |
@@ -81,7 +81,7 @@ jobs:
         id: cpp_bench
         run: |
           echo "Running C++ benchmark..."
-          ./build/table_bench_ultimate | tee /tmp/cpp_bench.txt
+          ./build/bench_true_maximum | tee /tmp/cpp_bench.txt
 
       - name: Run Rust benchmarks
         id: rust_bench
