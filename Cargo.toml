@@ -1,6 +1,6 @@
 [package]
 name = "limcode"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["Slonana Labs", "Rin Fhenzig @ OpenSVM"]
 license = "MIT"
