@@ -5635,6 +5635,34 @@ inline size_t deserialize_pod_array(const uint8_t* in, T* out, size_t* out_len) 
   return 8 + data_bytes;
 }
 
+// ==================== Simplified API Aliases ====================
+
+/**
+ * @brief Simple serialize() - automatic multithreading for ≥64MB
+ *
+ * @param data Source data pointer
+ * @param len Number of elements
+ * @param out Output buffer (must be pre-allocated: 8 + len*sizeof(T) bytes)
+ * @return Bytes written
+ */
+template<typename T>
+inline size_t serialize(const T* data, size_t len, uint8_t* out) noexcept {
+  return serialize_pod_array(data, len, out);
+}
+
+/**
+ * @brief Simple deserialize() - automatic multithreading for ≥64MB
+ *
+ * @param in Input buffer
+ * @param out Output buffer (must be pre-allocated)
+ * @param out_len Output: number of elements read
+ * @return Bytes consumed
+ */
+template<typename T>
+inline size_t deserialize(const uint8_t* in, T* out, size_t* out_len) noexcept {
+  return deserialize_pod_array(in, out, out_len);
+}
+
 } // namespace limcode
 
 namespace limcode {
