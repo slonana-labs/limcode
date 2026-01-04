@@ -22,6 +22,14 @@ pub mod ultra_fast;
 #[cfg(feature = "solana")]
 pub mod snapshot;
 
+// Re-export snapshot types for convenience
+#[cfg(feature = "solana")]
+pub use snapshot::{
+    extract_snapshot, parse_appendvec, parse_snapshot, snapshot_stats, stream_snapshot,
+    stream_snapshot_full, FullSnapshotIterator, SnapshotAccount, SnapshotItem, SnapshotManifest,
+    SnapshotStats, StatusCacheEntry,
+};
+
 // Re-export main API
 pub use deserializer::{
     deserialize, deserialize_pod, deserialize_pod_borrowed, from_bytes, Error as DeError,

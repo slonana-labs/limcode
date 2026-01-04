@@ -2,6 +2,29 @@
 //!
 //! Fast parsing and streaming of Solana snapshot archives (.tar.zst)
 //! Optimized for minimal memory usage and maximum throughput
+//!
+//! # Snapshot Structure
+//!
+//! A Solana snapshot archive contains:
+//! - `version` - Version string (e.g., "1.18.0")
+//! - `status_cache` - Slot status cache (bincode)
+//! - `snapshots/SLOT/SLOT` - Bank manifest with epoch/stake info (bincode)
+//! - `accounts/SLOT.ID` - AppendVec account storage files
+//!
+//! # Usage
+//!
+//! ```ignore
+//! use limcode::snapshot::{stream_snapshot_full, SnapshotItem};
+//!
+//! for item in stream_snapshot_full("snapshot.tar.zst")? {
+//!     match item? {
+//!         SnapshotItem::Version(v) => println!("Version: {}", v),
+//!         SnapshotItem::Manifest(m) => println!("Slot: {}", m.slot),
+//!         SnapshotItem::Account(a) => println!("Account: {:?}", a.pubkey),
+//!         _ => {}
+//!     }
+//! }
+//! ```
 
 use std::fs::File;
 use std::io::{self, BufReader, Read};
@@ -23,6 +46,57 @@ pub struct SnapshotAccount {
     pub executable: bool,
     pub hash: [u8; 32], // Account state hash
     pub data: Vec<u8>,  // Variable length
+}
+
+/// Snapshot manifest containing bank state metadata
+///
+/// Extracted from snapshots/SLOT/SLOT file (bincode serialized)
+#[derive(Debug, Clone)]
+pub struct SnapshotManifest {
+    pub slot: u64,
+    pub bank_hash: [u8; 32],
+    pub parent_slot: u64,
+    pub epoch: u64,
+    pub block_height: u64,
+    /// Raw manifest data for advanced parsing
+    pub raw_data: Vec<u8>,
+}
+
+/// Status cache entry from snapshot
+#[derive(Debug, Clone)]
+pub struct StatusCacheEntry {
+    pub slot: u64,
+    pub hash: [u8; 32],
+    /// Raw status data
+    pub data: Vec<u8>,
+}
+
+/// Items yielded by full snapshot streaming
+#[derive(Debug)]
+pub enum SnapshotItem {
+    /// Snapshot version string (e.g., "1.18.0")
+    Version(String),
+    /// Bank manifest with slot/epoch metadata
+    Manifest(SnapshotManifest),
+    /// Status cache data
+    StatusCache(Vec<u8>),
+    /// Individual account from AppendVec
+    Account(SnapshotAccount),
+    /// Unknown/other file in archive
+    OtherFile { path: String, data: Vec<u8> },
+}
+
+/// Summary statistics from snapshot
+#[derive(Debug, Clone, Default)]
+pub struct SnapshotStats {
+    pub version: String,
+    pub slot: u64,
+    pub epoch: u64,
+    pub total_accounts: u64,
+    pub total_lamports: u64,
+    pub total_data_bytes: u64,
+    pub executable_accounts: u64,
+    pub max_account_size: usize,
 }
 
 /// AppendVec account header (136 bytes) - kept for documentation
@@ -279,6 +353,280 @@ pub fn extract_snapshot<P: AsRef<Path>>(snapshot_path: P, output_dir: P) -> io::
     archive.unpack(&output_dir)?;
 
     Ok(0) // Return account count if needed
+}
+
+/// Parse manifest file to extract slot, epoch, and bank hash
+///
+/// The manifest is bincode-serialized BankFields. We extract key fields
+/// without requiring the full Solana SDK types.
+#[cfg(feature = "solana")]
+fn parse_manifest(data: &[u8]) -> io::Result<SnapshotManifest> {
+    // Manifest structure (simplified):
+    // - First 8 bytes: slot (u64)
+    // - Various fields...
+    // - Bank hash at a known offset
+    //
+    // Note: Full parsing requires matching exact Solana version's struct layout
+    // For now we extract what we can reliably
+
+    if data.len() < 48 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Manifest too small",
+        ));
+    }
+
+    // Read slot (first u64 in most versions)
+    let slot = u64::from_le_bytes(data[0..8].try_into().unwrap());
+
+    // Parent slot is typically next
+    let parent_slot = if data.len() >= 16 {
+        u64::from_le_bytes(data[8..16].try_into().unwrap())
+    } else {
+        0
+    };
+
+    // Try to find bank hash (32 bytes, usually early in the struct)
+    // This is a heuristic - exact offset varies by version
+    let mut bank_hash = [0u8; 32];
+    if data.len() >= 48 {
+        bank_hash.copy_from_slice(&data[16..48]);
+    }
+
+    // Epoch is harder to locate without full struct knowledge
+    // We'll set it to 0 and let users parse raw_data if needed
+    let epoch = 0;
+    let block_height = 0;
+
+    Ok(SnapshotManifest {
+        slot,
+        bank_hash,
+        parent_slot,
+        epoch,
+        block_height,
+        raw_data: data.to_vec(),
+    })
+}
+
+/// Full snapshot iterator that yields all data types
+pub struct FullSnapshotIterator<R: Read + 'static> {
+    tar_entries: tar::Entries<'static, R>,
+    current_appendvec: Vec<u8>,
+    current_offset: usize,
+    pending_items: Vec<SnapshotItem>,
+    _archive: Box<Archive<R>>,
+}
+
+#[cfg(feature = "solana")]
+unsafe impl<R: Read + 'static> Send for FullSnapshotIterator<R> {}
+
+#[cfg(feature = "solana")]
+impl<R: Read + 'static> Iterator for FullSnapshotIterator<R> {
+    type Item = io::Result<SnapshotItem>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        const HEADER_SIZE: usize = 136;
+
+        // Return pending items first (from non-account files)
+        if let Some(item) = self.pending_items.pop() {
+            return Some(Ok(item));
+        }
+
+        loop {
+            // Try to parse next account from current AppendVec buffer
+            if self.current_offset + HEADER_SIZE <= self.current_appendvec.len() {
+                let data = &self.current_appendvec;
+                let offset = self.current_offset;
+
+                let write_version =
+                    u64::from_le_bytes(data[offset..offset + 0x08].try_into().unwrap());
+                let data_len =
+                    u64::from_le_bytes(data[offset + 0x08..offset + 0x10].try_into().unwrap())
+                        as usize;
+
+                let mut pubkey = [0u8; 32];
+                pubkey.copy_from_slice(&data[offset + 0x10..offset + 0x30]);
+
+                let lamports =
+                    u64::from_le_bytes(data[offset + 0x30..offset + 0x38].try_into().unwrap());
+                let rent_epoch =
+                    u64::from_le_bytes(data[offset + 0x38..offset + 0x40].try_into().unwrap());
+
+                let mut owner = [0u8; 32];
+                owner.copy_from_slice(&data[offset + 0x40..offset + 0x60]);
+
+                let executable = data[offset + 0x60] != 0;
+
+                let mut hash = [0u8; 32];
+                hash.copy_from_slice(&data[offset + 0x68..offset + 0x88]);
+
+                self.current_offset += HEADER_SIZE;
+
+                if self.current_offset + data_len > data.len() {
+                    self.current_appendvec.clear();
+                    self.current_offset = 0;
+                    continue;
+                }
+
+                let account_data =
+                    data[self.current_offset..self.current_offset + data_len].to_vec();
+                self.current_offset += data_len;
+
+                let padding = (8 - (self.current_offset % 8)) % 8;
+                self.current_offset += padding;
+
+                return Some(Ok(SnapshotItem::Account(SnapshotAccount {
+                    write_version,
+                    pubkey,
+                    lamports,
+                    rent_epoch,
+                    owner,
+                    executable,
+                    hash,
+                    data: account_data,
+                })));
+            }
+
+            // Load next file from archive
+            let mut entry = match self.tar_entries.next()? {
+                Ok(e) => e,
+                Err(e) => return Some(Err(e)),
+            };
+
+            let path = match entry.path() {
+                Ok(p) => p.to_string_lossy().to_string(),
+                Err(_) => continue,
+            };
+
+            // Read file content
+            let mut content = Vec::new();
+            if entry.read_to_end(&mut content).is_err() {
+                continue;
+            }
+
+            // Classify and handle file
+            if path == "version" {
+                // Version file - simple text
+                let version = String::from_utf8_lossy(&content).trim().to_string();
+                return Some(Ok(SnapshotItem::Version(version)));
+            } else if path == "status_cache" {
+                // Status cache - raw binary
+                return Some(Ok(SnapshotItem::StatusCache(content)));
+            } else if path.starts_with("snapshots/") && !path.ends_with('/') {
+                // Manifest file (snapshots/SLOT/SLOT)
+                // Only parse if it looks like a manifest (not a subdirectory marker)
+                let parts: Vec<&str> = path.split('/').collect();
+                // Format: snapshots/SLOT/SLOT - the filename should match the slot number
+                if parts.len() == 3 && parts[1] == parts[2] && !content.is_empty() {
+                    match parse_manifest(&content) {
+                        Ok(manifest) => return Some(Ok(SnapshotItem::Manifest(manifest))),
+                        Err(_) => {
+                            // If manifest parsing fails, return raw data
+                            return Some(Ok(SnapshotItem::OtherFile {
+                                path,
+                                data: content,
+                            }));
+                        }
+                    }
+                } else if !content.is_empty() {
+                    // Other file in snapshots directory
+                    return Some(Ok(SnapshotItem::OtherFile {
+                        path,
+                        data: content,
+                    }));
+                }
+            } else if path.starts_with("accounts/") {
+                // AppendVec file - start parsing accounts
+                self.current_appendvec = content;
+                self.current_offset = 0;
+                continue;
+            } else if !path.ends_with('/') {
+                // Other file
+                return Some(Ok(SnapshotItem::OtherFile {
+                    path,
+                    data: content,
+                }));
+            }
+        }
+    }
+}
+
+/// Stream all data from Solana snapshot archive
+///
+/// Unlike `stream_snapshot` which only yields accounts, this function
+/// yields all snapshot contents including version, manifest, and status cache.
+///
+/// # Example
+///
+/// ```ignore
+/// use limcode::snapshot::{stream_snapshot_full, SnapshotItem};
+///
+/// for item in stream_snapshot_full("snapshot.tar.zst")? {
+///     match item? {
+///         SnapshotItem::Version(v) => println!("Solana version: {}", v),
+///         SnapshotItem::Manifest(m) => {
+///             println!("Slot: {}", m.slot);
+///             println!("Parent: {}", m.parent_slot);
+///         }
+///         SnapshotItem::StatusCache(data) => println!("Status cache: {} bytes", data.len()),
+///         SnapshotItem::Account(acc) => {
+///             println!("Account {} has {} lamports", hex(&acc.pubkey), acc.lamports);
+///         }
+///         SnapshotItem::OtherFile { path, .. } => println!("Other: {}", path),
+///     }
+/// }
+/// ```
+#[cfg(feature = "solana")]
+pub fn stream_snapshot_full<P: AsRef<Path>>(
+    path: P,
+) -> io::Result<impl Iterator<Item = io::Result<SnapshotItem>>> {
+    let file = File::open(path)?;
+    let buf_reader = BufReader::with_capacity(4 * 1024 * 1024, file);
+    let decoder = ZstdDecoder::new(buf_reader)?;
+    let archive = Box::new(Archive::new(decoder));
+
+    let archive_ptr = Box::into_raw(archive);
+    let entries = unsafe { (*archive_ptr).entries()? };
+    let archive = unsafe { Box::from_raw(archive_ptr) };
+
+    Ok(FullSnapshotIterator {
+        #[allow(clippy::missing_transmute_annotations)]
+        tar_entries: unsafe { std::mem::transmute(entries) },
+        current_appendvec: Vec::with_capacity(64 * 1024 * 1024),
+        current_offset: 0,
+        pending_items: Vec::new(),
+        _archive: archive,
+    })
+}
+
+/// Get snapshot statistics without loading all data into memory
+#[cfg(feature = "solana")]
+pub fn snapshot_stats<P: AsRef<Path>>(path: P) -> io::Result<SnapshotStats> {
+    let mut stats = SnapshotStats::default();
+
+    for item in stream_snapshot_full(path)? {
+        match item? {
+            SnapshotItem::Version(v) => stats.version = v,
+            SnapshotItem::Manifest(m) => {
+                stats.slot = m.slot;
+                stats.epoch = m.epoch;
+            }
+            SnapshotItem::Account(acc) => {
+                stats.total_accounts += 1;
+                stats.total_lamports += acc.lamports;
+                stats.total_data_bytes += acc.data.len() as u64;
+                if acc.executable {
+                    stats.executable_accounts += 1;
+                }
+                if acc.data.len() > stats.max_account_size {
+                    stats.max_account_size = acc.data.len();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(stats)
 }
 
 /// Parallel snapshot processing (high throughput)
