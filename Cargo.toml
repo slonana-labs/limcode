@@ -52,7 +52,7 @@ solana = ["tar", "zstd", "flate2"]  # Solana snapshot support
 opt-level = 3
 lto = false  # Disabled: conflicts with C++ FFI linking
 codegen-units = 1
-panic = "abort"
+# NOTE: panic = "abort" removed - incompatible with tests
 strip = false
 
 [profile.bench]
