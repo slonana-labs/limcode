@@ -12,6 +12,120 @@ Limcode is a fully bincode-compatible serialization library optimized for zero-c
 - **6.4x faster** - Buffer reuse API eliminates allocation overhead
 - **Cross-platform** - Rust and C++ bindings, tested on x86-64 and ARM
 
+## 🤖 Integration Guide (For Agents/Developers)
+
+Already using another serialization library? Here's how to migrate to limcode:
+
+### From bincode
+
+**Rust:**
+```rust
+// Before
+use bincode;
+let bytes = bincode::serialize(&data)?;
+let decoded: MyType = bincode::deserialize(&bytes)?;
+
+// After (drop-in replacement)
+use limcode;
+let bytes = limcode::serialize(&data)?;
+let decoded: MyType = limcode::deserialize(&bytes)?;
+```
+
+**C++:**
+```cpp
+// Before: Using bincode via Rust FFI or custom implementation
+
+// After: Direct C++ API with automatic multithreading
+#include <limcode/limcode.h>
+uint64_t data[1000];
+uint8_t buffer[8008];
+limcode::serialize(data, 1000, buffer);
+size_t len;
+limcode::deserialize(buffer, data, &len);
+```
+
+### From wincode
+
+**Rust:**
+```rust
+// Before
+use wincode;
+let bytes = wincode::serialize(&data)?;
+let decoded: MyType = wincode::deserialize(&bytes)?;
+
+// After (faster serialization, compatible format)
+use limcode;
+let bytes = limcode::serialize(&data)?;  // 2.1x faster than wincode
+let decoded: MyType = limcode::deserialize(&bytes)?;
+```
+
+### From serde_json
+
+**Rust:**
+```rust
+// Before (text-based, slower)
+use serde_json;
+let json = serde_json::to_string(&data)?;
+let decoded: MyType = serde_json::from_str(&json)?;
+
+// After (binary, 50-100x faster)
+use limcode;
+let bytes = limcode::serialize(&data)?;
+let decoded: MyType = limcode::deserialize(&bytes)?;
+```
+
+### From postcard
+
+**Rust:**
+```rust
+// Before
+use postcard;
+let bytes = postcard::to_allocvec(&data)?;
+let decoded: MyType = postcard::from_bytes(&bytes)?;
+
+// After (faster for large data, bincode-compatible)
+use limcode;
+let bytes = limcode::serialize(&data)?;
+let decoded: MyType = limcode::deserialize(&bytes)?;
+```
+
+### From MessagePack (rmp)
+
+**Rust:**
+```rust
+// Before
+use rmp_serde;
+let bytes = rmp_serde::to_vec(&data)?;
+let decoded: MyType = rmp_serde::from_slice(&bytes)?;
+
+// After (faster, simpler format)
+use limcode;
+let bytes = limcode::serialize(&data)?;
+let decoded: MyType = limcode::deserialize(&bytes)?;
+```
+
+### Performance Comparison
+
+| Format | Serialize (GB/s) | Deserialize (GB/s) | Size Overhead |
+|--------|------------------|--------------------| --------------|
+| **limcode** | **147.91** | **129.37** | Minimal (8-byte header) |
+| bincode | 15.96 | 15.92 | Minimal |
+| wincode | 71.72 | Zero-copy* | Minimal |
+| serde_json | ~0.5 | ~0.3 | Large (text) |
+| postcard | ~20 | ~25 | Minimal |
+| MessagePack | ~10 | ~12 | Minimal |
+
+*Benchmark @ 1KB data. See [Performance](#performance) for full results.*
+
+### Migration Checklist
+
+- [ ] Replace dependency in `Cargo.toml`: `limcode = "0.1.5"`
+- [ ] Update imports: `use limcode::{serialize, deserialize};`
+- [ ] Replace serialization calls (usually just changing the crate name)
+- [ ] Test with existing data (limcode is bincode-compatible)
+- [ ] Run benchmarks to verify performance gains
+- [ ] For C++: Use simple API `limcode::serialize()` / `limcode::deserialize()`
+
 ## Quick Start
 
 Add to `Cargo.toml`:
