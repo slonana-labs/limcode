@@ -317,15 +317,21 @@ let decoded: Vec<u64> = deserialize_pod_safe(&safe).unwrap();
 ### Solana Snapshot Parsing
 
 ```rust
-use limcode::snapshot::parse_snapshot;
+use limcode::snapshot::stream_snapshot;
 
 // Enable with: cargo build --features solana
 
-let accounts = parse_snapshot("snapshot-123-aBcD.tar.zst").unwrap();
-for account in accounts {
-    println!("Pubkey: {:?}, Lamports: {}", account.pubkey, account.lamports);
+// RECOMMENDED: Stream for 1.5B+ accounts (memory-efficient)
+for account_result in stream_snapshot("snapshot-123-aBcD.tar.zst")? {
+    let acc = account_result?;
+    db.insert(acc.pubkey, acc)?; // Process directly to database
 }
-// Memory-efficient streaming decompression for Solana validators
+
+// Alternative: Load all into memory (use only for small snapshots)
+let accounts = limcode::snapshot::parse_snapshot("snapshot.tar.zst")?;
+
+// Real Solana format: 97-byte AppendVec headers + variable data
+// Files in accounts/ directory, manifest in snapshots/SLOT/SLOT
 ```
 
 ## Performance

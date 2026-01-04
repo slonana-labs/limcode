@@ -7,36 +7,57 @@
 //! Run with: cargo run --release --features solana --example snapshot_demo
 
 #[cfg(feature = "solana")]
-use limcode::snapshot::{parse_snapshot, extract_snapshot, SnapshotAccount};
+use limcode::snapshot::{stream_snapshot, parse_snapshot, extract_snapshot, SnapshotAccount};
 
 #[cfg(feature = "solana")]
 fn main() -> std::io::Result<()> {
     println!("Limcode Solana Snapshot Parser Demo\n");
+    println!("⚠️  Real Solana snapshot format:");
+    println!("   - AppendVec files: 97-byte headers + variable data");
+    println!("   - Files in accounts/ directory (not .account extension)");
+    println!("   - Requires manifest for full parsing\n");
 
-    // Example 1: Parse snapshot and iterate through accounts
-    println!("Example 1: Parse snapshot (simulated - provide real path)");
+    // Example 1: Stream accounts (RECOMMENDED for 1.5B+ accounts)
+    println!("Example 1: Stream accounts (memory-efficient)");
     println!("-----------------------------------------------------------");
 
     let snapshot_path = "snapshot-123-aBcDeF.tar.zst"; // Replace with actual path
 
-    match parse_snapshot(&snapshot_path) {
-        Ok(accounts) => {
-            println!("Successfully parsed {} accounts", accounts.len());
+    match stream_snapshot(&snapshot_path) {
+        Ok(iterator) => {
+            let mut count = 0u64;
+            let mut total_lamports = 0u64;
+            let mut executable_count = 0u64;
 
-            // Display first 5 accounts
-            for (i, account) in accounts.iter().take(5).enumerate() {
-                print_account(i, account);
+            println!("Streaming accounts (one at a time, minimal memory)...");
+
+            for (i, account_result) in iterator.enumerate() {
+                match account_result {
+                    Ok(account) => {
+                        count += 1;
+                        total_lamports += account.lamports;
+                        if account.executable {
+                            executable_count += 1;
+                        }
+
+                        // Show first 5 accounts
+                        if i < 5 {
+                            print_account(i, &account);
+                        }
+
+                        // Process to database here: db.insert(account.pubkey, account)?;
+                    }
+                    Err(e) => {
+                        println!("Error reading account {}: {}", i, e);
+                    }
+                }
             }
 
-            // Statistics
-            let total_lamports: u64 = accounts.iter().map(|a| a.lamports).sum();
-            let executable_count = accounts.iter().filter(|a| a.executable).count();
-
             println!("\nStatistics:");
-            println!("  Total accounts: {}", accounts.len());
+            println!("  Total accounts: {}", count);
             println!("  Total lamports: {}", total_lamports);
             println!("  Executable accounts: {}", executable_count);
-            println!("  Data accounts: {}", accounts.len() - executable_count);
+            println!("  Data accounts: {}", count - executable_count);
         }
         Err(e) => {
             println!("Error: {}", e);
