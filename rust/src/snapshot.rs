@@ -136,7 +136,7 @@ impl<R: Read + 'static> Iterator for SnapshotAccountIterator<R> {
 
                 // Read 136-byte header
                 let write_version =
-                    u64::from_le_bytes(data[offset + 0x00..offset + 0x08].try_into().unwrap());
+                    u64::from_le_bytes(data[offset..offset + 0x08].try_into().unwrap());
                 let data_len =
                     u64::from_le_bytes(data[offset + 0x08..offset + 0x10].try_into().unwrap())
                         as usize;
@@ -254,6 +254,7 @@ pub fn stream_snapshot<P: AsRef<Path>>(
     let archive = unsafe { Box::from_raw(archive_ptr) };
 
     Ok(SnapshotAccountIterator {
+        #[allow(clippy::missing_transmute_annotations)]
         tar_entries: unsafe { std::mem::transmute(entries) },
         current_appendvec: Vec::with_capacity(64 * 1024 * 1024), // 64MB buffer per file
         current_offset: 0,
