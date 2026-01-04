@@ -34,6 +34,20 @@ pub use serializer::{
     PodType,
 };
 
+// Async API (requires "async" feature)
+#[cfg(feature = "async")]
+pub use serializer::{serialize_pod_async, serialize_pod_batch_async};
+
+// Migration features (optional)
+#[cfg(feature = "compression")]
+pub use serializer::{serialize_pod_compressed, deserialize_pod_compressed};
+
+#[cfg(feature = "checksum")]
+pub use serializer::{serialize_pod_with_checksum, deserialize_pod_with_checksum};
+
+#[cfg(all(feature = "compression", feature = "checksum"))]
+pub use serializer::{serialize_pod_safe, deserialize_pod_safe};
+
 // ==================== FFI Bindings ====================
 
 use std::os::raw::c_int;

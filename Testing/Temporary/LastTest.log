@@ -1,0 +1,35 @@
+Start testing: Jan 04 06:47 MSK
+----------------------------------------------------------
+Unable to find executable: /home/larp/slonana-labs/limcode/limcode_tests
+1/2 Testing: limcode_tests
+1/2 Test: limcode_tests
+Command: ""
+Directory: /home/larp/slonana-labs/limcode
+"limcode_tests" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"limcode_tests" end time: Jan 04 06:47 MSK
+"limcode_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /home/larp/slonana-labs/limcode/cpp_bincode_compat
+2/2 Testing: cpp_bincode_compat
+2/2 Test: cpp_bincode_compat
+Command: ""
+Directory: /home/larp/slonana-labs/limcode
+"cpp_bincode_compat" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"cpp_bincode_compat" end time: Jan 04 06:47 MSK
+"cpp_bincode_compat" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jan 04 06:47 MSK
