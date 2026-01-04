@@ -869,7 +869,9 @@ pub fn serialize_pod_parallel<T: PodType + Sync>(vec: &[T]) -> Result<Vec<u8>, E
 /// ```
 pub async fn serialize_pod_async<T: PodType + Send + 'static>(vec: &[T]) -> Result<Vec<u8>, Error> {
     let vec_clone = vec.to_vec();
-    tokio::task::spawn_blocking(move || serialize_pod(&vec_clone)).await.unwrap()
+    tokio::task::spawn_blocking(move || serialize_pod(&vec_clone))
+        .await
+        .unwrap()
 }
 
 #[cfg(feature = "async")]
@@ -976,8 +978,7 @@ pub fn deserialize_pod_with_checksum<T: PodType>(data: &[u8]) -> Result<Vec<T>, 
         )));
     }
 
-    crate::deserializer::deserialize_pod(payload)
-        .map_err(|e| Error::Message(format!("{:?}", e)))
+    crate::deserializer::deserialize_pod(payload).map_err(|e| Error::Message(format!("{:?}", e)))
 }
 
 #[cfg(all(feature = "compression", feature = "checksum"))]

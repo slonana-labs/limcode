@@ -1,5 +1,5 @@
-use std::time::Instant;
 use std::hint::black_box;
+use std::time::Instant;
 
 fn main() {
     let data: Vec<u64> = (0..1000).collect();
@@ -32,13 +32,27 @@ fn main() {
     println!("\n═══════════════════════════════════════════════════");
     println!("  Rust Limcode vs Wincode (1000 u64 = 8KB)");
     println!("═══════════════════════════════════════════════════\n");
-    println!("limcode: {}ns ({:.2} GiB/s)", limcode_ns, (8000.0 / limcode_ns as f64));
-    println!("wincode: {}ns ({:.2} GiB/s)", wincode_ns, (8000.0 / wincode_ns as f64));
+    println!(
+        "limcode: {}ns ({:.2} GiB/s)",
+        limcode_ns,
+        (8000.0 / limcode_ns as f64)
+    );
+    println!(
+        "wincode: {}ns ({:.2} GiB/s)",
+        wincode_ns,
+        (8000.0 / wincode_ns as f64)
+    );
     println!();
 
     if limcode_ns < wincode_ns {
-        println!("✓ limcode is {:.1}% FASTER", ((wincode_ns - limcode_ns) as f64 / wincode_ns as f64) * 100.0);
+        println!(
+            "✓ limcode is {:.1}% FASTER",
+            ((wincode_ns - limcode_ns) as f64 / wincode_ns as f64) * 100.0
+        );
     } else {
-        println!("✗ wincode is {:.1}% FASTER", ((limcode_ns - wincode_ns) as f64 / limcode_ns as f64) * 100.0);
+        println!(
+            "✗ wincode is {:.1}% FASTER",
+            ((limcode_ns - wincode_ns) as f64 / limcode_ns as f64) * 100.0
+        );
     }
 }

@@ -69,7 +69,9 @@ fn format_size(bytes: usize) -> String {
 
 fn main() {
     println!("\n═══════════════════════════════════════════════════════════════════════════");
-    println!("  Complete Performance Comparison: C++ Limcode vs Rust Limcode vs Wincode vs Bincode");
+    println!(
+        "  Complete Performance Comparison: C++ Limcode vs Rust Limcode vs Wincode vs Bincode"
+    );
     println!("═══════════════════════════════════════════════════════════════════════════\n");
 
     let sizes = vec![
@@ -103,19 +105,12 @@ fn main() {
         // === SERIALIZATION ===
 
         // C++ Limcode serialize
-        let cpp_limcode_ser = benchmark_operation(iterations, || {
-            unsafe {
-                let mut out_ptr: *mut u8 = std::ptr::null_mut();
-                let mut out_len: usize = 0;
-                limcode_cpp_serialize_u8_vec(
-                    data.as_ptr(),
-                    data.len(),
-                    &mut out_ptr,
-                    &mut out_len,
-                );
-                if !out_ptr.is_null() {
-                    limcode_cpp_free(out_ptr);
-                }
+        let cpp_limcode_ser = benchmark_operation(iterations, || unsafe {
+            let mut out_ptr: *mut u8 = std::ptr::null_mut();
+            let mut out_len: usize = 0;
+            limcode_cpp_serialize_u8_vec(data.as_ptr(), data.len(), &mut out_ptr, &mut out_len);
+            if !out_ptr.is_null() {
+                limcode_cpp_free(out_ptr);
             }
         });
 
@@ -161,17 +156,15 @@ fn main() {
         let bincode_encoded = bincode::serialize(&data).unwrap();
 
         // C++ Limcode deserialize
-        let cpp_limcode_de = benchmark_operation(iterations, || {
-            unsafe {
-                let mut out_ptr: *const u8 = std::ptr::null();
-                let mut out_len: usize = 0;
-                limcode_cpp_deserialize_u8_vec(
-                    cpp_encoded_ptr,
-                    cpp_encoded_len,
-                    &mut out_ptr,
-                    &mut out_len,
-                );
-            }
+        let cpp_limcode_de = benchmark_operation(iterations, || unsafe {
+            let mut out_ptr: *const u8 = std::ptr::null();
+            let mut out_len: usize = 0;
+            limcode_cpp_deserialize_u8_vec(
+                cpp_encoded_ptr,
+                cpp_encoded_len,
+                &mut out_ptr,
+                &mut out_len,
+            );
         });
 
         // Rust Limcode deserialize
@@ -309,9 +302,14 @@ fn main() {
         .unwrap();
     let (max_name, max_size, _, _, _, _) = throughput_results[max_cpp_idx];
 
-    println!("✅ **C++ Limcode Peak Throughput**: {:.2} GB/s @ {} blocks", max_cpp_tp, max_name);
+    println!(
+        "✅ **C++ Limcode Peak Throughput**: {:.2} GB/s @ {} blocks",
+        max_cpp_tp, max_name
+    );
     println!("✅ **C++ Limcode** is the fastest implementation across all sizes");
-    println!("✅ **Rust Limcode** uses FFI to call C++, adding overhead (~2x slower on small data)");
+    println!(
+        "✅ **Rust Limcode** uses FFI to call C++, adding overhead (~2x slower on small data)"
+    );
     println!("✅ **Wincode** is pure Rust but slower than C++ limcode on roundtrip (zero-copy advantage)");
     println!("✅ **All three** destroy Bincode by 2-400x on serialization and deserialization");
     println!("\n📊 Benchmark completed successfully!\n");

@@ -55,7 +55,11 @@ fn main() -> std::io::Result<()> {
 
                         // Progress every 10k accounts
                         if count % 10000 == 0 {
-                            println!("Processed {} accounts... ({:.2}s)", count, start.elapsed().as_secs_f64());
+                            println!(
+                                "Processed {} accounts... ({:.2}s)",
+                                count,
+                                start.elapsed().as_secs_f64()
+                            );
                         }
                     }
                     Err(e) => {
@@ -69,12 +73,18 @@ fn main() -> std::io::Result<()> {
             println!("\n=== RESULTS ===");
             println!("Total accounts: {}", count);
             println!("Total lamports: {} SOL", total_lamports as f64 / 1e9);
-            println!("Total data: {:.2} MB", total_data_bytes as f64 / 1_000_000.0);
+            println!(
+                "Total data: {:.2} MB",
+                total_data_bytes as f64 / 1_000_000.0
+            );
             println!("Executable accounts: {}", executable_count);
             println!("Data accounts: {}", count - executable_count);
             println!("Max account data size: {} bytes", max_data_size);
             println!("Time: {:.2}s", elapsed.as_secs_f64());
-            println!("Speed: {:.0} accounts/sec", count as f64 / elapsed.as_secs_f64());
+            println!(
+                "Speed: {:.0} accounts/sec",
+                count as f64 / elapsed.as_secs_f64()
+            );
         }
         Err(e) => {
             println!("ERROR opening snapshot: {}", e);

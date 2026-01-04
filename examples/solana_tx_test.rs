@@ -2,11 +2,11 @@
 
 use solana_sdk::{
     hash::Hash,
+    instruction::{AccountMeta, Instruction},
     message::{v0, VersionedMessage},
     pubkey::Pubkey,
     signature::Signature,
     transaction::VersionedTransaction,
-    instruction::{AccountMeta, Instruction},
 };
 use std::fs;
 
@@ -112,7 +112,10 @@ fn main() {
     let batch: Vec<VersionedTransaction> = (0..100).map(|_| create_simple_transfer_tx()).collect();
     let wincode_batch = wincode::serialize(&batch).unwrap();
     fs::write("/tmp/solana_batch_100.bin", &wincode_batch).unwrap();
-    println!("✓ /tmp/solana_batch_100.bin: {} bytes (wincode)", wincode_batch.len());
+    println!(
+        "✓ /tmp/solana_batch_100.bin: {} bytes (wincode)",
+        wincode_batch.len()
+    );
 
     println!("\nAll Solana test data generated!");
 }

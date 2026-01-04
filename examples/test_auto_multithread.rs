@@ -15,7 +15,9 @@ fn main() {
     println!("|--------|--------------------| -----------------|");
 
     for (num_elements, name, mode) in sizes {
-        let data: Vec<u64> = (0..num_elements).map(|i| 0xABCDEF0123456789u64 + i).collect();
+        let data: Vec<u64> = (0..num_elements)
+            .map(|i| 0xABCDEF0123456789u64 + i)
+            .collect();
         let data_bytes = num_elements * 8;
 
         // Warmup
@@ -34,10 +36,7 @@ fn main() {
         let ns_per_op = elapsed.as_nanos() as f64 / iterations as f64;
         let gbps = (data_bytes as f64) / ns_per_op;
 
-        println!(
-            "| {:6} | {:18} | {:16.2} |",
-            name, mode, gbps
-        );
+        println!("| {:6} | {:18} | {:16.2} |", name, mode, gbps);
     }
 
     println!("\n✅ Same API: serialize_pod() automatically uses multithreading for ≥64MB");

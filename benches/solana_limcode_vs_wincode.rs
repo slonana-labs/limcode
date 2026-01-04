@@ -1,11 +1,11 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use solana_sdk::{
     hash::Hash,
+    instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
     signature::Signature,
-    transaction::Transaction,
     system_instruction,
-    instruction::{Instruction, AccountMeta},
+    transaction::Transaction,
 };
 
 fn create_simple_transfer() -> Vec<u8> {
@@ -130,23 +130,31 @@ fn bench_batch(c: &mut Criterion) {
 
         group.throughput(Throughput::Bytes(total_size as u64));
 
-        group.bench_with_input(BenchmarkId::new("limcode", batch_size), batch_size, |b, _| {
-            b.iter(|| {
-                for tx in &txs {
-                    let bytes = limcode::serialize_pod(black_box(tx)).unwrap();
-                    black_box(bytes);
-                }
-            });
-        });
+        group.bench_with_input(
+            BenchmarkId::new("limcode", batch_size),
+            batch_size,
+            |b, _| {
+                b.iter(|| {
+                    for tx in &txs {
+                        let bytes = limcode::serialize_pod(black_box(tx)).unwrap();
+                        black_box(bytes);
+                    }
+                });
+            },
+        );
 
-        group.bench_with_input(BenchmarkId::new("wincode", batch_size), batch_size, |b, _| {
-            b.iter(|| {
-                for tx in &txs {
-                    let bytes = wincode::serialize(black_box(tx)).unwrap();
-                    black_box(bytes);
-                }
-            });
-        });
+        group.bench_with_input(
+            BenchmarkId::new("wincode", batch_size),
+            batch_size,
+            |b, _| {
+                b.iter(|| {
+                    for tx in &txs {
+                        let bytes = wincode::serialize(black_box(tx)).unwrap();
+                        black_box(bytes);
+                    }
+                });
+            },
+        );
     }
 
     group.finish();

@@ -9,11 +9,17 @@ fn main() {
     let tx_bincode = fs::read("/tmp/solana_tx_bincode.bin")
         .expect("Failed to read /tmp/solana_tx_bincode.bin - run solana_bincode_test first!");
 
-    println!("Original Solana transaction (bincode): {} bytes", tx_bincode.len());
+    println!(
+        "Original Solana transaction (bincode): {} bytes",
+        tx_bincode.len()
+    );
 
     // When we serialize Vec<u8> with bincode, it adds 8-byte length prefix
     let expected = bincode::serialize(&tx_bincode).unwrap();
-    println!("Expected serialization: {} bytes (tx + 8-byte length)", expected.len());
+    println!(
+        "Expected serialization: {} bytes (tx + 8-byte length)",
+        expected.len()
+    );
 
     // Read C++ limcode output (should have been written by cpp_solana_test)
     // For this test, we'll serialize it here with Rust bincode and compare

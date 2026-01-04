@@ -15,30 +15,30 @@ use zstd::stream::read::Decoder as ZstdDecoder;
 /// Solana account data from snapshot AppendVec format
 #[derive(Debug, Clone)]
 pub struct SnapshotAccount {
-    pub write_version: u64,      // Obsolete but present in format
+    pub write_version: u64, // Obsolete but present in format
     pub pubkey: [u8; 32],
     pub lamports: u64,
     pub rent_epoch: u64,
     pub owner: [u8; 32],
     pub executable: bool,
-    pub hash: [u8; 32],         // Account state hash
-    pub data: Vec<u8>,          // Variable length
+    pub hash: [u8; 32], // Account state hash
+    pub data: Vec<u8>,  // Variable length
 }
 
 /// AppendVec account header (136 bytes) - kept for documentation
 #[allow(dead_code)]
 #[repr(C, packed)]
 struct AccountHeader {
-    write_version: u64,          // 8 bytes - offset 0x00
-    data_len: u64,              // 8 bytes - offset 0x08
-    pubkey: [u8; 32],           // 32 bytes - offset 0x10
-    lamports: u64,              // 8 bytes - offset 0x30
-    rent_epoch: u64,            // 8 bytes - offset 0x38
-    owner: [u8; 32],            // 32 bytes - offset 0x40
-    executable: u8,             // 1 byte - offset 0x60
-    padding: [u8; 7],           // 7 bytes - offset 0x61
-    hash: [u8; 32],             // 32 bytes - offset 0x68
-    // Total: 136 bytes (0x88)
+    write_version: u64, // 8 bytes - offset 0x00
+    data_len: u64,      // 8 bytes - offset 0x08
+    pubkey: [u8; 32],   // 32 bytes - offset 0x10
+    lamports: u64,      // 8 bytes - offset 0x30
+    rent_epoch: u64,    // 8 bytes - offset 0x38
+    owner: [u8; 32],    // 32 bytes - offset 0x40
+    executable: u8,     // 1 byte - offset 0x60
+    padding: [u8; 7],   // 7 bytes - offset 0x61
+    hash: [u8; 32],     // 32 bytes - offset 0x68
+                        // Total: 136 bytes (0x88)
 }
 
 /// Parse accounts from AppendVec file data
@@ -59,23 +59,25 @@ pub fn parse_appendvec(data: &[u8]) -> io::Result<Vec<SnapshotAccount>> {
 
     while offset + HEADER_SIZE <= data.len() {
         // Read 136-byte header
-        let write_version = u64::from_le_bytes(data[offset+0x00..offset+0x08].try_into().unwrap());
-        let data_len = u64::from_le_bytes(data[offset+0x08..offset+0x10].try_into().unwrap()) as usize;
+        let write_version =
+            u64::from_le_bytes(data[offset + 0x00..offset + 0x08].try_into().unwrap());
+        let data_len =
+            u64::from_le_bytes(data[offset + 0x08..offset + 0x10].try_into().unwrap()) as usize;
 
         let mut pubkey = [0u8; 32];
-        pubkey.copy_from_slice(&data[offset+0x10..offset+0x30]);
+        pubkey.copy_from_slice(&data[offset + 0x10..offset + 0x30]);
 
-        let lamports = u64::from_le_bytes(data[offset+0x30..offset+0x38].try_into().unwrap());
-        let rent_epoch = u64::from_le_bytes(data[offset+0x38..offset+0x40].try_into().unwrap());
+        let lamports = u64::from_le_bytes(data[offset + 0x30..offset + 0x38].try_into().unwrap());
+        let rent_epoch = u64::from_le_bytes(data[offset + 0x38..offset + 0x40].try_into().unwrap());
 
         let mut owner = [0u8; 32];
-        owner.copy_from_slice(&data[offset+0x40..offset+0x60]);
+        owner.copy_from_slice(&data[offset + 0x40..offset + 0x60]);
 
-        let executable = data[offset+0x60] != 0;
+        let executable = data[offset + 0x60] != 0;
         // Skip 7 bytes padding at offset+0x61
 
         let mut hash = [0u8; 32];
-        hash.copy_from_slice(&data[offset+0x68..offset+0x88]);
+        hash.copy_from_slice(&data[offset + 0x68..offset + 0x88]);
 
         offset += HEADER_SIZE;
 
@@ -133,23 +135,28 @@ impl<R: Read + 'static> Iterator for SnapshotAccountIterator<R> {
                 let offset = self.current_offset;
 
                 // Read 136-byte header
-                let write_version = u64::from_le_bytes(data[offset+0x00..offset+0x08].try_into().unwrap());
-                let data_len = u64::from_le_bytes(data[offset+0x08..offset+0x10].try_into().unwrap()) as usize;
+                let write_version =
+                    u64::from_le_bytes(data[offset + 0x00..offset + 0x08].try_into().unwrap());
+                let data_len =
+                    u64::from_le_bytes(data[offset + 0x08..offset + 0x10].try_into().unwrap())
+                        as usize;
 
                 let mut pubkey = [0u8; 32];
-                pubkey.copy_from_slice(&data[offset+0x10..offset+0x30]);
+                pubkey.copy_from_slice(&data[offset + 0x10..offset + 0x30]);
 
-                let lamports = u64::from_le_bytes(data[offset+0x30..offset+0x38].try_into().unwrap());
-                let rent_epoch = u64::from_le_bytes(data[offset+0x38..offset+0x40].try_into().unwrap());
+                let lamports =
+                    u64::from_le_bytes(data[offset + 0x30..offset + 0x38].try_into().unwrap());
+                let rent_epoch =
+                    u64::from_le_bytes(data[offset + 0x38..offset + 0x40].try_into().unwrap());
 
                 let mut owner = [0u8; 32];
-                owner.copy_from_slice(&data[offset+0x40..offset+0x60]);
+                owner.copy_from_slice(&data[offset + 0x40..offset + 0x60]);
 
-                let executable = data[offset+0x60] != 0;
+                let executable = data[offset + 0x60] != 0;
                 // Skip 7 bytes padding at offset+0x61
 
                 let mut hash = [0u8; 32];
-                hash.copy_from_slice(&data[offset+0x68..offset+0x88]);
+                hash.copy_from_slice(&data[offset + 0x68..offset + 0x88]);
 
                 self.current_offset += HEADER_SIZE;
 
@@ -161,7 +168,8 @@ impl<R: Read + 'static> Iterator for SnapshotAccountIterator<R> {
                     continue;
                 }
 
-                let account_data = data[self.current_offset..self.current_offset + data_len].to_vec();
+                let account_data =
+                    data[self.current_offset..self.current_offset + data_len].to_vec();
                 self.current_offset += data_len;
 
                 // 8-byte alignment padding
@@ -261,10 +269,7 @@ pub fn parse_snapshot<P: AsRef<Path>>(path: P) -> io::Result<Vec<SnapshotAccount
 
 /// Fast snapshot extraction to directory
 #[cfg(feature = "solana")]
-pub fn extract_snapshot<P: AsRef<Path>>(
-    snapshot_path: P,
-    output_dir: P,
-) -> io::Result<u64> {
+pub fn extract_snapshot<P: AsRef<Path>>(snapshot_path: P, output_dir: P) -> io::Result<u64> {
     let file = File::open(snapshot_path)?;
     let buf_reader = BufReader::with_capacity(1024 * 1024, file);
     let decoder = ZstdDecoder::new(buf_reader)?;

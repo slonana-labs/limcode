@@ -7,7 +7,7 @@
 //! Run with: cargo run --release --features solana --example snapshot_demo
 
 #[cfg(feature = "solana")]
-use limcode::snapshot::{stream_snapshot, parse_snapshot, extract_snapshot, SnapshotAccount};
+use limcode::snapshot::{extract_snapshot, parse_snapshot, stream_snapshot, SnapshotAccount};
 
 #[cfg(feature = "solana")]
 fn main() -> std::io::Result<()> {
@@ -99,7 +99,8 @@ fn print_account(index: usize, account: &SnapshotAccount) {
 
 #[cfg(feature = "solana")]
 fn hex_string(bytes: &[u8]) -> String {
-    bytes.iter()
+    bytes
+        .iter()
         .map(|b| format!("{:02x}", b))
         .collect::<String>()
 }

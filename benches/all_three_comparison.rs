@@ -1,10 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use solana_sdk::{
-    hash::Hash,
-    pubkey::Pubkey,
-    signature::Signature,
-    transaction::Transaction,
-    system_instruction,
+    hash::Hash, pubkey::Pubkey, signature::Signature, system_instruction, transaction::Transaction,
 };
 
 fn create_simple_transfer() -> Vec<u8> {

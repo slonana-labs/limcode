@@ -43,13 +43,13 @@ pub use serializer::{serialize_pod_async, serialize_pod_batch_async};
 
 // Migration features (optional)
 #[cfg(feature = "compression")]
-pub use serializer::{serialize_pod_compressed, deserialize_pod_compressed};
+pub use serializer::{deserialize_pod_compressed, serialize_pod_compressed};
 
 #[cfg(feature = "checksum")]
-pub use serializer::{serialize_pod_with_checksum, deserialize_pod_with_checksum};
+pub use serializer::{deserialize_pod_with_checksum, serialize_pod_with_checksum};
 
 #[cfg(all(feature = "compression", feature = "checksum"))]
-pub use serializer::{serialize_pod_safe, deserialize_pod_safe};
+pub use serializer::{deserialize_pod_safe, serialize_pod_safe};
 
 // ==================== FFI Bindings ====================
 

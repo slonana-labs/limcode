@@ -1,11 +1,7 @@
 //! Test C++ limcode vs bincode with real Solana transaction data
 
 use solana_sdk::{
-    hash::Hash,
-    pubkey::Pubkey,
-    signature::Signature,
-    transaction::Transaction,
-    system_instruction,
+    hash::Hash, pubkey::Pubkey, signature::Signature, system_instruction, transaction::Transaction,
 };
 use std::fs;
 
@@ -15,10 +11,7 @@ fn create_simple_transfer() -> Transaction {
 
     let instruction = system_instruction::transfer(&payer, &recipient, 1000000);
 
-    Transaction::new_with_payer(
-        &[instruction],
-        Some(&payer),
-    )
+    Transaction::new_with_payer(&[instruction], Some(&payer))
 }
 
 fn main() {

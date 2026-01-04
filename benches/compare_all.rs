@@ -140,7 +140,9 @@ fn main() {
     println!("|--------|---------|------------------|--------------------|");
 
     for (num_elements, name, iterations) in configs {
-        let data: Vec<u64> = (0..num_elements).map(|i| 0xABCDEF0123456789u64 + i).collect();
+        let data: Vec<u64> = (0..num_elements)
+            .map(|i| 0xABCDEF0123456789u64 + i)
+            .collect();
 
         // Test bincode
         let bincode_result = benchmark_bincode(&data, iterations);

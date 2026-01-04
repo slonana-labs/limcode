@@ -4,8 +4,7 @@ use std::fs;
 
 fn validate_file(filename: &str, data: &[u64]) {
     // Read C++ limcode output
-    let cpp_bytes = fs::read(filename)
-        .expect(&format!("Failed to read {}", filename));
+    let cpp_bytes = fs::read(filename).expect(&format!("Failed to read {}", filename));
 
     // Generate Rust wincode output
     let wincode_bytes = wincode::serialize(data).unwrap();
@@ -21,14 +20,23 @@ fn validate_file(filename: &str, data: &[u64]) {
         // Show first difference
         for (i, (c, w)) in cpp_bytes.iter().zip(wincode_bytes.iter()).enumerate() {
             if c != w {
-                println!("  First diff at byte {}: cpp={:#04x}, wincode={:#04x}", i, c, w);
+                println!(
+                    "  First diff at byte {}: cpp={:#04x}, wincode={:#04x}",
+                    i, c, w
+                );
                 break;
             }
         }
 
         // Show first few bytes
-        println!("  C++ first 16 bytes: {:02x?}", &cpp_bytes[..cpp_bytes.len().min(16)]);
-        println!("  Wincode first 16 bytes: {:02x?}", &wincode_bytes[..wincode_bytes.len().min(16)]);
+        println!(
+            "  C++ first 16 bytes: {:02x?}",
+            &cpp_bytes[..cpp_bytes.len().min(16)]
+        );
+        println!(
+            "  Wincode first 16 bytes: {:02x?}",
+            &wincode_bytes[..wincode_bytes.len().min(16)]
+        );
 
         panic!("Validation failed!");
     }

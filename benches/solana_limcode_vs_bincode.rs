@@ -1,11 +1,11 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use solana_sdk::{
     hash::Hash,
+    instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
     signature::Signature,
-    transaction::Transaction,
     system_instruction,
-    instruction::{Instruction, AccountMeta},
+    transaction::Transaction,
 };
 
 fn create_simple_transfer() -> Transaction {
@@ -102,19 +102,24 @@ fn bench_batch(c: &mut Criterion) {
 
     for batch_size in [10, 100, 1000].iter() {
         let txs: Vec<Transaction> = (0..*batch_size).map(|_| create_simple_transfer()).collect();
-        let total_size: usize = txs.iter()
+        let total_size: usize = txs
+            .iter()
             .map(|tx| bincode::serialize(tx).unwrap().len())
             .sum();
 
         group.throughput(Throughput::Bytes(total_size as u64));
-        group.bench_with_input(BenchmarkId::new("bincode", batch_size), batch_size, |b, _| {
-            b.iter(|| {
-                for tx in &txs {
-                    let bytes = bincode::serialize(black_box(tx)).unwrap();
-                    black_box(bytes);
-                }
-            });
-        });
+        group.bench_with_input(
+            BenchmarkId::new("bincode", batch_size),
+            batch_size,
+            |b, _| {
+                b.iter(|| {
+                    for tx in &txs {
+                        let bytes = bincode::serialize(black_box(tx)).unwrap();
+                        black_box(bytes);
+                    }
+                });
+            },
+        );
     }
 
     group.finish();

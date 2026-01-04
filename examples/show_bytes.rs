@@ -9,8 +9,11 @@ fn main() {
     println!("Rust wincode: {:02x?}", &wincode_bytes[..32]);
 
     println!("\nLast 32 bytes comparison:");
-    println!("C++ limcode: {:02x?}", &cpp[cpp.len()-32..]);
-    println!("Rust wincode: {:02x?}", &wincode_bytes[wincode_bytes.len()-32..]);
+    println!("C++ limcode: {:02x?}", &cpp[cpp.len() - 32..]);
+    println!(
+        "Rust wincode: {:02x?}",
+        &wincode_bytes[wincode_bytes.len() - 32..]
+    );
 
     println!("\nByte-by-byte check:");
     let mut diffs = 0;
@@ -22,7 +25,10 @@ fn main() {
     }
 
     if diffs == 0 {
-        println!("✅ All {} bytes are IDENTICAL (actual values, not just length)", cpp.len());
+        println!(
+            "✅ All {} bytes are IDENTICAL (actual values, not just length)",
+            cpp.len()
+        );
     } else {
         println!("❌ Found {} differences out of {} bytes", diffs, cpp.len());
     }
