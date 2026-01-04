@@ -170,29 +170,78 @@ int64_t stream_snapshot(const std::string& snapshot_path,
     return total_accounts;
 }
 
+// OPTIMIZED: Direct parsing without callback overhead
 int64_t parse_snapshot_stats(const std::string& snapshot_path, SnapshotStats& stats) {
     auto start = std::chrono::high_resolution_clock::now();
 
-    int64_t count = stream_snapshot(snapshot_path, [&stats](const SnapshotAccount& acc) {
-        stats.total_accounts++;
-        stats.total_lamports += acc.lamports;
-        stats.total_data_bytes += acc.data.size();
+    struct archive* a = archive_read_new();
+    archive_read_support_filter_zstd(a);
+    archive_read_support_format_tar(a);
 
-        if (acc.executable) {
-            stats.executable_accounts++;
+    if (archive_read_open_filename(a, snapshot_path.c_str(), 10240) != ARCHIVE_OK) {
+        archive_read_free(a);
+        return -1;
+    }
+
+    int64_t total_accounts = 0;
+    struct archive_entry* entry;
+    constexpr size_t HEADER_SIZE = sizeof(AppendVecHeader);
+
+    while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+        const char* pathname = archive_entry_pathname(entry);
+
+        // Look for AppendVec files in accounts/ directory
+        if (std::strncmp(pathname, "accounts/", 9) == 0) {
+            // Read entire AppendVec file
+            size_t size = archive_entry_size(entry);
+            std::vector<uint8_t> buffer(size);
+
+            ssize_t bytes_read = archive_read_data(a, buffer.data(), size);
+            if (bytes_read > 0) {
+                // Parse accounts directly (no callback overhead)
+                const uint8_t* data = buffer.data();
+                size_t offset = 0;
+
+                while (offset + HEADER_SIZE <= static_cast<size_t>(bytes_read)) {
+                    const auto* header = reinterpret_cast<const AppendVecHeader*>(data + offset);
+
+                    if (offset + HEADER_SIZE + header->data_len > static_cast<size_t>(bytes_read)) {
+                        break;
+                    }
+
+                    // Update stats directly (FAST PATH)
+                    stats.total_accounts++;
+                    stats.total_lamports += header->lamports;
+                    stats.total_data_bytes += header->data_len;
+
+                    if (header->executable) {
+                        stats.executable_accounts++;
+                    }
+
+                    if (header->data_len > stats.max_data_size) {
+                        stats.max_data_size = header->data_len;
+                    }
+
+                    offset += HEADER_SIZE + header->data_len;
+
+                    // 8-byte alignment
+                    size_t padding = (8 - (offset % 8)) % 8;
+                    offset += padding;
+
+                    total_accounts++;
+                }
+            }
         }
 
-        if (acc.data.size() > stats.max_data_size) {
-            stats.max_data_size = acc.data.size();
-        }
+        archive_read_data_skip(a);
+    }
 
-        return true; // Continue processing
-    });
+    archive_read_free(a);
 
     auto end = std::chrono::high_resolution_clock::now();
     stats.parse_time_seconds = std::chrono::duration<double>(end - start).count();
 
-    return count;
+    return total_accounts;
 }
 
 } // namespace snapshot
