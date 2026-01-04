@@ -106,6 +106,25 @@ target_include_directories(limcode_benchmark_ffi PUBLIC
 )
 target_link_libraries(limcode_benchmark_ffi PUBLIC limcode)
 
+# Solana snapshot parser library (requires libarchive)
+find_package(PkgConfig)
+if(PkgConfig_FOUND)
+  pkg_check_modules(LIBARCHIVE libarchive)
+  if(LIBARCHIVE_FOUND)
+    add_library(limcode_snapshot STATIC src/snapshot.cpp)
+    target_include_directories(limcode_snapshot PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:include>
+      ${LIBARCHIVE_INCLUDE_DIRS}
+    )
+    target_link_libraries(limcode_snapshot PUBLIC limcode ${LIBARCHIVE_LIBRARIES})
+    target_compile_options(limcode_snapshot PRIVATE ${LIBARCHIVE_CFLAGS_OTHER})
+    message(STATUS "Solana snapshot support enabled (libarchive found)")
+  else()
+    message(STATUS "Solana snapshot support disabled (libarchive not found)")
+  endif()
+endif()
+
 # Performance benchmark
 add_executable(bench benchmark/bench.cpp)
 target_link_libraries(bench PRIVATE limcode)
@@ -125,6 +144,12 @@ endif()
 # True theoretical maximum (optimized with NT stores, prefetch, RDTSC)
 add_executable(bench_true_maximum benchmark/bench_true_maximum.cpp)
 target_link_libraries(bench_true_maximum PRIVATE limcode)
+
+# C++ Snapshot parser test (requires libarchive)
+if(LIBARCHIVE_FOUND)
+  add_executable(cpp_snapshot_test benchmark/cpp_snapshot_test.cpp)
+  target_link_libraries(cpp_snapshot_test PRIVATE limcode_snapshot)
+endif()
 
 # Tests
 enable_testing()

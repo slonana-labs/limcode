@@ -198,6 +198,19 @@ limcode_benchmark_ffi/fast:
 .PHONY : limcode_benchmark_ffi/fast
 
 #=============================================================================
+# Target rules for targets named limcode_snapshot
+
+# Build rule for target.
+limcode_snapshot: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 limcode_snapshot
+.PHONY : limcode_snapshot
+
+# fast build rule for target.
+limcode_snapshot/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/limcode_snapshot.dir/build.make CMakeFiles/limcode_snapshot.dir/build
+.PHONY : limcode_snapshot/fast
+
+#=============================================================================
 # Target rules for targets named bench
 
 # Build rule for target.
@@ -248,6 +261,19 @@ bench_true_maximum: cmake_check_build_system
 bench_true_maximum/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/bench_true_maximum.dir/build.make CMakeFiles/bench_true_maximum.dir/build
 .PHONY : bench_true_maximum/fast
+
+#=============================================================================
+# Target rules for targets named cpp_snapshot_test
+
+# Build rule for target.
+cpp_snapshot_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cpp_snapshot_test
+.PHONY : cpp_snapshot_test
+
+# fast build rule for target.
+cpp_snapshot_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_snapshot_test.dir/build.make CMakeFiles/cpp_snapshot_test.dir/build
+.PHONY : cpp_snapshot_test/fast
 
 #=============================================================================
 # Target rules for targets named limcode_tests
@@ -371,6 +397,30 @@ benchmark/benchmark_pure_cpp.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_pure_cpp.dir/build.make CMakeFiles/benchmark_pure_cpp.dir/benchmark/benchmark_pure_cpp.cpp.s
 .PHONY : benchmark/benchmark_pure_cpp.cpp.s
 
+benchmark/cpp_snapshot_test.o: benchmark/cpp_snapshot_test.cpp.o
+.PHONY : benchmark/cpp_snapshot_test.o
+
+# target to build an object file
+benchmark/cpp_snapshot_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_snapshot_test.dir/build.make CMakeFiles/cpp_snapshot_test.dir/benchmark/cpp_snapshot_test.cpp.o
+.PHONY : benchmark/cpp_snapshot_test.cpp.o
+
+benchmark/cpp_snapshot_test.i: benchmark/cpp_snapshot_test.cpp.i
+.PHONY : benchmark/cpp_snapshot_test.i
+
+# target to preprocess a source file
+benchmark/cpp_snapshot_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_snapshot_test.dir/build.make CMakeFiles/cpp_snapshot_test.dir/benchmark/cpp_snapshot_test.cpp.i
+.PHONY : benchmark/cpp_snapshot_test.cpp.i
+
+benchmark/cpp_snapshot_test.s: benchmark/cpp_snapshot_test.cpp.s
+.PHONY : benchmark/cpp_snapshot_test.s
+
+# target to generate assembly for a file
+benchmark/cpp_snapshot_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_snapshot_test.dir/build.make CMakeFiles/cpp_snapshot_test.dir/benchmark/cpp_snapshot_test.cpp.s
+.PHONY : benchmark/cpp_snapshot_test.cpp.s
+
 src/limcode_benchmark_ffi.o: src/limcode_benchmark_ffi.cpp.o
 .PHONY : src/limcode_benchmark_ffi.o
 
@@ -418,6 +468,30 @@ src/limcode_ffi.s: src/limcode_ffi.cpp.s
 src/limcode_ffi.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/limcode_ffi.dir/build.make CMakeFiles/limcode_ffi.dir/src/limcode_ffi.cpp.s
 .PHONY : src/limcode_ffi.cpp.s
+
+src/snapshot.o: src/snapshot.cpp.o
+.PHONY : src/snapshot.o
+
+# target to build an object file
+src/snapshot.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/limcode_snapshot.dir/build.make CMakeFiles/limcode_snapshot.dir/src/snapshot.cpp.o
+.PHONY : src/snapshot.cpp.o
+
+src/snapshot.i: src/snapshot.cpp.i
+.PHONY : src/snapshot.i
+
+# target to preprocess a source file
+src/snapshot.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/limcode_snapshot.dir/build.make CMakeFiles/limcode_snapshot.dir/src/snapshot.cpp.i
+.PHONY : src/snapshot.cpp.i
+
+src/snapshot.s: src/snapshot.cpp.s
+.PHONY : src/snapshot.s
+
+# target to generate assembly for a file
+src/snapshot.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/limcode_snapshot.dir/build.make CMakeFiles/limcode_snapshot.dir/src/snapshot.cpp.s
+.PHONY : src/snapshot.cpp.s
 
 tests/cpp_bincode_compat.o: tests/cpp_bincode_compat.cpp.o
 .PHONY : tests/cpp_bincode_compat.o
@@ -485,8 +559,10 @@ help:
 	@echo "... bench_true_maximum"
 	@echo "... benchmark_pure_cpp"
 	@echo "... cpp_bincode_compat"
+	@echo "... cpp_snapshot_test"
 	@echo "... limcode_benchmark_ffi"
 	@echo "... limcode_ffi"
+	@echo "... limcode_snapshot"
 	@echo "... limcode_tests"
 	@echo "... benchmark/bench.o"
 	@echo "... benchmark/bench.i"
@@ -500,12 +576,18 @@ help:
 	@echo "... benchmark/benchmark_pure_cpp.o"
 	@echo "... benchmark/benchmark_pure_cpp.i"
 	@echo "... benchmark/benchmark_pure_cpp.s"
+	@echo "... benchmark/cpp_snapshot_test.o"
+	@echo "... benchmark/cpp_snapshot_test.i"
+	@echo "... benchmark/cpp_snapshot_test.s"
 	@echo "... src/limcode_benchmark_ffi.o"
 	@echo "... src/limcode_benchmark_ffi.i"
 	@echo "... src/limcode_benchmark_ffi.s"
 	@echo "... src/limcode_ffi.o"
 	@echo "... src/limcode_ffi.i"
 	@echo "... src/limcode_ffi.s"
+	@echo "... src/snapshot.o"
+	@echo "... src/snapshot.i"
+	@echo "... src/snapshot.s"
 	@echo "... tests/cpp_bincode_compat.o"
 	@echo "... tests/cpp_bincode_compat.i"
 	@echo "... tests/cpp_bincode_compat.s"
