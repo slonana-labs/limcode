@@ -104,18 +104,116 @@ let bytes = limcode::serialize(&data)?;
 let decoded: MyType = limcode::deserialize(&bytes)?;
 ```
 
-### Performance Comparison
+### From CBOR (serde_cbor / ciborium)
 
-| Format | Serialize (GB/s) | Deserialize (GB/s) | Size Overhead |
-|--------|------------------|--------------------| --------------|
-| **limcode** | **147.91** | **129.37** | Minimal (8-byte header) |
-| bincode | 15.96 | 15.92 | Minimal |
-| wincode | 71.72 | Zero-copy* | Minimal |
-| serde_json | ~0.5 | ~0.3 | Large (text) |
-| postcard | ~20 | ~25 | Minimal |
-| MessagePack | ~10 | ~12 | Minimal |
+**Rust:**
+```rust
+// Before
+use serde_cbor;
+let bytes = serde_cbor::to_vec(&data)?;
+let decoded: MyType = serde_cbor::from_slice(&bytes)?;
 
-*Benchmark @ 1KB data. See [Performance](#performance) for full results.*
+// After (much faster, simpler)
+use limcode;
+let bytes = limcode::serialize(&data)?;
+let decoded: MyType = limcode::deserialize(&bytes)?;
+```
+
+### From Protocol Buffers (prost)
+
+**Rust:**
+```rust
+// Before (requires .proto files and codegen)
+use prost::Message;
+let mut buf = Vec::new();
+data.encode(&mut buf)?;
+let decoded = MyType::decode(&buf[..])?;
+
+// After (no codegen needed, simpler)
+use limcode;
+let bytes = limcode::serialize(&data)?;
+let decoded: MyType = limcode::deserialize(&bytes)?;
+```
+
+**C++:**
+```cpp
+// Before: Using protobuf with generated code
+#include "mytype.pb.h"
+MyType msg;
+std::string serialized;
+msg.SerializeToString(&serialized);
+
+// After: Direct serialization, no codegen
+#include <limcode/limcode.h>
+limcode::serialize(data, len, buffer);
+limcode::deserialize(buffer, data, &len);
+```
+
+### From BSON (serde_bson)
+
+**Rust:**
+```rust
+// Before (MongoDB format, larger overhead)
+use bson;
+let bytes = bson::to_vec(&data)?;
+let decoded: MyType = bson::from_slice(&bytes)?;
+
+// After (smaller, faster)
+use limcode;
+let bytes = limcode::serialize(&data)?;
+let decoded: MyType = limcode::deserialize(&bytes)?;
+```
+
+### From Cap'n Proto / FlatBuffers
+
+**Rust:**
+```rust
+// Before: Zero-copy but requires schema and codegen
+// Complex API with builders and readers
+
+// After: Simple API, automatic multithreading
+use limcode;
+let bytes = limcode::serialize(&data)?;  // Simpler, no schema
+let decoded: MyType = limcode::deserialize(&bytes)?;
+```
+
+**C++:**
+```cpp
+// Before: FlatBuffers with schema compiler
+#include "myschema_generated.h"
+flatbuffers::FlatBufferBuilder builder;
+// ... complex builder API
+
+// After: Direct, no schema needed
+#include <limcode/limcode.h>
+limcode::serialize(data, len, buffer);  // One line!
+limcode::deserialize(buffer, data, &len);
+```
+
+### Performance Comparison (Top 10 Formats)
+
+| Format | Serialize (GB/s) | Deserialize (GB/s) | Size Overhead | Schema Required |
+|--------|------------------|--------------------| --------------| ----------------|
+| **limcode** | **147.91** | **129.37** | Minimal (8B) | ❌ No |
+| bincode | 15.96 | 15.92 | Minimal | ❌ No |
+| wincode | 71.72 | Zero-copy* | Minimal | ❌ No |
+| postcard | ~20 | ~25 | Minimal | ❌ No |
+| MessagePack | ~10 | ~12 | Small | ❌ No |
+| CBOR | ~8 | ~10 | Medium | ❌ No |
+| Protocol Buffers | ~15 | ~20 | Medium | ✅ Yes (.proto) |
+| BSON | ~5 | ~7 | Large | ❌ No |
+| Cap'n Proto | ~30 | Zero-copy* | Large | ✅ Yes (.capnp) |
+| FlatBuffers | ~25 | Zero-copy* | Large | ✅ Yes (.fbs) |
+| serde_json | ~0.5 | ~0.3 | Very large | ❌ No |
+
+*Benchmark @ 1KB data. Zero-copy formats return references, not owned data. See [Performance](#performance) for full results.*
+
+**Key advantages of limcode:**
+- 🚀 **9-100x faster** than most formats
+- 🎯 **No schema/codegen** required (unlike protobuf, Cap'n Proto, FlatBuffers)
+- 🔄 **Bincode-compatible** - drop-in replacement
+- 🧵 **Automatic multithreading** for large data (≥64MB)
+- 💻 **Native C++ and Rust** support
 
 ### Migration Checklist
 
