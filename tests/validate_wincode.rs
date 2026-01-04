@@ -1,6 +1,5 @@
 //! Validate limcode output is byte-identical to wincode
 
-
 #[test]
 fn test_u64_vec_1kb() {
     let data: Vec<u64> = vec![0xABCDEF0123456789; 128];
