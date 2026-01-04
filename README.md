@@ -148,7 +148,22 @@ limcode::serialize_pod_into<T>(&value, &mut buf) -> Result<()>  // Zero-copy
 limcode::deserialize_pod<T>(&bytes) -> Result<T>
 ```
 
-### C++
+### C++ (Simple API)
+
+```cpp
+#include <limcode/limcode.h>
+
+// Serialize (automatic multithreading for ≥64MB)
+uint64_t data[1000];
+uint8_t buffer[8008];
+limcode::serialize(data, 1000, buffer);
+
+// Deserialize (automatic multithreading for ≥64MB)
+size_t len;
+limcode::deserialize(buffer, data, &len);
+```
+
+### C++ (Advanced API)
 
 ```cpp
 #include <limcode/limcode.h>
