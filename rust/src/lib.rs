@@ -19,6 +19,9 @@ pub mod deserializer;
 pub mod serializer;
 pub mod ultra_fast;
 
+#[cfg(feature = "solana")]
+pub mod snapshot;
+
 // Re-export main API
 pub use deserializer::{
     deserialize, deserialize_pod, deserialize_pod_borrowed, from_bytes, Error as DeError,
