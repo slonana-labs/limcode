@@ -11,6 +11,7 @@ fn main() {
     build
         .cpp(true)
         .file("src/limcode_ffi.cpp")
+        .file("src/limcode_benchmark_ffi.cpp")
         .include("include")
         .opt_level(3)
         .flag_if_supported("-std=c++20")
@@ -60,6 +61,7 @@ fn main() {
     build.compile("limcode");
 
     println!("cargo:rerun-if-changed=src/limcode_ffi.cpp");
+    println!("cargo:rerun-if-changed=src/limcode_benchmark_ffi.cpp");
     println!("cargo:rerun-if-changed=include/limcode_ffi.h");
     println!("cargo:rerun-if-changed=include/limcode.h");
     println!("cargo:rerun-if-changed=include/limcode/limcode.h");

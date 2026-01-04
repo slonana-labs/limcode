@@ -546,11 +546,11 @@ pub fn serialize_vec_parallel<T: Serialize + Sync>(vec: &Vec<T>) -> Result<Vec<u
 /// This is the FASTEST option for high-throughput scenarios where you process
 /// many serialization operations - reuses the same buffer to avoid allocation overhead.
 ///
-/// **Automatic multithreading:** For data ≥64MB, automatically spawns up to 16 threads
-/// for maximum throughput (matches C++ implementation).
-///
 /// **Performance:** Up to **10x faster** than serialize_pod() for repeated operations
 /// (eliminates 64MB+ Vec allocation overhead)
+///
+/// **Note:** This is single-threaded (optimal for memory-bandwidth-bound operations).
+/// For batch workloads with many concurrent operations, use `serialize_pod_parallel()`.
 ///
 /// ```
 /// # use limcode::{serialize_pod_into, SerError};
@@ -569,12 +569,9 @@ pub fn serialize_vec_parallel<T: Serialize + Sync>(vec: &Vec<T>) -> Result<Vec<u
 /// # }
 /// ```
 #[inline]
-pub fn serialize_pod_into<T: PodType + Sync>(vec: &[T], buf: &mut Vec<u8>) -> Result<(), Error> {
+pub fn serialize_pod_into<T: PodType>(vec: &[T], buf: &mut Vec<u8>) -> Result<(), Error> {
     let byte_len = std::mem::size_of_val(vec);
     let total_len = 8 + byte_len;
-
-    // Automatic multithreading threshold (same as C++: 64MB)
-    const PARALLEL_THRESHOLD: usize = 64 * 1024 * 1024;
 
     // Ensure capacity (may reuse existing allocation)
     buf.clear();
@@ -594,51 +591,13 @@ pub fn serialize_pod_into<T: PodType + Sync>(vec: &[T], buf: &mut Vec<u8>) -> Re
         // Get source data as bytes
         let src = vec.as_ptr() as *const u8;
 
-        // Automatic multithreading for very large data (≥64MB)
-        if byte_len >= PARALLEL_THRESHOLD {
-            let num_threads = std::thread::available_parallelism()
-                .map(|n| n.get().min(16))
-                .unwrap_or(2);
-
-            let chunk_size = (byte_len / num_threads / 64) * 64; // Align to 64 bytes
-
-            // Convert pointers to usize (Send-safe)
-            let src_addr = src as usize;
-            let dst_addr = ptr.add(8) as usize;
-
-            let handles: Vec<_> = (0..num_threads)
-                .filter_map(|i| {
-                    let start = i * chunk_size;
-                    let end = if i == num_threads - 1 {
-                        byte_len
-                    } else {
-                        (i + 1) * chunk_size
-                    };
-
-                    if start < byte_len {
-                        Some(std::thread::spawn(move || {
-                            let thread_src = (src_addr + start) as *const u8;
-                            let thread_dst = (dst_addr + start) as *mut u8;
-                            std::ptr::copy_nonoverlapping(thread_src, thread_dst, end - start);
-                        }))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-
-            for handle in handles {
-                handle.join().unwrap();
-            }
+        // Size-adaptive copy strategy (single-threaded - optimal for memory bandwidth bound)
+        if byte_len <= 65536 {
+            // Small/medium (≤64KB): use standard memcpy (fast, stays in cache)
+            std::ptr::copy_nonoverlapping(src, ptr.add(8), byte_len);
         } else {
-            // Size-adaptive copy strategy (single-threaded)
-            if byte_len <= 65536 {
-                // Small/medium (≤64KB): use standard memcpy (fast, stays in cache)
-                std::ptr::copy_nonoverlapping(src, ptr.add(8), byte_len);
-            } else {
-                // Large (>64KB, <64MB): use non-temporal stores (bypass cache, maximize bandwidth)
-                fast_nt_memcpy(ptr.add(8), src, byte_len);
-            }
+            // Large (>64KB): use non-temporal stores (bypass cache, maximize bandwidth)
+            fast_nt_memcpy(ptr.add(8), src, byte_len);
         }
 
         buf.set_len(total_len);
@@ -652,16 +611,17 @@ pub fn serialize_pod_into<T: PodType + Sync>(vec: &[T], buf: &mut Vec<u8>) -> Re
 ///
 /// Strategy (size-based optimization):
 /// - Small (≤64KB): Standard memcpy (fast, stays in cache)
-/// - Large (64KB-64MB): Non-temporal stores (bypass cache)
-/// - Very Large (≥64MB): Automatic multithreading (up to 16 threads)
+/// - Large (>64KB): Non-temporal stores (bypass cache, maximize bandwidth)
 ///
 /// For very large allocations (>16MB), we prefault memory pages to reduce
 /// page fault overhead during the copy operation.
 ///
 /// **Note:** For repeated operations, use `serialize_pod_into()` with a reusable
 /// buffer for up to **10x better performance** (avoids allocation overhead).
+///
+/// For batch workloads with many concurrent operations, use `serialize_pod_parallel()`.
 #[inline]
-pub fn serialize_pod<T: PodType + Sync>(vec: &[T]) -> Result<Vec<u8>, Error> {
+pub fn serialize_pod<T: PodType>(vec: &[T]) -> Result<Vec<u8>, Error> {
     let mut result = Vec::new();
     serialize_pod_into(vec, &mut result)?;
     Ok(result)

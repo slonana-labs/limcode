@@ -98,9 +98,33 @@ target_include_directories(limcode_ffi PUBLIC
 )
 target_link_libraries(limcode_ffi PUBLIC limcode)
 
+# FFI library for Rust benchmarks (static library)
+add_library(limcode_benchmark_ffi STATIC src/limcode_benchmark_ffi.cpp)
+target_include_directories(limcode_benchmark_ffi PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(limcode_benchmark_ffi PUBLIC limcode)
+
 # Performance benchmark
 add_executable(bench benchmark/bench.cpp)
 target_link_libraries(bench PRIVATE limcode)
+
+# Pure C++ benchmark (theoretical maximum performance)
+add_executable(benchmark_pure_cpp benchmark/benchmark_pure_cpp.cpp)
+target_link_libraries(benchmark_pure_cpp PRIVATE limcode)
+
+# Theoretical maximum benchmark (AVX-512 16x unrolling + OpenMP)
+add_executable(bench_theoretical_max benchmark/bench_theoretical_max.cpp)
+target_link_libraries(bench_theoretical_max PRIVATE limcode)
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(bench_theoretical_max PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
+# True theoretical maximum (optimized with NT stores, prefetch, RDTSC)
+add_executable(bench_true_maximum benchmark/bench_true_maximum.cpp)
+target_link_libraries(bench_true_maximum PRIVATE limcode)
 
 # Tests
 enable_testing()
